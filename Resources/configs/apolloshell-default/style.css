@@ -119,8 +119,6 @@
 
 #dash { background: var(--gl); }
 .strip { width: 1100px; height: 1px; }
-.ghost { padding: 0; }
-.ghd { width: 1100px; height: 760px; }
 .drw { padding: 10px 16px 16px; border-radius: var(--rx); -apollo-join-radius: 26px; background: var(--gl); transition: size 0.5s var(--sp); }
 .dash { gap: 0; }
 .tabs { gap: 4px; }
@@ -294,7 +292,6 @@
 
 #launcher { background: var(--gl); }
 .lstrip { width: 760px; }
-.ghl { width: 700px; height: 560px; }
 .lch { padding: 10px; }
 .lbody { width: 600px; gap: 2px; }
 .lr { width: 600px; height: 56px; border-radius: 16px; }
@@ -321,7 +318,6 @@
 
 #sess { background: var(--gl); }
 .vstrip { width: 1px; height: 640px; }
-.ghs { width: 150px; height: 600px; }
 .sdrw { padding: 14px; }
 .scol { gap: 12px; align-items: center; }
 .sb { width: 76px; height: 76px; border-radius: 24px; background: var(--f2); align-items: center; justify-content: center; transition: background 0.3s var(--fx), transform 0.4s var(--sp); }
@@ -336,7 +332,6 @@
 
 #cc { background: var(--gl); }
 .cstrip { width: 520px; }
-.ghc { width: 420px; height: 620px; }
 .ccd { padding: 16px; }
 .ccw { width: 360px; gap: 14px; }
 .cchd { gap: 10px; align-items: center; }

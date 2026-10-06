@@ -462,11 +462,10 @@ define "wxk" {
 }
 
 popup "dash" anchor="top" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" {
-    on-open { set "cal" 0; set "drdy" #false; wait "80ms"; set "dop" #true; wait "110ms"; set "dsh" #true; wait "410ms"; set "drdy" #true }
+    on-open { set "cal" 0; set "drdy" #false; set "dop" #true; wait "110ms"; set "dsh" #true; wait "410ms"; set "drdy" #true }
     key "escape" { emit "dx" }
     key "tab" { set "dt" "{var.dt == 'dash' ? 'media' : (var.dt == 'media' ? 'perf' : (var.dt == 'perf' ? 'wx' : 'dash'))}" }
     row id="dA" class="strip"
-    flyout anchor="dA" open=#true side="bottom" join=#false class="ghost" { stack class="ghd" }
     flyout anchor="dA" open="{var.dop}" side="bottom" class="drw dash" {
         on-close { emit "dxo" }
         column class="gate gdash" checked="{var.dsh}" {

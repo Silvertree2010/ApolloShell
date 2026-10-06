@@ -15,13 +15,12 @@ var srdy #false
 var ssh #false
 
 popup "sess" anchor="right" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-x=-1 close-on="escape" group="edge" click-through="auto" keyboard=#true {
-    on-open { set "ssel" "lock"; set "srdy" #false; wait "80ms"; set "sop" #true; wait "110ms"; set "ssh" #true; wait "410ms"; set "srdy" #true }
+    on-open { set "ssel" "lock"; set "srdy" #false; set "sop" #true; wait "110ms"; set "ssh" #true; wait "410ms"; set "srdy" #true }
     key "escape" { emit "sx" }
     key "down" { set "ssel" "{var.ssel == 'lock' ? 'logout' : (var.ssel == 'logout' ? 'sleep' : (var.ssel == 'sleep' ? 'restart' : (var.ssel == 'restart' ? 'shutdown' : 'lock')))}" }
     key "up" { set "ssel" "{var.ssel == 'shutdown' ? 'restart' : (var.ssel == 'restart' ? 'sleep' : (var.ssel == 'sleep' ? 'logout' : (var.ssel == 'logout' ? 'lock' : 'shutdown')))}" }
     key "return" { emit "srun" }
     column id="sA" class="vstrip"
-    flyout anchor="sA" open=#true side="left" join=#false class="ghost" { stack class="ghs" }
     flyout anchor="sA" open="{var.sop}" side="left" class="drw sdrw" {
         on-close { emit "sxo" }
         column class="gate gsess" checked="{var.ssh}" {

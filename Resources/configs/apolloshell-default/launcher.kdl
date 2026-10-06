@@ -60,13 +60,12 @@ define "lrow" {
 }
 
 popup "launcher" anchor="bottom" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" keyboard=#true {
-    on-open { set "q" ""; set "sel" 0; set "arm" ""; set "lrdy" #false; set "lf" #true; wait "100ms"; set "lop" #true; wait "110ms"; set "lsh" #true; wait "410ms"; set "lrdy" #true }
+    on-open { set "q" ""; set "sel" 0; set "arm" ""; set "lrdy" #false; set "lf" #true; set "lop" #true; wait "110ms"; set "lsh" #true; wait "410ms"; set "lrdy" #true }
     key "escape" { emit "lx" }
     key "down" { set "sel" "{(var.sel + 1) % (var.lcount | max 1)}" }
     key "up" { set "sel" "{(var.sel - 1 + (var.lcount | max 1)) % (var.lcount | max 1)}" }
     key "tab" { set "sel" "{(var.sel + 1) % (var.lcount | max 1)}" }
     row id="lA" class="strip lstrip"
-    flyout anchor="lA" open=#true side="top" join=#false class="ghost" { stack class="ghl" }
     flyout anchor="lA" open="{var.lop}" side="top" class="drw lch" {
         on-close { emit "lxo" }
         column class="gate glch" checked="{var.lsh}" {

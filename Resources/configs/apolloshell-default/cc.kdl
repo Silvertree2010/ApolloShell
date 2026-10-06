@@ -33,10 +33,9 @@ define "cslider" {
 }
 
 popup "cc" anchor="bottom-right" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" {
-    on-open { set "crdy" #false; wait "80ms"; set "cop" #true; wait "110ms"; set "csh" #true; wait "410ms"; set "crdy" #true }
+    on-open { set "crdy" #false; set "cop" #true; wait "110ms"; set "csh" #true; wait "410ms"; set "crdy" #true }
     key "escape" { emit "cx" }
     row id="cA" class="strip cstrip"
-    flyout anchor="cA" open=#true side="top" join=#false class="ghost" { stack class="ghc" }
     flyout anchor="cA" open="{var.cop}" side="top" class="drw ccd" {
         on-close { emit "cxo" }
         column class="gate gcc" checked="{var.csh}" {
