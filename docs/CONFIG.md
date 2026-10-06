@@ -1715,6 +1715,7 @@ Inserts an entry into a var list.
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `variable` | identifier | required | Name of the var list. |
+| property | `value` | value | `null` | Entry to insert; instead of children. |
 | property | `at` | number | `null` | Insert position, default at the end. |
 | property | `id-from` | string | `null` | Field holding a unique id. |
 | property | `in` | value | `null` | Acts on a list in a field of an entry. |

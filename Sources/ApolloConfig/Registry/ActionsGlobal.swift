@@ -14,6 +14,7 @@ enum ActionsGlobal {
         ActionSchema(name: "toggle-var", arguments: [S.arg("variable", .identifier, doc: "Name of the var.")], doc: "Inverts a bool value."),
         ActionSchema(name: "reset", arguments: [S.arg("variable", .identifier, doc: "Name of the var.")], doc: "Resets a var to its default value."),
         ActionSchema(name: "list.insert", arguments: [S.arg("variable", .identifier, doc: "Name of the var list.")], properties: [
+            PropertySchema(name: "value", type: .value, defaultValue: .null, doc: "Entry to insert; instead of children."),
             PropertySchema(name: "at", type: .number, defaultValue: .null, doc: "Insert position, default at the end."),
             PropertySchema(name: "id-from", type: .string, defaultValue: .null, allowsExpression: false, doc: "Field holding a unique id."),
             PropertySchema(name: "in", type: .value, defaultValue: .null, doc: "Acts on a list in a field of an entry."),
