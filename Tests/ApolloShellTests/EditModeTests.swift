@@ -49,12 +49,12 @@ struct EditModeTests {
         let h = try await start()
         defer { h.shell.shutdown() }
         let before = modules(h)
-        #expect(before.count == 9 && before.allSatisfy(\.1))
+        #expect(before.count == 10 && before.filter { !$0.1 }.map(\.0) == ["dock"])
         await ev(h, "act-edit")
         #expect(v(h, "edit") == .bool(true))
         let bar = try #require(h.runtime.surface("bar", screenKey: ShellHarness.a.key))
         let toggles = Self.all(bar.root).filter { $0.kind == "button" && $0.property("class") == .string("bmx") }
-        #expect(toggles.count == 9)
+        #expect(toggles.count == 10)
         await h.shell.assembly?.runtime.trigger("on-click", on: try #require(toggles.first).identity, event: Record())?.value
         h.settle()
         #expect(modules(h).first?.1 == false)
