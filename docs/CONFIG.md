@@ -516,7 +516,7 @@ Draws a symbol.
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 | property | `drag-value` | value | `null` | Makes the element a drag source carrying this value; on-drop accept="value" and reorderable accept="value" receive it as event.value. |
-| property | `fallback` | string | `null` | SF Symbol if the name is not found. |
+| property | `fallback` | string | `null` | SF Symbol or built-in icon (builtin:bluetooth-rune, builtin:apollo-mark, builtin:file-manager-folder) if the name is not found; without it a theme icon name uses its standard fallback. |
 | property | `variable` | number | `null` | Value 0…1 for SF Symbols with levels. |
 
 Handlers: `on-click`, `on-right-click`, `on-middle-click`, `on-double-click`, `on-long-press`, `on-scroll`, `on-hover`, `on-hover-end`, `on-drop`, `on-appear`, `on-disappear`
