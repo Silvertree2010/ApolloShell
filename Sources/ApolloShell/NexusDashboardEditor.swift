@@ -400,7 +400,7 @@ enum NexusDashboardPreviewModels {
     static let now = Date()
 
     static let dashboard = DashboardModel.preview(now: now, cpu: 0.23, memory: 0.58, storage: 0.46,
-                                                  userName: "Alex Beispiel", uptime: 11_520)
+                                                  userName: "Alex Example", uptime: 11_520)
 
     static let weather: WeatherModel = {
         let today = DayForecast(date: now, code: 2, maxTemperature: 21, minTemperature: 11,
@@ -418,7 +418,7 @@ enum NexusDashboardPreviewModels {
                                       album: String(localized: "Sample Album"),
                                       isPlaying: false, duration: 240, elapsed: 80, timestamp: now, playbackRate: 0)
         let music = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Music")
-        let source = MediaSource(name: "Musik", icon: music.map { NSWorkspace.shared.icon(forFile: $0.path) })
+        let source = MediaSource(name: "Music", icon: music.map { NSWorkspace.shared.icon(forFile: $0.path) })
         return MediaModel.preview(nowPlaying: playing, source: source, now: now)
     }()
 
