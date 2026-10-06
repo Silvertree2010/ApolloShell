@@ -763,8 +763,8 @@ Short feedback such as a volume indicator.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -805,8 +805,8 @@ Covers the whole screen, click-through by default.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -845,8 +845,8 @@ Always-visible surface such as bars, docks, desktop widgets.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -918,8 +918,8 @@ Opens and closes on an action, such as a dashboard or launcher.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -1493,8 +1493,8 @@ Defines how a notification from the toast.show action looks.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
@@ -1614,8 +1614,8 @@ A regular macOS window with a title bar.
 | property | `layer` | string | `null` | Window level, default per surface kind. |
 | property | `keyboard` | bool | `false` | Whether the surface accepts keyboard input. |
 | property | `click-through` | bool\|"auto" | `false` | Whether mouse events pass through; bool or "auto" (only not where an element with a handler or visible background lies). |
-| property | `offset-x` | number | `0` | Offset along x from the anchored position. |
-| property | `offset-y` | number | `0` | Offset along y from the anchored position. |
+| property | `offset-x` | number | `0` | Offset along x from the anchored position, away from the anchored edge; for anchors without a left or right edge (top, bottom, center) it counts from the horizontal middle, positive to the right. |
+| property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |

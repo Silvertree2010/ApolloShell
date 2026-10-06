@@ -24,6 +24,7 @@ struct SurfaceWindowSpec: Equatable {
     var sticky: Bool
     var hideInFullscreen: Bool
     var overhang: Bool
+    var full: Bool
     var safeArea: Bool
     var reserve: Bool
     var motion: String
@@ -78,6 +79,7 @@ struct SurfaceWindowSpec: Equatable {
         default: hideInFullscreen = kind == "panel"
         }
         overhang = Self.bool(property("overhang")) ?? false
+        full = (Self.text(property("area")) ?? SurfaceWindowKind.defaultArea(kind)) == "full"
         safeArea = Self.bool(property("safe-area")) ?? true
         reserve = kind == "panel" && (Self.bool(property("reserve")) ?? false)
         let anchor = Self.text(property("anchor")) ?? SurfaceWindowKind.defaultAnchor(kind)

@@ -200,7 +200,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             titled.collectionBehavior = spec.behavior
             window = titled
         } else {
-            window = HostPanel(level: spec.level, behavior: spec.behavior, takesKeyboard: spec.keyboard, mayLeaveScreen: spec.overhang || spec.animates)
+            window = HostPanel(level: spec.level, behavior: spec.behavior, takesKeyboard: spec.keyboard, mayLeaveScreen: spec.overhang || spec.animates || spec.full)
         }
         super.init()
         window.contentView = clipper
@@ -237,7 +237,7 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         self.spec = spec
         if let panel = window as? ShellPanel {
             panel.takesKeyboard = spec.keyboard
-            panel.mayLeaveScreen = spec.overhang || spec.animates
+            panel.mayLeaveScreen = leaves
         }
         if window.level != spec.level { window.level = spec.level }
         if window.collectionBehavior != spec.behavior { window.collectionBehavior = spec.behavior }
@@ -303,7 +303,12 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
         CATransaction.commit()
     }
 
-    func setBleed(_ b: EdgeInsets) { bleed = b }
+    private var leaves: Bool { spec.overhang || spec.animates || spec.full || bleed != EdgeInsets() }
+
+    func setBleed(_ b: EdgeInsets) {
+        bleed = b
+        (window as? ShellPanel)?.mayLeaveScreen = leaves
+    }
 
     private var solid: CGRect {
         let f = window.frame
