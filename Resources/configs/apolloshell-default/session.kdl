@@ -11,9 +11,10 @@ define "sb" {
 
 var ssel "lock"
 var srdy #false
+var ssh #false
 
 popup "sess" anchor="right" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-x=-1 close-on="escape" group="edge" click-through="auto" keyboard=#true {
-    on-open { set "ssel" "lock"; set "srdy" #false; wait "80ms"; set "sop" #true; wait "520ms"; set "srdy" #true }
+    on-open { set "ssel" "lock"; set "srdy" #false; wait "80ms"; set "sop" #true; wait "110ms"; set "ssh" #true; wait "410ms"; set "srdy" #true }
     key "escape" { emit "sx" }
     key "down" { set "ssel" "{var.ssel == 'lock' ? 'logout' : (var.ssel == 'logout' ? 'sleep' : (var.ssel == 'sleep' ? 'restart' : (var.ssel == 'restart' ? 'shutdown' : 'lock')))}" }
     key "up" { set "ssel" "{var.ssel == 'shutdown' ? 'restart' : (var.ssel == 'restart' ? 'sleep' : (var.ssel == 'sleep' ? 'logout' : (var.ssel == 'logout' ? 'lock' : 'shutdown')))}" }
@@ -22,25 +23,27 @@ popup "sess" anchor="right" area="full" safe-area=#false overhang=#true shape="f
     flyout anchor="sA" open=#true side="left" join=#false class="ghost" { stack class="ghs" }
     flyout anchor="sA" open="{var.sop}" side="left" class="drw sdrw" {
         on-close { emit "sxo" }
-        column class="scol" {
-            use "sb" id="lock" i="lock.fill" t="Lock"
-            use "sb" id="logout" i="session-logout" t="Log Out"
-            stack class="sem" {
-                stack class="ava sava" {
-                    when "{system.user-image != null}" { image "{system.user-image}" class="avi savi" fit="fill" }
-                    else { text "{(system.full-name ?? system.user-name) | first | upper}" class="avt" }
+        column class="gate gsess" checked="{var.ssh}" {
+            column class="scol" {
+                use "sb" id="lock" i="lock.fill" t="Lock"
+                use "sb" id="logout" i="rectangle.portrait.and.arrow.right" t="Log Out"
+                stack class="sem" {
+                    stack class="ava sava" {
+                        when "{system.user-image != null}" { image "{system.user-image}" class="avi savi" fit="fill" }
+                        else { text "{(system.full-name ?? system.user-name) | first | upper}" class="avt" }
+                    }
                 }
+                use "sb" id="sleep" i="moon.fill" t="Sleep"
+                use "sb" id="restart" i="arrow.clockwise" t="Restart"
+                use "sb" id="shutdown" i="power" t="Shut Down"
             }
-            use "sb" id="sleep" i="session-sleep" t="Sleep"
-            use "sb" id="restart" i="session-restart" t="Restart"
-            use "sb" id="shutdown" i="session-shutdown" t="Shut Down"
         }
     }
 }
 
 on "user.sess" { emit "{var.sop ? 'sx' : 'sopen'}" }
 on "user.sopen" { open "sess" }
-on "user.sx" { set "sop" #false; wait "380ms"; close "sess" }
+on "user.sx" { set "ssh" #false; wait "60ms"; set "sop" #false; wait "380ms"; close "sess" }
 on "user.sxo" when="{var.srdy}" { emit "sx" }
 on "user.srun" { emit "sx"; wait "250ms"; emit "act-{var.ssel}" }
 

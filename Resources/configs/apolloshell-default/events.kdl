@@ -1,6 +1,6 @@
 on "user.dash" { emit "{var.dop ? 'dx' : 'dopen'}" }
 on "user.dopen" { open "dash" }
-on "user.dx" { set "dop" #false; wait "380ms"; close "dash" }
+on "user.dx" { set "dsh" #false; wait "60ms"; set "dop" #false; wait "380ms"; close "dash" }
 on "user.cc" { }
 on "user.prefs" { }
 bind "{var.hk-d}" { emit "dash" }

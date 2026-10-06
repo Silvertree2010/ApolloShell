@@ -9,6 +9,7 @@ var hf #false
 var dt "dash" persist=#true
 var dop #false
 var drdy #false
+var dsh #false
 var cop #false
 var sop #false
 var lop #false

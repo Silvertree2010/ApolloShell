@@ -127,10 +127,17 @@ panel "bar" anchor="left" area="below-menubar" shape="fused" reserve=#true {
             item "Reload Config" icon="arrow.clockwise" { shell.reload-config }
         }
         on-hover-end { set "hb" #false; wait "180ms"; emit "pchk" }
-        reorderable class="bmods" axis="vertical" enabled="{var.edit}" {
-            on-reorder { list.move "bm" from="{event.from}" to="{event.to}" }
-            each m in="{var.bm}" key="{m.id}" {
-                when "{m.on || var.edit}" {
+        when "{var.edit}" {
+            reorderable class="bmods" axis="vertical" enabled=#true {
+                on-reorder { list.move "bm" from="{event.from}" to="{event.to}" }
+                each m in="{var.bm}" key="{m.id}" {
+                    use "bmod" m="{m}"
+                }
+            }
+        }
+        else {
+            column class="bmods" {
+                each m in="{var.bm | where 'on' true}" key="{m.id}" {
                     use "bmod" m="{m}"
                 }
             }

@@ -462,25 +462,27 @@ define "wxk" {
 }
 
 popup "dash" anchor="top" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" {
-    on-open { set "drdy" #false; wait "80ms"; set "dop" #true; wait "520ms"; set "drdy" #true }
+    on-open { set "drdy" #false; wait "80ms"; set "dop" #true; wait "110ms"; set "dsh" #true; wait "410ms"; set "drdy" #true }
     key "escape" { emit "dx" }
     key "tab" { set "dt" "{var.dt == 'dash' ? 'media' : (var.dt == 'media' ? 'perf' : (var.dt == 'perf' ? 'wx' : 'dash'))}" }
     row id="dA" class="strip"
     flyout anchor="dA" open=#true side="bottom" join=#false class="ghost" { stack class="ghd" }
     flyout anchor="dA" open="{var.dop}" side="bottom" class="drw dash" {
         on-close { emit "dxo" }
-        row class="tabs" {
-            use "tab" id="dash" t="Dashboard" i="square.grid.2x2"
-            use "tab" id="media" t="Media" i="music.note.list"
-            use "tab" id="perf" t="Performance" i="gauge.with.dots.needle.67percent"
-            use "tab" id="wx" t="Weather" i="cloud.sun"
-        }
-        stack class="sep"
-        switch "{var.dt}" {
-            case "dash" { use "pane-dash" }
-            case "media" { use "pane-media" }
-            case "perf" { use "pane-perf" }
-            case "wx" { use "pane-wx" }
+        column class="gate gdash" checked="{var.dsh}" {
+            row class="tabs" {
+                use "tab" id="dash" t="Dashboard" i="square.grid.2x2"
+                use "tab" id="media" t="Media" i="music.note.list"
+                use "tab" id="perf" t="Performance" i="gauge.with.dots.needle.67percent"
+                use "tab" id="wx" t="Weather" i="cloud.sun"
+            }
+            stack class="sep"
+            switch "{var.dt}" {
+                case "dash" { use "pane-dash" }
+                case "media" { use "pane-media" }
+                case "perf" { use "pane-perf" }
+                case "wx" { use "pane-wx" }
+            }
         }
     }
 }

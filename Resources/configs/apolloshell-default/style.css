@@ -64,7 +64,7 @@
 .clk { width: 32px; padding: 6px 0; gap: 0; border-radius: 16px; align-items: center; transition: background 0.2s var(--fx); }
 .clk:hover { background: var(--f1); }
 .cico { font-size: 13px; color: var(--ac); margin-bottom: 4px; }
-.cnum { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.05; -apollo-content-transition: numeric; }
+.cnum { width: 32px; text-align: center; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.05; -apollo-content-transition: numeric; }
 
 .st { width: 32px; padding: 6px 0; gap: 2px; border-radius: 16px; background: var(--f1); align-items: center; }
 .si { width: 32px; height: 26px; align-items: center; justify-content: center; }
@@ -75,7 +75,7 @@
 .bdone { width: 32px; height: 32px; border-radius: 16px; background: var(--ac); color: var(--on); align-items: center; justify-content: center; margin-top: 10px; }
 
 .pop { padding: 16px; border-radius: var(--rx); -apollo-join-radius: 18px; background: var(--gl); transition: size 0.5s var(--sp); }
-.pc { width: 300px; gap: 12px; -apollo-appear: fade 0.3s var(--fx); -apollo-disappear: fade 0.2s var(--fx); }
+.pc { width: 300px; gap: 12px; -apollo-appear: fade 0.3s var(--fx); -apollo-disappear: fade 0.1s var(--fx); }
 .pwin { width: 320px; }
 .ph { gap: 10px; align-items: center; }
 .pht { gap: 2px; flex-grow: 1; }
@@ -111,7 +111,7 @@
 .ghost { padding: 0; }
 .ghd { width: 1100px; height: 760px; }
 .drw { padding: 10px 16px 16px; border-radius: var(--rx); -apollo-join-radius: 26px; background: var(--gl); transition: size 0.5s var(--sp); }
-.dash { gap: 10px; }
+.dash { gap: 0; }
 .tabs { gap: 4px; }
 .tab { flex-grow: 1; flex-basis: 0; padding: 4px 0 0; border-radius: var(--rm); color: var(--tx2); transition: color 0.3s var(--fx); }
 .tab:hover { color: var(--tx); }
@@ -284,7 +284,7 @@
 #lnch { background: var(--gl); }
 .lstrip { width: 760px; }
 .ghl { width: 700px; height: 560px; }
-.lch { padding: 10px; gap: 8px; }
+.lch { padding: 10px; }
 .lbody { width: 600px; gap: 2px; }
 .lr { width: 600px; height: 56px; border-radius: 16px; }
 .lrw { width: 600px; height: 56px; }
@@ -440,3 +440,12 @@
 .obds { gap: 6px; align-items: center; }
 .obd { width: 7px; height: 7px; background: var(--f3); transition: width 0.5s var(--sp), background 0.3s var(--fx); }
 .obd:checked { width: 22px; background: var(--ac); }
+.ccol { gap: 0; align-items: center; width: 32px; }
+.plr { width: 100%; align-items: center; }
+.actc { gap: 5px; align-items: center; }
+.optr { gap: 10px; width: 100%; align-items: center; }
+.pmain { justify-content: start; }
+.gate { opacity: 0; transition: opacity 0.2s var(--fx); }
+.gate:checked { opacity: 1; }
+.gdash { gap: 10px; }
+.glch { gap: 8px; }

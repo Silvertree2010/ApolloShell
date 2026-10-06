@@ -1,4 +1,6 @@
 var lrdy #false
+var lf #false
+var lsh #false
 var arm ""
 var acts {
     - id="prefs" n="Settings" d="Open ApolloShell settings" i="gearshape"
@@ -58,7 +60,7 @@ define "lrow" {
 }
 
 popup "lnch" anchor="bottom" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" keyboard=#true {
-    on-open { set "q" ""; set "sel" 0; set "arm" ""; set "lrdy" #false; wait "80ms"; set "lop" #true; wait "520ms"; set "lrdy" #true }
+    on-open { set "q" ""; set "sel" 0; set "arm" ""; set "lrdy" #false; set "lf" #true; wait "100ms"; set "lop" #true; wait "110ms"; set "lsh" #true; wait "410ms"; set "lrdy" #true }
     key "escape" { emit "lx" }
     key "down" { set "sel" "{(var.sel + 1) % (var.lcount | max 1)}" }
     key "up" { set "sel" "{(var.sel - 1 + (var.lcount | max 1)) % (var.lcount | max 1)}" }
@@ -67,46 +69,48 @@ popup "lnch" anchor="bottom" area="full" safe-area=#false overhang=#true shape="
     flyout anchor="lA" open=#true side="top" join=#false class="ghost" { stack class="ghl" }
     flyout anchor="lA" open="{var.lop}" side="top" class="drw lch" {
         on-close { emit "lxo" }
-        column class="lbody" {
-            when "{var.lcalc != null}" {
-                button class="lr" checked=#true {
-                    on-click { emit "lgo" }
-                    stack class="lrw" {
-                        stack class="lhl" match-id="lhl"
-                        row class="lrc" {
-                            stack class="lai" { icon "equal" class="laic" }
-                            column class="ltx" {
-                                text "{var.lcalc}" class="ln lcalc"
-                                text "Press Return to copy" class="ld"
+        column class="gate glch" checked="{var.lsh}" {
+            column class="lbody" {
+                when "{var.lcalc != null}" {
+                    button class="lr" checked=#true {
+                        on-click { emit "lgo" }
+                        stack class="lrw" {
+                            stack class="lhl" match-id="lhl"
+                            row class="lrc" {
+                                stack class="lai" { icon "equal" class="laic" }
+                                column class="ltx" {
+                                    text "{var.lcalc}" class="ln lcalc"
+                                    text "Press Return to copy" class="ld"
+                                }
+                                spacer
+                                icon "return" class="lret"
                             }
-                            spacer
-                            icon "return" class="lret"
                         }
                     }
                 }
-            }
-            else {
-                when "{var.lcount == 0}" {
-                    column class="lempty" {
-                        icon "{var.lmode == 'act' ? 'command' : 'magnifyingglass'}" class="lei"
-                        text "{var.lmode == 'act' ? 'No matching action' : 'No apps found'}" class="sub"
+                else {
+                    when "{var.lcount == 0}" {
+                        column class="lempty" {
+                            icon "{var.lmode == 'act' ? 'command' : 'magnifyingglass'}" class="lei"
+                            text "{var.lmode == 'act' ? 'No matching action' : 'No apps found'}" class="sub"
+                        }
+                    }
+                    each it in="{var.lres}" key="{var.lmode == 'act' ? it.id : it.bundle-id}" index="ix" {
+                        use "lrow" it="{it}" ix="{ix}" act="{var.lmode == 'act'}"
                     }
                 }
-                each it in="{var.lres}" key="{var.lmode == 'act' ? it.id : it.bundle-id}" index="ix" {
-                    use "lrow" it="{it}" ix="{ix}" act="{var.lmode == 'act'}"
+            }
+            row class="lsearch" {
+                icon "{var.lmode == 'act' ? 'chevron.right' : 'magnifyingglass'}" class="lsi"
+                input bind="var.q" placeholder="Search apps, type > for actions or = to calculate" focus="{var.lf}" class="lin" {
+                    on-change { set "sel" 0; set "arm" "" }
+                    on-submit { emit "lgo" }
                 }
-            }
-        }
-        row class="lsearch" {
-            icon "{var.lmode == 'act' ? 'chevron.right' : 'magnifyingglass'}" class="lsi"
-            input bind="var.q" placeholder="Search apps, type > for actions or = to calculate" focus="{var.lop}" class="lin" {
-                on-change { set "sel" 0; set "arm" "" }
-                on-submit { emit "lgo" }
-            }
-            when "{var.q != ''}" {
-                button class="lclr" label="Clear" {
-                    on-click { set "q" "" }
-                    icon "xmark.circle.fill"
+                when "{var.q != ''}" {
+                    button class="lclr" label="Clear" {
+                        on-click { set "q" "" }
+                        icon "xmark.circle.fill"
+                    }
                 }
             }
         }
@@ -115,7 +119,7 @@ popup "lnch" anchor="bottom" area="full" safe-area=#false overhang=#true shape="
 
 on "user.lnch" { emit "{var.lop ? 'lx' : 'lopen'}" }
 on "user.lopen" { open "lnch" }
-on "user.lx" { set "lop" #false; wait "380ms"; close "lnch" }
+on "user.lx" { set "lsh" #false; set "lf" #false; wait "60ms"; set "lop" #false; wait "380ms"; close "lnch" }
 on "user.lxo" when="{var.lrdy}" { emit "lx" }
 
 on "user.lgo" when="{var.lcalc != null}" { clipboard.copy "{var.lcalc}"; toast.show title="Copied {var.lcalc}" icon="doc.on.clipboard" kind="success"; emit "lx" }
