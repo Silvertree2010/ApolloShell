@@ -50,14 +50,17 @@ final class RenderContext {
         return built
     }
 
-    func image(for source: Value) -> NSImage? {
+    func image(for source: Value, from file: String? = nil) -> NSImage? {
         switch source {
         case .image(let ref):
             return ref.source == "app-icon" ? icons.icon(for: source) : imageValue(ref)
         case .string(let path) where !path.isEmpty:
-            if let cached = images[path] { return cached }
-            guard let root = configRoot, let image = SafeImageFile.image(path, root: root) else { return nil }
-            images[path] = image
+            let dir = file.flatMap { $0.hasPrefix("/") ? URL(fileURLWithPath: $0).deletingLastPathComponent() : nil }
+            let key = (dir?.path ?? "") + "\u{0}" + path
+            if let cached = images[key] { return cached }
+            let roots = [dir, configRoot].compactMap { $0 }
+            guard let image = roots.lazy.compactMap({ SafeImageFile.image(path, root: $0) }).first else { return nil }
+            images[key] = image
             return image
         default:
             return nil

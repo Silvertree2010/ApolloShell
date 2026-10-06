@@ -20,7 +20,7 @@ enum ContentRenderers {
 
     static func image(_ element: ElementInstance, _ style: ComputedStyle, _ scope: RenderScope) -> AnyView {
         let source = element.arguments.first?.value ?? .null
-        let image = scope.context.image(for: source)
+        let image = scope.context.image(for: source, from: element.ir.span.file)
         let fit = element.property("fit").plainText ?? "fit"
         let placeholder = element.property("placeholder").plainText
         return AnyView(ImageElement(image: image, fit: fit, placeholder: placeholder, style: style, context: scope.context))

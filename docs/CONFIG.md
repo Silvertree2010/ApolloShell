@@ -531,7 +531,7 @@ Draws an image.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
-| argument | `source` | path | required | Path or image value of a provider. |
+| argument | `source` | path | required | Path, relative to the file the node is written in, else to the config folder; or image value of a provider. |
 | property | `id` | identifier | `null` | Id, unique per surface, template allowed. |
 | property | `class` | string | `null` | CSS classes, separated by spaces. |
 | property | `style` | string | `null` | CSS declarations for this node only. |
