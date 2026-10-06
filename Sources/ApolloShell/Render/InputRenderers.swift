@@ -343,7 +343,10 @@ final class KeyInterceptor {
 
 @MainActor
 final class WindowSlot {
-    weak var window: NSWindow?
+    weak var window: NSWindow? {
+        didSet { if window !== oldValue { onWindow?() } }
+    }
+    var onWindow: (@MainActor () -> Void)?
 }
 
 struct WindowSlotReader: NSViewRepresentable {
@@ -379,6 +382,12 @@ struct InputElement: View {
     @State private var slot = WindowSlot()
     @State private var watcher = VarWatcher()
     @FocusState private var focused: Bool
+    @Environment(\.elementInteractive) private var interactive
+
+    func refocus() {
+        guard element.property("focus").isTruthy, !focused, slot.window?.isKeyWindow == true else { return }
+        DispatchQueue.main.async { if !focused { focused = true } }
+    }
 
     var bindName: String? {
         guard let bind = element.property("bind").plainText, bind.hasPrefix("var.") else { return nil }
@@ -417,6 +426,7 @@ struct InputElement: View {
         .disabled(element.property("disabled").isTruthy)
         .onSubmit { context.fire("on-submit", element, Record([("value", .string(text))])) }
         .onAppear {
+            slot.onWindow = { refocus() }
             text = external
             if element.property("focus").isTruthy { focused = true }
             if let name = bindName, let runtime = context.runtime {
@@ -429,6 +439,10 @@ struct InputElement: View {
         }
         .onChange(of: external) { _, value in if value != text { text = value } }
         .onChange(of: element.property("focus").isTruthy) { _, value in if value { focused = true } }
+        .onChange(of: interactive) { _, now in if now { refocus() } }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { note in
+            if note.object as? NSWindow === slot.window { refocus() }
+        }
         .onChange(of: focused) { _, value in
             if value { element.pseudo.insert(.focus) } else { element.pseudo.remove(.focus) }
             if value, !element.ir.keyHandlers.isEmpty {
