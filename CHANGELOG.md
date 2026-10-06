@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.4.3] - 2026-10-06
+
+A patch on 0.1.4: leftover German text and a temperature unit.
+
+### Added
+
+- **Celsius or Fahrenheit.** Nexus > Dashboard has a new Units section for
+  the weather. The default follows the region set in macOS, so a US Mac
+  starts in Fahrenheit.
+
+### Fixed
+
+- **No more German in the English interface.** Several labels in Nexus and
+  the Utilities panel were still German ("Vorlage laden …", "Platz",
+  "Verschieben nach", "Quellenangabe", "Sperren", "Einstellungen" and
+  others). Place names from the location search now come back in English
+  as well.
+
 ## [0.1.4.2] - 2026-09-23
 
 A patch on 0.1.4: two more crashes, both found through the new crash reports.

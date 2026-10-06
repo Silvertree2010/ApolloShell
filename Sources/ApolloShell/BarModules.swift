@@ -373,7 +373,7 @@ struct BarWeatherModule: View {
                         // (derselbe Befund wie im Dashboard, WeatherView.swift).
                         .shadow(color: .black.opacity(colorScheme == .light ? 0.35 : 0), radius: 0.6)
                     if options.showTemperature {
-                        Text(WeatherText.temperature(current.temperature))
+                        Text(WeatherText.temperature(current.temperature, unit: model.unit))
                             .font(.system(size: 11, weight: .semibold))
                             .monospacedDigit()
                             .lineLimit(1)

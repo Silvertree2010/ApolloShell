@@ -78,7 +78,7 @@ struct WeatherProviderCommonTests {
 
     @Test("Faehigkeiten fuer Nexus", arguments: [
         ("openMeteo", "7 days · hourly"),
-        ("metNorway", "9 days · hourly · without chance of rain und feels-like temperature · sun times for today only"),
+        ("metNorway", "9 days · hourly · without chance of rain and feels-like temperature · sun times for today only"),
         ("wttr", "3 days · every 3 hours"),
     ])
     func summary(raw: String, text: String) throws {

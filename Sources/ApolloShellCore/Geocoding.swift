@@ -40,7 +40,7 @@ public struct GeocodingPlace: Equatable, Sendable, Identifiable {
 public enum OpenMeteoGeocoding {
     /// Wie viele Treffer, und in welcher Sprache die Namen kommen.
     public static let count = 5
-    public static let language = "de"
+    public static let language = "en"
     /// Unter zwei Zeichen liefert die Schnittstelle nichts Brauchbares
     /// (dokumentiert: 1 Zeichen = leere Liste, 2 = exakte Treffer).
     public static let minimumQueryLength = 2

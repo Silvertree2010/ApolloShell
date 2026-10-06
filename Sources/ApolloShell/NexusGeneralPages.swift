@@ -85,7 +85,7 @@ struct NexusHotKeysPage: View {
             }
             Section {
                 HStack(spacing: 8) {
-                    Menu("Vorlage laden …") {
+                    Menu("Load Preset…") {
                         Button("Default – \(Self.summary(.firstLaunch))") { store.settings.hotKeys = .firstLaunch }
                         Button("Hyper Key – \(Self.summary(.existingInstall))") { store.settings.hotKeys = .existingInstall }
                     }

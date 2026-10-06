@@ -80,8 +80,8 @@ public enum UtilitiesToggleGroup: String, CaseIterable, Sendable, Identifiable {
 
     public var title: String {
         switch self {
-        case .switches: "Schalter"
-        case .actions: "Aktionen"
+        case .switches: "Toggles"
+        case .actions: "Actions"
         case .custom: "Custom Buttons"
         }
     }
@@ -127,8 +127,8 @@ public enum UtilitiesToggleKind: String, CaseIterable, BlockKind, Sendable, Iden
         case .screenshot: "Screenshot"
         case .showDesktop: "Desktop"
         case .colorPicker: "Color Picker"
-        case .lockScreen: "Sperren"
-        case .settings: "Einstellungen"
+        case .lockScreen: "Lock"
+        case .settings: "Settings"
         case .displaySleep: "Display Off"
         case .hideApps: "Hide Apps"
         case .openApp: "Open App"

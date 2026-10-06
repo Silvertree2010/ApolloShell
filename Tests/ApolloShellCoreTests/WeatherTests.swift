@@ -146,7 +146,7 @@ struct WeatherLocationTests {
     @Test("Ohne Namen: Koordinaten gelten, Name 'Standort'")
     func unnamed() {
         let data = Data(#"{"latitude":48.2082,"longitude":16.3738}"#.utf8)
-        #expect(WeatherFavorites.load(from: data).selected?.name == "Standort")
+        #expect(WeatherFavorites.load(from: data).selected?.name == "Location")
     }
 }
 
@@ -190,6 +190,22 @@ struct WeatherTextTests {
     ])
     func temperature(value: Double, text: String) {
         #expect(WeatherText.temperature(value) == text)
+    }
+
+    @Test("Fahrenheit", arguments: [
+        (0.0, "32°"), (-40.0, "-40°"), (22.4, "72°"), (-17.8, "0°"), (100.0, "212°"),
+    ])
+    func fahrenheit(value: Double, text: String) {
+        #expect(WeatherText.temperature(value, unit: .fahrenheit) == text)
+    }
+
+    @Test("Einheit: unbekannter Wert ergibt die Vorgabe der Region")
+    func unitSettings() throws {
+        let read = try JSONDecoder().decode(WeatherSettings.self, from: Data(#"{"unit":"kelvin"}"#.utf8))
+        #expect(read.unit == TemperatureUnit.regional)
+        let f = try JSONDecoder().decode(WeatherSettings.self, from: Data(#"{"unit":"fahrenheit"}"#.utf8))
+        #expect(f.unit == .fahrenheit)
+        #expect(WeatherText.range(max: 22.4, min: 14.7, unit: .fahrenheit) == "H:72° L:58°")
     }
 
     @Test("Wind, Feuchte, Spanne")

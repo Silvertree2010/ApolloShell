@@ -42,7 +42,7 @@ struct UtilitiesSymbolPicker: View {
                 }
             }
             HStack(spacing: 6) {
-                TextField("Eigenes Symbol", text: $custom, prompt: Text("SF Symbol Name"))
+                TextField("Custom Symbol", text: $custom, prompt: Text("SF Symbol Name"))
                     .onSubmit(takeCustom)
                 Button("Apply", action: takeCustom)
                     .disabled(!UtilitiesSymbolCheck.exists(custom.trimmingCharacters(in: .whitespaces)))

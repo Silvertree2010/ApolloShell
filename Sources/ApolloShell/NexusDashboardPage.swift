@@ -214,6 +214,16 @@ struct NexusDashboardPage: View {
 
     @ViewBuilder private var weatherSections: some View {
             Section {
+                Picker("Temperature", selection: $store.settings.weather.unit) {
+                    ForEach(TemperatureUnit.allCases) { unit in
+                        Text(unit.title).tag(unit)
+                    }
+                }
+            } header: {
+                Text("Units")
+            }
+
+            Section {
                 if model.favorites.locations.isEmpty {
                     Text("No favorites yet – search for a place below and add it.")
                         .foregroundStyle(.secondary)

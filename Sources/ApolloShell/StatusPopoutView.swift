@@ -435,6 +435,6 @@ private struct StatusPopoutSwitchStyle: ToggleStyle {
         .buttonStyle(.plain)
         .animation(StatusPopoutMotion.fadeOut, value: on)
         .accessibilityAddTraits(.isToggle)
-        .accessibilityValue(on ? "an" : "aus")
+        .accessibilityValue(on ? "On" : "Off")
     }
 }

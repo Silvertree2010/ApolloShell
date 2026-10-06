@@ -100,6 +100,10 @@ final class WeatherModel {
         return model
     }
 
+    var unit: TemperatureUnit {
+        settings?.settings.weather.unit ?? .celsius
+    }
+
     /// "Wetterdaten: Open-Meteo" samt Link - fuer die angezeigten Daten.
     var attribution: WeatherAttribution {
         source.provider().attribution

@@ -98,7 +98,7 @@ public struct WeatherFavorites: Equatable, Sendable {
               (-90...90).contains(latitude), (-180...180).contains(longitude)
         else { return .empty }
         let name = file.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let location = WeatherLocation(name: name.isEmpty ? "Standort" : name, latitude: latitude, longitude: longitude)
+        let location = WeatherLocation(name: name.isEmpty ? "Location" : name, latitude: latitude, longitude: longitude)
         return WeatherFavorites(locations: [location], selectedID: location.id)
     }
 
@@ -126,7 +126,7 @@ public struct WeatherFavorites: Equatable, Sendable {
             var location: WeatherLocation? {
                 guard (-90...90).contains(latitude), (-180...180).contains(longitude) else { return nil }
                 let trimmed = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                return WeatherLocation(id: id ?? UUID(), name: trimmed.isEmpty ? "Standort" : trimmed,
+                return WeatherLocation(id: id ?? UUID(), name: trimmed.isEmpty ? "Location" : trimmed,
                                        latitude: latitude, longitude: longitude)
             }
         }
@@ -557,14 +557,14 @@ public enum WeatherCondition {
 /// ueber Formatter mit Systemsprache: so ist das Ergebnis testbar gleich.
 public enum WeatherText {
     /// "12°", "-3°". Gerundet wie Apple Wetter; -0.4 wird "0°", nicht "-0°".
-    public static func temperature(_ celsius: Double) -> String {
-        "\(Int(celsius.rounded()))°"
+    public static func temperature(_ celsius: Double, unit: TemperatureUnit = .celsius) -> String {
+        "\(Int(unit.value(celsius).rounded()))°"
     }
 
     /// "H: 22° T: 14°" wie Apple Wetter auf Deutsch ("H:22° L:14°" auf
     /// Englisch - Apple nennt den Tiefstwert dort "Low", nicht "Tief").
-    public static func range(max: Double, min: Double) -> String {
-        String(localized: "H:\(temperature(max)) L:\(temperature(min))")
+    public static func range(max: Double, min: Double, unit: TemperatureUnit = .celsius) -> String {
+        String(localized: "H:\(temperature(max, unit: unit)) L:\(temperature(min, unit: unit))")
     }
 
     public static func wind(_ kmh: Double) -> String {
@@ -658,5 +658,45 @@ public enum WeatherRefresh {
     public static func showsStand(fetchedAt: Date?, lastAttemptFailed: Bool, now: Date) -> Bool {
         guard let fetchedAt else { return false }
         return lastAttemptFailed || now.timeIntervalSince(fetchedAt) > staleAfter
+    }
+}
+
+// MARK: - Einheit
+
+public enum TemperatureUnit: String, Codable, CaseIterable, Identifiable, Sendable {
+    case celsius, fahrenheit
+
+    public var id: Self { self }
+
+    public static var regional: TemperatureUnit {
+        Locale.current.measurementSystem == .us ? .fahrenheit : .celsius
+    }
+
+    public var title: String {
+        switch self {
+        case .celsius: String(localized: "Celsius (°C)")
+        case .fahrenheit: String(localized: "Fahrenheit (°F)")
+        }
+    }
+
+    public func value(_ celsius: Double) -> Double {
+        switch self {
+        case .celsius: celsius
+        case .fahrenheit: celsius * 9 / 5 + 32
+        }
+    }
+}
+
+public struct WeatherSettings: Codable, Equatable, Sendable {
+    public var unit: TemperatureUnit
+
+    public init(unit: TemperatureUnit = .regional) {
+        self.unit = unit
+    }
+
+    public init(from decoder: any Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        c.lenient(.unit, into: &unit)
     }
 }

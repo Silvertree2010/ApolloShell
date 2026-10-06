@@ -59,7 +59,7 @@ struct SmallWeatherCard: View {
             let current = report.current
             WeatherSymbol(name: WeatherCondition.symbol(code: current.code, isDay: current.isDay), size: 46)
             VStack(alignment: alignment, spacing: 1) {
-                Text(WeatherText.temperature(current.temperature))
+                Text(WeatherText.temperature(current.temperature, unit: model.unit))
                     .font(.system(size: 34, weight: .semibold, design: .rounded))
                 if options.showCondition {
                     Text(WeatherCondition.description(code: current.code))
@@ -67,7 +67,7 @@ struct SmallWeatherCard: View {
                         .lineLimit(2)
                 }
                 if options.showRange, let today = report.today(now: now) {
-                    Text(WeatherText.range(max: today.maxTemperature, min: today.minTemperature))
+                    Text(WeatherText.range(max: today.maxTemperature, min: today.minTemperature, unit: model.unit))
                         .font(style.font(size: 11))
                         .foregroundStyle(.secondary)
                 }
@@ -116,9 +116,9 @@ struct WeatherTab: View {
                     WeatherHero(report: report, model: model, now: now,
                              stand: model.standText(now: now))
                         .frame(height: Self.heroHeight)
-                    WeatherHourly(slots: report.hourlyStrip(now: now), calendar: report.calendar)
+                    WeatherHourly(slots: report.hourlyStrip(now: now), calendar: report.calendar, unit: model.unit)
                         .frame(height: Self.hourlyHeight)
-                    WeatherDaily(days: report.upcomingDays(now: now), now: now, calendar: report.calendar)
+                    WeatherDaily(days: report.upcomingDays(now: now), now: now, calendar: report.calendar, unit: model.unit)
                 }
             } else if model.location == nil {
                 VStack(spacing: 10) {
@@ -243,7 +243,7 @@ private struct WeatherHero: View {
             HStack(spacing: 18) {
                 WeatherSymbol(name: WeatherCondition.symbol(code: current.code, isDay: current.isDay), size: 56)
                     .frame(width: 72)
-                Text(WeatherText.temperature(current.temperature))
+                Text(WeatherText.temperature(current.temperature, unit: model.unit))
                     .font(.system(size: 60, weight: .medium, design: .rounded))
                     .fixedSize()
                 VStack(alignment: .leading, spacing: 3) {
@@ -294,9 +294,9 @@ private struct WeatherHero: View {
     private func summary(current: CurrentWeather, today: DayForecast?) -> String {
         var parts: [String] = []
         if let feels = current.apparentTemperature {
-            parts.append(String(localized: "Feels like \(WeatherText.temperature(feels))"))
+            parts.append(String(localized: "Feels like \(WeatherText.temperature(feels, unit: model.unit))"))
         }
-        if let today { parts.append(WeatherText.range(max: today.maxTemperature, min: today.minTemperature)) }
+        if let today { parts.append(WeatherText.range(max: today.maxTemperature, min: today.minTemperature, unit: model.unit)) }
         return parts.joined(separator: " · ")
     }
 }
@@ -350,6 +350,7 @@ private struct WeatherStat: View {
 private struct WeatherHourly: View {
     let slots: [HourSlot]
     let calendar: Calendar
+    let unit: TemperatureUnit
     @Environment(\.shellStyle) private var style
 
     var body: some View {
@@ -363,7 +364,7 @@ private struct WeatherHourly: View {
                         WeatherSymbol(name: WeatherCondition.symbol(code: slot.code, isDay: slot.isDay), size: 20)
                             .frame(height: 26)
                         WeatherPrecipitation(percent: slot.precipitationProbability)
-                        Text(WeatherText.temperature(slot.temperature))
+                        Text(WeatherText.temperature(slot.temperature, unit: unit))
                             .font(.system(size: 15, weight: .semibold, design: .rounded))
                     }
                     .frame(maxWidth: .infinity)
@@ -382,6 +383,7 @@ private struct WeatherDaily: View {
     let days: [DayForecast]
     let now: Date
     let calendar: Calendar
+    let unit: TemperatureUnit
     @Environment(\.shellStyle) private var style
 
     var body: some View {
@@ -404,8 +406,8 @@ private struct WeatherDaily: View {
                             .padding(.top, 2)
                         WeatherPrecipitation(percent: day.precipitationProbability)
                         HStack(spacing: 6) {
-                            Text(WeatherText.temperature(day.maxTemperature))
-                            Text(WeatherText.temperature(day.minTemperature)).foregroundStyle(.secondary)
+                            Text(WeatherText.temperature(day.maxTemperature, unit: unit))
+                            Text(WeatherText.temperature(day.minTemperature, unit: unit)).foregroundStyle(.secondary)
                         }
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                     }

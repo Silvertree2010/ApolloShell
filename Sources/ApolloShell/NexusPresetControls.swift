@@ -22,7 +22,7 @@ struct NexusPresetMenu<P: LayoutPreset>: View {
     let onSelect: (P) -> Void
 
     var body: some View {
-        Menu("Vorlage laden …") {
+        Menu("Load Preset…") {
             ForEach(Array(P.allCases)) { preset in
                 Button(preset.title) { onSelect(preset) }
             }

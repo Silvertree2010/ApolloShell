@@ -205,7 +205,7 @@ private struct AccentSwitchStyle: ToggleStyle {
         .buttonStyle(.plain)
         .animation(UtilitiesMotion.toggle, value: on)
         .accessibilityAddTraits(.isToggle)
-        .accessibilityValue(on ? "an" : "aus")
+        .accessibilityValue(on ? "On" : "Off")
     }
 }
 

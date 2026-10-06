@@ -188,7 +188,7 @@ struct OnboardingAccessibilityRow: View {
             text: String(localized: "So windows don't slide under the bar, the bar makes room in full screen, and the Dock knows an app's windows.")
         ) {
             if permissions.accessibility {
-                Label("Erteilt", systemImage: "checkmark.circle.fill")
+                Label("Granted", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                     .fontWeight(.medium)
                     .transition(.scale.combined(with: .opacity))

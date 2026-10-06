@@ -168,7 +168,7 @@ private struct NexusDashboardCardRow: View {
                 Button("Move Right") { step(1) }
                     .disabled(isLast)
             }
-            Menu("Verschieben nach") {
+            Menu("Move To") {
                 ForEach(card.kind.zones.filter { $0 != zone }) { target in
                     Button(target.title) { store.settings.dashboard.cards.move(card.kind, to: target) }
                         .disabled(!cards.canMove(card.kind, to: target))
@@ -280,7 +280,7 @@ private struct NexusDashboardCardOptions: View {
     @ViewBuilder private var place: some View {
         let cards = store.settings.dashboard.cards
         if card.kind.zones.count > 1 {
-            LabeledContent("Platz") {
+            LabeledContent("Position") {
                 Menu(zone.title) {
                     ForEach(card.kind.zones) { target in
                         Button {
@@ -298,7 +298,7 @@ private struct NexusDashboardCardOptions: View {
                 .fixedSize()
             }
         } else {
-            LabeledContent("Platz", value: "\(zone.title) – nur dort ist er hoch genug")
+            LabeledContent("Position", value: String(localized: "\(zone.title) – the only spot tall enough"))
         }
     }
 
