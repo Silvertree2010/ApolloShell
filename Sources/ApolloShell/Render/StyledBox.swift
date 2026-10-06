@@ -464,6 +464,7 @@ struct GlassStandIn: View {
 struct BoxShadows: ViewModifier {
     let shadows: [Shadow]
     let shape: AnyShape
+    @Environment(\.renderMode) private var renderMode
 
     init(_ value: CSSValue?, shape: AnyShape) {
         if case .shadows(let list)? = value { shadows = list } else { shadows = [] }
@@ -472,6 +473,15 @@ struct BoxShadows: ViewModifier {
 
     func body(content: Content) -> some View {
         content.background {
+            if renderMode {
+                ShadowCanvas(shadows: shadows, shape: shape)
+            } else {
+                live
+            }
+        }
+    }
+
+    var live: some View {
             ZStack {
                 ForEach(Array(shadows.enumerated()), id: \.offset) { _, shadow in
                     shape
@@ -482,7 +492,30 @@ struct BoxShadows: ViewModifier {
                         .mask { ShadowMask(shape: shape) }
                 }
             }
+    }
+}
+
+struct ShadowCanvas: View {
+    let shadows: [Shadow]
+    let shape: AnyShape
+
+    var body: some View {
+        let e = shadows.map { CGFloat($0.blur + max(0, $0.spread) + max(abs($0.x), abs($0.y))) }.max() ?? 0
+        Canvas { ctx, size in
+            let r = CGRect(x: e, y: e, width: max(0, size.width - 2 * e), height: max(0, size.height - 2 * e))
+            var out = Path(CGRect(origin: .zero, size: size))
+            out.addPath(shape.path(in: r))
+            ctx.clip(to: out, style: FillStyle(eoFill: true))
+            for s in shadows {
+                ctx.drawLayer { l in
+                    if s.blur > 0 { l.addFilter(.blur(radius: CGFloat(s.blur) / 2)) }
+                    let grown = r.insetBy(dx: -CGFloat(s.spread), dy: -CGFloat(s.spread)).offsetBy(dx: CGFloat(s.x), dy: CGFloat(s.y))
+                    l.fill(shape.path(in: grown), with: .color(StyleValues.color(s.color)))
+                }
+            }
         }
+        .padding(-e)
+        .allowsHitTesting(false)
     }
 }
 
