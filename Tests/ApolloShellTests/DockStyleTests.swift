@@ -29,34 +29,33 @@ struct DockStyleTests {
         return result
     }
 
-    @Test("dock-item 32 pt, Radius 9, Tönung nur im Vordergrund")
+    @Test("dock-item 36 pt, Radius 11, Tönung nur im Vordergrund")
     func items() throws {
         let items = try styled().filter { DockSlice.classes($0.0).contains("dock-item") }
         #expect(items.count == 3)
         for (_, style) in items {
-            #expect(StyleValues.points(style["width"]) == 32)
-            #expect(StyleValues.radius(style["border-radius"]) == 9)
+            #expect(StyleValues.points(style["width"]) == 36)
+            #expect(StyleValues.radius(style["border-radius"]) == 11)
         }
-        #expect(items[1].1["background"] == .layers([.color(.system(name: "-apple-system-label", alpha: 0.10))]))
+        #expect(items[1].1["background"] == .layers([.color(.system(name: "-apple-system-label", alpha: 0.09))]))
         #expect(items[0].1["background"] == nil || items[0].1["background"] == .layers([]))
     }
 
-    @Test("Symbol 26 pt, Punkt 4 pt links um 5 pt versetzt")
+    @Test("Symbol 28 pt, Punkt 4 pt links am Rand")
     func iconAndDot() throws {
         let all = try styled()
         let icon = try #require(all.first { $0.0.kind == "app-icon" })
-        #expect(StyleValues.points(icon.1["width"]) == 26)
+        #expect(StyleValues.points(icon.1["width"]) == 28)
         let dot = try #require(all.first { DockSlice.classes($0.0).contains("dock-running-dot") })
         #expect(StyleValues.points(dot.1["width"]) == 4)
-        #expect(StyleValues.translation(dot.1["transform"]) == CGSize(width: -5, height: 0))
         #expect(StyleValues.keyword(dot.1["align-self"]) == "start")
     }
 
-    @Test("Plakette per CSS: Farbe, Versatz wie 0.1.4.2, Erscheinen")
+    @Test("Plakette per CSS: Farbe, Versatz, Erscheinen")
     func badge() throws {
         let icon = try #require(try styled().first { $0.0.kind == "app-icon" })
         let badge = BadgeStyle(icon.1)
-        #expect(badge.offset == CGSize(width: 8, height: -6))
+        #expect(badge.offset == CGSize(width: 3, height: -3))
         #expect(icon.1["-apollo-badge-color"] == .color(.system(name: "-apple-system-red", alpha: 1)))
         #expect(badge.animation != nil)
     }

@@ -34,14 +34,14 @@ struct LayoutWorkTests {
 
     @Test("ohne Änderung kein Layout-Durchlauf")
     func idleNoLayout() throws {
-        let (session, _) = try Self.mounted("dashboard")
+        let (session, _) = try Self.mounted("dash")
         let count = Self.measures { for _ in 0..<10 { session.canvas.settle() } }
         #expect(count == 0)
     }
 
     @Test("CPU-Wert ändern misst jedes Layout höchstens wenige Male, nicht exponentiell über die Tiefe")
     func cpuChange() throws {
-        let (session, _) = try Self.mounted("dashboard")
+        let (session, _) = try Self.mounted("dash")
         var counts: [Int] = []
         for value in [0.1, 0.2, 0.3] {
             counts.append(Self.measures {

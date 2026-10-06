@@ -9,7 +9,7 @@ import ApolloRuntime
 @MainActor
 @Suite("Akku-Warnungen der Default-Config")
 struct DefaultBatteryToastTests {
-    static let toasts = PackageResources.configs.appendingPathComponent("apolloshell-default/toasts.kdl")
+    static let toasts = PackageResources.configs.appendingPathComponent("apolloshell-default/notify.kdl")
 
     @Test("Symbol je Stufe wie 0.1.4.2 (TO-03 bis TO-05)", arguments: [
         ("20", false, "battery.25percent"),
@@ -38,19 +38,15 @@ struct DefaultBatteryToastTests {
 @MainActor
 @Suite("Toast-Abstand der Default-Config")
 struct DefaultToastInsetTests {
-    @Test("Karte sitzt 12 pt von Rand und Boden wie 0.1.4.2")
+    @Test("Mitteilungen hängen oben rechts am Bildschirmrand, die kurzen Hinweise oben in der Mitte")
     func inset() async throws {
         let harness = try ShellHarness(try String(contentsOf: DefaultBatteryToastTests.toasts, encoding: .utf8))
         try await harness.start()
         let t = try #require(harness.runtime.surface("default", screenKey: ShellHarness.a.key))
-        guard case .number(let ox)? = Optional(t.property("offset-x")), case .number(let oy)? = Optional(t.property("offset-y")) else {
-            Issue.record("offset fehlt")
-            return
-        }
-        let p = SurfacePlacement(anchor: .bottomRight, area: .full, margin: EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8), offsetX: CGFloat(ox), offsetY: CGFloat(oy))
-        let f = p.frame(screen: CGRect(x: 0, y: 0, width: 1440, height: 900), visible: CGRect(x: 0, y: 0, width: 1440, height: 900), fitting: CGSize(width: 422, height: 72))
-        #expect(1440 - f.maxX + 8 == 12)
-        #expect(f.minY + 8 == 12)
+        #expect(t.property("anchor") == .string("top-right"))
+        #expect(t.property("area") == .string("full"))
+        let pill = try #require(harness.runtime.surface("pill", screenKey: ShellHarness.a.key))
+        #expect(pill.property("anchor") == .string("top"))
         harness.shell.shutdown()
     }
 }

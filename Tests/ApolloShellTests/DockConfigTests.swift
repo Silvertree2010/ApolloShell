@@ -12,14 +12,14 @@ struct DockConfigTests {
         #expect(result.diagnostics.filter { $0.severity == .error }.isEmpty)
     }
 
-    @Test("Render-Config hängt das Dock als scroll.dock → reorderable → each in ein panel")
+    @Test("Render-Config hängt das Dock-Modul der Leiste in ein panel")
     func dockPanel() throws {
         let result = PackageResources.load(PackageResources.dockRender, allDefines: true)
         let ir = try #require(result.ir)
         let panel = try #require(ir.surfaces.first { $0.id == "dock" })
         #expect(panel.kind == "panel")
-        #expect(ir.defines["dock-item"] != nil)
-        #expect(ir.vars.contains { $0.name == "dock-first-running" })
+        #expect(ir.defines["m-dock"] != nil)
+        #expect(ir.vars.contains { $0.name == "bm" })
         #expect(ir.styleSheets.contains { $0.url.lastPathComponent == "style.css" })
     }
 }

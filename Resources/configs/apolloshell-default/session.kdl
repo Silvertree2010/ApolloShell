@@ -9,6 +9,7 @@ define "sb" {
     }
 }
 
+var sop #false
 var ssel "lock"
 var srdy #false
 var ssh #false
@@ -47,4 +48,4 @@ on "user.sx" { set "ssh" #false; wait "60ms"; set "sop" #false; wait "380ms"; cl
 on "user.sxo" when="{var.srdy}" { emit "sx" }
 on "user.srun" { emit "sx"; wait "250ms"; emit "act-{var.ssel}" }
 
-bind "{var.hk-s}" { emit "sess" }
+bind "{var.hotkey-session}" { emit "sess" }

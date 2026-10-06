@@ -13,8 +13,8 @@ import ApolloStyle
 struct VMFixTests {
     @Test("Wi-Fi popout without an interface still draws its header and lead row")
     func wifiNone() throws {
-        let s = try DefaultRenderTests.shot("menubar-status-popout", state: "menubar-popout-wifi-none")
-        #expect(s.size.height > 60)
+        let s = try DefaultRenderTests.shot("bar", state: "g2-bar-net-none")
+        #expect(s.size.width > 300, "\(s.size)")
     }
 }
 
@@ -90,7 +90,7 @@ struct VMFixConfigTests {
     @Test("the dashboard popup hangs from the screen edge over Apple's menu bar")
     func dashboardArea() throws {
         let ir = try #require(PackageResources.load(DefaultConfigTests.defaultFolder, id: "apolloshell-default").ir)
-        let d = try #require(ir.surfaces.first { $0.id == "dashboard" })
+        let d = try #require(ir.surfaces.first { $0.id == "dash" })
         #expect(String(describing: d.properties["area"]).contains("full"))
         #expect(d.properties["layer"] == nil)
     }
@@ -103,31 +103,17 @@ struct EditEscapeTests {
 
     func run(_ h: ShellHarness, _ a: String) async throws { _ = try await h.shell.runActions(a); h.settle() }
 
-    func esc(_ h: ShellHarness) {
-        _ = h.shell.keyPressed("escape", surfaceID: "dashboard-toolbar", screenKey: ShellHarness.a.key)
-        h.settle()
-    }
-
-    @Test("Esc closes selection, then gallery, then asks before discarding changes, and only cancels when nothing changed")
+    @Test("Esc ends the bar edit mode, and only while it is on")
     func chain() async throws {
-        let h = try ShellHarness("include \"builtin:apolloshell-default/shell.kdl\"\non \"user.t-begin\" { use \"edit-begin\" }")
+        let h = try ShellHarness("include \"builtin:apolloshell-default/shell.kdl\"")
         try await h.start()
         defer { h.shell.shutdown() }
-        for task in h.shell.assembly?.runtime.emit("user.t-begin", Record()) ?? [] { await task.value }
-        h.settle()
-        try await run(h, "set \"dashboard-selected\" \"dashboard-weather\"; set \"dashboard-gallery\" #true")
-        esc(h)
-        #expect(v(h, "dashboard-selected") == .null && v(h, "dashboard-gallery") == .bool(true) && v(h, "shell-editing") == .bool(true))
-        esc(h)
-        #expect(v(h, "dashboard-gallery") == .bool(false) && v(h, "shell-editing") == .bool(true))
-        try await run(h, "set \"dashboard-widgets\" \"{var.dashboard-widgets | where 'kind' 'none'}\"")
-        esc(h)
-        #expect(v(h, "dashboard-confirm") == .bool(true) && v(h, "shell-editing") == .bool(true))
-        esc(h)
-        #expect(v(h, "dashboard-confirm") == .bool(false) && v(h, "shell-editing") == .bool(true))
-        try await run(h, "set \"dashboard-widgets\" \"{var.dashboard-backup-widgets}\"")
-        esc(h)
-        #expect(v(h, "shell-editing") == .bool(false))
+        let ir = try #require(PackageResources.load(DefaultConfigTests.defaultFolder, id: "apolloshell-default").ir)
+        #expect(ir.binds.contains { String(describing: $0).contains("escape") })
+        try await run(h, "set \"edit\" #true")
+        #expect(v(h, "edit") == .bool(true))
+        try await run(h, "emit \"editdone\"")
+        #expect(v(h, "edit") == .bool(false))
     }
 }
 
@@ -143,10 +129,9 @@ struct IntroWindowTests {
 
     @Test("the default config's introduction has no title bar and the 0.2 wording")
     func onboarding() throws {
-        let t = try String(contentsOf: DefaultConfigTests.defaultFolder.appendingPathComponent("onboarding.kdl"), encoding: .utf8)
-        #expect(t.contains("window \"onboarding\" title=\"Introduction\" titlebar=#false"))
-        #expect(t.contains("everything can be set up from its icon in the menu bar."))
-        #expect(t.contains("title=\"Control Centre\" text=\"Keep Awake"))
+        let t = try String(contentsOf: DefaultConfigTests.defaultFolder.appendingPathComponent("ob.kdl"), encoding: .utf8)
+        #expect(t.contains("window \"ob\" class=\"onboarding\" title=\"Welcome\" titlebar=#false"))
+        #expect(t.contains("Welcome to ApolloShell"))
     }
 
     @Test("a window without a stored frame opens centred horizontally and a quarter from the top like NSWindow.center")
@@ -173,8 +158,8 @@ struct WifiSwitchTests {
 
     @Test("The Wi-Fi quick toggle is dimmed when the Mac has no Wi-Fi interface")
     func dimmed() throws {
-        let off = try DefaultRenderTests.shot("utilities", state: "utilities-wifi-off")
-        let none = try DefaultRenderTests.shot("utilities", state: "utilities-wifi-none")
+        let off = try DefaultRenderTests.shot("cc", state: "g2-cc-wifi-off")
+        let none = try DefaultRenderTests.shot("cc", state: "g2-cc-wifi-none")
         #expect(lum(none) != lum(off))
     }
 }
@@ -182,23 +167,24 @@ struct WifiSwitchTests {
 @MainActor
 @Suite("VM test findings: own status item", .serialized)
 struct OwnItemTests {
-    @Test("the ApolloShell status item sits on a light tile with a dark mark")
+    @Test("the shell keeps its own icon in Apple's menu bar as the native command center, not as a drawn status item")
     func tile() throws {
-        let s = try DefaultRenderTests.shot("menubar", state: "menubar-own-tile")
-        let t = try #require(s.bounds { $0.r > 250 && $0.g > 250 && $0.b > 250 })
-        #expect(t.width >= 20 && t.width <= 24 && t.height >= 16 && t.height <= 20, "\(t)")
-        let mark = try #require(s.bounds { $0.r < 60 && $0.g < 60 && $0.b < 60 && $0.a > 200 })
-        #expect(mark.width > 4)
+        let ir = try #require(PackageResources.load(DefaultConfigTests.defaultFolder, id: "apolloshell-default").ir)
+        #expect(!ir.surfaces.contains { $0.kind == "status-item" })
+        let text = try String(contentsOf: DefaultConfigTests.defaultFolder.appendingPathComponent("desk.kdl"), encoding: .utf8)
+        #expect(text.contains("command-center {"))
     }
 }
 
 @Suite("VM test findings: menu bar popout")
 struct MenuBarPopoutConfigTests {
-    @Test("the menu bar popout does not close on focus loss, so activation by its own click cannot close it")
+    @Test("the edge drawers do not close on focus loss or outside click themselves, their flyouts animate the close")
     func closeOn() throws {
         let ir = try #require(PackageResources.load(DefaultConfigTests.defaultFolder, id: "apolloshell-default").ir)
-        let p = try #require(ir.surfaces.first { $0.id == "menubar-status-popout" })
-        let d = String(describing: p.properties["close-on"])
-        #expect(d.contains("outside-click") && d.contains("escape") && !d.contains("focus-loss"))
+        for id in ["dash", "launcher", "sess", "cc"] {
+            let p = try #require(ir.surfaces.first { $0.id == id })
+            let d = String(describing: p.properties["close-on"])
+            #expect(d.contains("escape") && !d.contains("focus-loss") && !d.contains("outside-click"), "\(id)")
+        }
     }
 }

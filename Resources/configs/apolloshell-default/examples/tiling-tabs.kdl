@@ -1,0 +1,14 @@
+overlay "wm-tab-bars" anchor="fill" area="full" safe-area=#false click-through="auto" {
+    canvas in="{wm.tab-bars | where 'screen' screen.id}" key="x" class="wm-tabs" style="width: 100%; height: 100%;" {
+        each b in="{wm.tab-bars | where 'screen' screen.id}" key="{b.x + ',' + b.y}" {
+            row class="wm-tab-bar" style="width: 100%; height: 100%;" {
+                each t in="{b.tabs}" key="{t.window}" index="i" {
+                    button class="wm-tab" checked="{b.active == t.window}" {
+                        on-click { wm.focus-window "{t.window}" }
+                        text "{t.title == '' ? t.app : t.title}" class="wm-tab-title" truncate="tail"
+                    }
+                }
+            }
+        }
+    }
+}

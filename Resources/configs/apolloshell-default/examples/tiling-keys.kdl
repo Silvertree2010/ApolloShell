@@ -1,0 +1,37 @@
+bind "hyper+space" { wm.float }
+bind "hyper+f" { wm.fullscreen }
+bind "hyper+q" { wm.close }
+bind "hyper+left" { wm.focus "left" }
+bind "hyper+right" { wm.focus "right" }
+bind "hyper+up" { wm.focus "up" }
+bind "hyper+down" { wm.focus "down" }
+bind "hyper+h" { wm.swap "left" }
+bind "hyper+j" { wm.swap "down" }
+bind "hyper+k" { wm.swap "up" }
+bind "hyper+l" { wm.swap "right" }
+bind "hyper+tab" { wm.focus "next" }
+bind "hyper+t" { wm.terminal }
+bind "hyper+return" { wm.terminal }
+bind "hyper+keypad-enter" { wm.terminal }
+bind "hyper+v" { wm.split }
+bind "hyper+e" { wm.equalize }
+bind "hyper+minus" { wm.grow -0.05 0 }
+bind "hyper+equal" { wm.grow 0.05 0 }
+bind "hyper+g" { wm.group }
+bind "hyper+]" { wm.tab "next" }
+bind "hyper+[" { wm.tab "prev" }
+bind "hyper+a" { wm.group-app }
+bind "hyper+s" { wm.scratchpad }
+bind "hyper+o" { wm.display "prev" }
+bind "hyper+p" { wm.display "next" }
+bind "hyper+comma" { wm.move-display "prev" }
+bind "hyper+period" { wm.move-display "next" }
+bind "hyper+1" { wm.desktop 1 }
+bind "hyper+2" { wm.desktop 2 }
+bind "hyper+3" { wm.desktop 3 }
+bind "hyper+4" { wm.desktop 4 }
+bind "hyper+5" { wm.desktop 5 }
+bind "hyper+6" { wm.desktop 6 }
+bind "hyper+7" { wm.desktop 7 }
+bind "hyper+8" { wm.desktop 8 }
+bind "hyper+9" { wm.desktop 9 }

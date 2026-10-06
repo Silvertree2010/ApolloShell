@@ -97,8 +97,8 @@ define "pg-bar" {
                 each m in="{var.bm}" key="{m.id}" index="mi" {
                     row class="mrow" {
                         icon "line.3.horizontal" class="mgrip"
-                        icon "{m.id == 'logo' ? 'apple.logo' : (m.id == 'ws' ? 'square.split.2x1' : (m.id == 'win' ? 'macwindow' : (m.id == 'tray' ? 'menubar.rectangle' : (m.id == 'clk' ? 'clock' : (m.id == 'st' ? 'wifi' : (m.id == 'pw' ? 'power' : 'arrow.up.and.down'))))))}" class="mico"
-                        text "{m.id == 'logo' ? 'Launcher Button' : (m.id == 'ws' ? 'Desktops' : (m.id == 'win' ? 'Active Window' : (m.id == 'tray' ? 'Menu Bar Items' : (m.id == 'clk' ? 'Clock' : (m.id == 'st' ? 'Status Icons' : (m.id == 'pw' ? 'Power' : 'Flexible Space'))))))}"
+                        icon "{m.id == 'logo' ? 'apple.logo' : (m.id == 'ws' ? 'square.split.2x1' : (m.id == 'dock' ? 'dock.rectangle' : (m.id == 'win' ? 'macwindow' : (m.id == 'tray' ? 'menubar.rectangle' : (m.id == 'clk' ? 'clock' : (m.id == 'st' ? 'wifi' : (m.id == 'pw' ? 'power' : 'arrow.up.and.down')))))))}" class="mico"
+                        text "{m.id == 'logo' ? 'Launcher Button' : (m.id == 'ws' ? 'Desktops' : (m.id == 'dock' ? 'Dock' : (m.id == 'win' ? 'Active Window' : (m.id == 'tray' ? 'Menu Bar Items' : (m.id == 'clk' ? 'Clock' : (m.id == 'st' ? 'Status Icons' : (m.id == 'pw' ? 'Power' : 'Flexible Space')))))))}"
                         spacer
                         toggle checked="{m.on}" { on-change { set "bm" "{event.value}" in="{mi}" field="on" } }
                     }
@@ -165,14 +165,21 @@ define "pg-keys" {
     column class="pgc" {
         text "Shortcuts" class="pgt"
         use "sec" {
-            use "hk" t="Launcher" v="{var.hk-l}" k="hk-l"
-            use "hk" t="Dashboard" v="{var.hk-d}" k="hk-d"
-            use "hk" t="Control Center" v="{var.hk-c}" k="hk-c"
-            use "hk" t="Session" v="{var.hk-s}" k="hk-s"
+            use "hk" t="Launcher" v="{var.hotkey-launcher}" k="hotkey-launcher"
+            use "hk" t="Dashboard" v="{var.hotkey-dashboard}" k="hotkey-dashboard"
+            use "hk" t="Control Center" v="{var.hotkey-utilities}" k="hotkey-utilities"
+            use "hk" t="Session" v="{var.hotkey-session}" k="hotkey-session"
+            use "hk" t="Settings" v="{var.hotkey-settings}" k="hotkey-settings"
+        }
+        row class="srow" {
+            button class="pill pill2 hk-reset" {
+                on-click { reset "hotkey-launcher"; reset "hotkey-dashboard"; reset "hotkey-utilities"; reset "hotkey-session"; reset "hotkey-settings" }
+                text "Restore Defaults"
+            }
+            spacer
         }
         use "sec" t="Fixed" {
             use "srow" t="Edit Bar" { text "{'alt+e' | chord}" class="sub" }
-            use "srow" t="Settings" { text "{'cmd+alt+,' | chord}" class="sub" }
             use "srow" t="Switch dashboard tabs" { text "Tab" class="sub" }
         }
     }
@@ -183,10 +190,22 @@ define "pg-desk" {
         text "Desktop" class="pgt"
         use "sec" {
             use "srow" t="Desktop Clock" s="A large clock on the wallpaper." {
-                toggle checked="{var.dc}" { on-change { set "dc" "{event.value}" } }
+                toggle checked="{var.desktop-clock}" { on-change { set "desktop-clock" "{event.value}" } }
             }
             use "srow" t="Hide Apple's Dock" s="The bar shows the front app and desktops instead." {
                 toggle checked="{system.apple-dock-hidden}" { on-change { system.hide-apple-dock "{event.value}" } }
+            }
+            use "srow" t="File Manager" s="Opened by the Finder icon and file actions." {
+                button class="pill pill2" menu-on="click" {
+                    text "{apps.file-manager.name ?? 'Finder'}"
+                    menu side="below" {
+                        item "Automatic" checked="{var.file-manager == null}" { set "file-manager" #null }
+                        separator
+                        each f in="{apps.file-managers}" {
+                            item "{f.name}" checked="{var.file-manager == f.bundle-id}" { set "file-manager" "{f.bundle-id}" }
+                        }
+                    }
+                }
             }
             use "srow" t="Open at Login" s="{shell.login-item-note ?? ''}" {
                 toggle checked="{shell.login-item}" disabled="{!shell.login-item-available}" { on-change { shell.set-login-item "{event.value}" } }
@@ -230,7 +249,7 @@ define "pg-about" {
         }
         row class="srow" {
             button class="pill pill2" { on-click { shell.open-config-folder }; text "Open Config Folder" }
-            button class="pill pill2" { on-click { set "ob" #false; emit "obo" }; text "Show Welcome" }
+            button class="pill pill2" { on-click { set "onboarding-done" #false; emit "obo" }; text "Show Welcome" }
             spacer
         }
     }
@@ -261,7 +280,8 @@ window "prefs" title="Settings" title-visible=#false resizable=#true miniaturiza
 }
 
 on "user.prefs" { open "prefs" }
-on "user.set-hk-l" { set "hk-l" "{event.value}" }
-on "user.set-hk-d" { set "hk-d" "{event.value}" }
-on "user.set-hk-c" { set "hk-c" "{event.value}" }
-on "user.set-hk-s" { set "hk-s" "{event.value}" }
+on "user.set-hotkey-launcher" { set "hotkey-launcher" "{event.chord}" }
+on "user.set-hotkey-dashboard" { set "hotkey-dashboard" "{event.chord}" }
+on "user.set-hotkey-utilities" { set "hotkey-utilities" "{event.chord}" }
+on "user.set-hotkey-session" { set "hotkey-session" "{event.chord}" }
+on "user.set-hotkey-settings" { set "hotkey-settings" "{event.chord}" }

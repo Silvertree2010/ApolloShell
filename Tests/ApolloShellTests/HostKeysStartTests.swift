@@ -242,7 +242,7 @@ struct HostOverlayStartTests {
             Issue.record("overlay shows no errors: \(shell.overlay.state)")
             return
         }
-        #expect(shell.host.controllers.keys.contains { $0.hasPrefix("sidebar@") })
+        #expect(shell.host.controllers.keys.contains { $0.hasPrefix("bar@") })
         shell.shutdown()
     }
 }

@@ -1,4 +1,4 @@
-panel "clock" anchor="bottom-right" layer="desktop" click-through=#true offset-x=48 offset-y=56 visible="{var.dc}" {
+panel "clock" anchor="bottom-right" layer="desktop" click-through=#true offset-x=48 offset-y=56 visible="{var.desktop-clock}" {
     column class="dk" {
         text "{clock.now | date 'EEEE, d MMMM'}" class="dkd"
         text "{clock.now | date (var.h24 ? 'HH:mm' : 'h:mm')}" class="dkt"
@@ -7,29 +7,37 @@ panel "clock" anchor="bottom-right" layer="desktop" click-through=#true offset-x
 
 command-center {
     items {
-        item "Dashboard" icon="square.grid.2x2" shortcut="⌥D" { emit "dash" }
-        item "Launcher" icon="magnifyingglass" shortcut="⌥Space" { emit "lnch" }
-        item "Control Center" icon="switch.2" shortcut="⌥C" { emit "cc" }
+        item "Dashboard" icon="square.grid.2x2" shortcut="⌃⌥D" { emit "dash" }
+        item "Launcher" icon="magnifyingglass" shortcut="⌥Space" { emit "launch" }
+        item "Control Center" icon="switch.2" shortcut="⌃⌥U" { emit "cc" }
         item "Session…" icon="power" { emit "sess" }
         separator
         item "Edit Bar" icon="slider.horizontal.3" { set "edit" #true }
-        item "Desktop Clock" icon="clock" checked="{var.dc}" { toggle-var "dc" }
-        item "Settings…" icon="gearshape" shortcut="⌘," { emit "prefs" }
+        item "Desktop Clock" icon="clock" checked="{var.desktop-clock}" { toggle-var "desktop-clock" }
+        item "Settings…" icon="gearshape" shortcut="⌃⌥," { emit "prefs" }
         separator
         builtin "themes"
         builtin "configs"
         builtin "marketplace"
         separator
         builtin "reload-config"
+        builtin "restart"
         builtin "problems"
+        separator
         builtin "updates"
+        builtin "crash-reports"
+        builtin "login-item"
+        builtin "install-cli"
+        separator
         builtin "about"
         builtin "quit"
     }
 }
 
-bind "cmd+alt+," { emit "prefs" }
+bind "{var.hotkey-settings}" { emit "prefs" }
 bind "alt+e" { toggle-var "edit" }
+bind "escape" id="edit-escape" when="{var.edit}" { emit "editdone" }
+on "user.editdone" { set "edit" #false }
 
-on "shell.started" when="{!var.ob}" { wait "1200ms"; emit "obo" }
+on "shell.started" when="{!var.onboarding-done}" { emit "obo" }
 on "shell.reopened" { emit "prefs" }

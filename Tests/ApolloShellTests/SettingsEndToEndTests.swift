@@ -78,22 +78,22 @@ struct SettingsEndToEndTests {
         let home = try Self.freshHome()
         defer { try? FileManager.default.removeItem(at: home.root) }
         let shell = try await Self.start(home)
-        #expect(Self.isOpen(shell, "onboarding"))
-        try await Self.click(shell, "onboarding", "onboarding-next")
-        #expect(Self.value(shell, "onboarding-step") == .number(1))
-        try await Self.click(shell, "onboarding", "onboarding-back")
-        #expect(Self.value(shell, "onboarding-step") == .number(0))
-        for _ in 0..<3 { try await Self.click(shell, "onboarding", "onboarding-next") }
-        #expect(Self.value(shell, "onboarding-step") == .number(3))
-        try await Self.click(shell, "onboarding", "onboarding-next")
-        #expect(!Self.isOpen(shell, "onboarding"))
+        #expect(Self.isOpen(shell, "ob"))
+        try await Self.click(shell, "ob", "ob-next")
+        #expect(Self.value(shell, "obs") == .number(1))
+        try await Self.click(shell, "ob", "ob-back")
+        #expect(Self.value(shell, "obs") == .number(0))
+        for _ in 0..<3 { try await Self.click(shell, "ob", "ob-next") }
+        #expect(Self.value(shell, "obs") == .number(3))
+        try await Self.click(shell, "ob", "ob-next")
+        #expect(!Self.isOpen(shell, "ob"))
         #expect(Self.value(shell, "onboarding-done") == .bool(true))
         shell.shutdown()
 
         let again = try await Self.start(home)
         defer { again.shutdown() }
         #expect(Self.value(again, "onboarding-done") == .bool(true))
-        #expect(!Self.isOpen(again, "onboarding"))
+        #expect(!Self.isOpen(again, "ob"))
     }
 
     @Test("Einführung: Überspringen und Fensterknopf speichern ebenfalls")
@@ -101,24 +101,22 @@ struct SettingsEndToEndTests {
         let home = try Self.freshHome()
         defer { try? FileManager.default.removeItem(at: home.root) }
         let shell = try await Self.start(home)
-        try await Self.click(shell, "onboarding", "onboarding-skip")
-        #expect(!Self.isOpen(shell, "onboarding"))
+        try await Self.click(shell, "ob", "ob-skip")
+        #expect(!Self.isOpen(shell, "ob"))
         shell.shutdown()
         let again = try await Self.start(home)
-        #expect(!Self.isOpen(again, "onboarding"))
-        again.assembly?.runtime.open("onboarding", screenKey: nil)
-        await Self.settle(again)
+        #expect(!Self.isOpen(again, "ob"))
         again.shutdown()
 
         let other = try Self.freshHome()
         defer { try? FileManager.default.removeItem(at: other.root) }
         let first = try await Self.start(other)
-        first.assembly?.runtime.close("onboarding")
+        first.assembly?.runtime.close("ob")
         await Self.settle(first)
         first.shutdown()
         let second = try await Self.start(other)
         defer { second.shutdown() }
-        #expect(!Self.isOpen(second, "onboarding"))
+        #expect(!Self.isOpen(second, "ob"))
     }
 
     @Test("Gespeicherte Einstellungen stehen nach Neustart wieder da")
@@ -128,11 +126,9 @@ struct SettingsEndToEndTests {
         let shell = try await Self.start(home)
         let vars = try #require(shell.assembly?.vars)
         let changes: [(String, Value)] = [
-            ("hide-apple-dock", .bool(true)), ("keep-awake-lid", .bool(true)), ("desktop-clock", .bool(false)),
-            ("toast-charging", .bool(false)), ("toast-battery", .bool(false)), ("toast-audio-output", .bool(false)), ("toast-audio-input", .bool(false)),
+            ("desktop-clock", .bool(false)), ("ws", .string("num")), ("h24", .bool(false)), ("tmin", .number(15)), ("dt", .string("perf")),
             ("hotkey-launcher", .string("")), ("hotkey-dashboard", .string("cmd+shift+d")), ("hotkey-utilities", .string("f19")), ("hotkey-settings", .string("")),
-            ("weather-source", .string("wttr")), ("file-manager", .string("com.apple.finder")),
-            ("sidebar-screens", .string("main")), ("sidebar-background", .string("glass")),
+            ("file-manager", .string("com.apple.finder")),
         ]
         for (name, value) in changes {
             #expect(vars.set(name, value), "\(name)")
@@ -152,47 +148,29 @@ struct SettingsEndToEndTests {
         #expect(registrar.active[try #require(KeyChord.parse("alt+space")).canonical] == nil)
         #expect(registrar.active[try #require(KeyChord.parse("ctrl+alt+comma")).canonical] == nil)
         registrar.press(dashboard)
-        await Self.settle(again)
-        #expect(Self.isOpen(again, "dashboard"))
+        for _ in 0..<20 where !Self.isOpen(again, "dash") { await Self.settle(again) }
+        #expect(Self.isOpen(again, "dash"))
     }
 
-    static func disabledResets(_ shell: LiveShell) async throws -> [Bool] {
-        shell.assembly?.runtime.open("settings", screenKey: nil)
-        var result: [Bool] = []
-        for page in ["sidebar", "control-centre"] {
-            _ = shell.assembly?.vars.set("settings-page", .string(page))
-            await settle(shell)
-            let roots = try #require(surface(shell, "settings")).root
-            let resets = all(roots).filter { element in
-                element.kind == "button" && all([element]).contains { $0.kind == "text" && $0.arguments.first?.value == .string("Reset") }
-            }
-            result.append(try #require(resets.last).property("disabled") == .bool(true))
-        }
-        return result
-    }
-
-    @Test("Listen der Einstellungsseiten überstehen den Neustart unverändert, Zurücksetzen bleibt gesperrt")
+    @Test("Leistenmodule überstehen den Neustart, ausgeschaltete bleiben aus")
     func listsAfterRestart() async throws {
         let home = try Self.freshHome()
         defer { try? FileManager.default.removeItem(at: home.root) }
         let shell = try await Self.start(home)
         let vars = try #require(shell.assembly?.vars)
-        let names = ["sidebar-modules", "utilities-cards", "utilities-toggles"]
-        let original = names.map { vars.value($0) }
-        #expect(try await Self.disabledResets(shell) == [true, true])
-        for name in names { #expect(vars.set(name, .list([]))) }
+        guard case .list(var modules) = vars.value("bm"), case .record(var first)? = modules.first else {
+            Issue.record("bm is no list")
+            return
+        }
+        first["on"] = .bool(false)
+        modules[0] = .record(first)
+        modules.swapAt(1, 2)
+        #expect(vars.set("bm", .list(modules)))
         await Self.settle(shell)
-        #expect(try await Self.disabledResets(shell) == [false, false])
-        for (name, value) in zip(names, original) { #expect(vars.set(name, value)) }
-        await Self.settle(shell)
-        #expect(try await Self.disabledResets(shell) == [true, true])
         shell.shutdown()
         let again = try await Self.start(home)
         defer { again.shutdown() }
-        for (name, value) in zip(names, original) {
-            #expect(again.assembly?.vars.value(name) == value, "\(name)")
-        }
-        #expect(try await Self.disabledResets(again) == [true, true])
+        #expect(again.assembly?.vars.value("bm") == .list(modules))
     }
 
     static func checked(_ entries: [MenuEntry], _ menu: String) -> [String] {
@@ -229,42 +207,35 @@ struct SettingsEndToEndTests {
         again.shutdown()
     }
 
-    @Test("Tastenkürzel-Seite: Aufnehmen, Default und Hyper Key schreiben die richtigen var und registrieren")
+    @Test("Tastenkürzel-Seite: Aufnehmen schreibt die richtigen var und registriert, Zurücksetzen holt die Vorgaben")
     func shortcutsPage() async throws {
         let home = try Self.freshHome()
         defer { try? FileManager.default.removeItem(at: home.root) }
         let shell = try await Self.start(home)
         defer { shell.shutdown() }
         let runtime = try #require(shell.assembly?.runtime)
-        runtime.open("settings", screenKey: nil)
-        _ = shell.assembly?.vars.set("settings-page", .string("shortcuts"))
+        runtime.open("prefs", screenKey: nil)
+        _ = shell.assembly?.vars.set("pg", .string("keys"))
         await Self.settle(shell)
-        let recorders = Self.all(try #require(Self.surface(shell, "settings")).root).filter { $0.kind == "key-recorder" }
-        #expect(recorders.count == 4)
-        let chords = ["cmd+alt+1", "cmd+alt+2", "cmd+alt+3", "cmd+alt+4"]
+        let recorders = Self.all(try #require(Self.surface(shell, "prefs")).root).filter { $0.kind == "key-recorder" }
+        #expect(recorders.count == 5)
+        let names = ["hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-session", "hotkey-settings"]
+        let defaults = names.map { Self.value(shell, $0) }
+        let chords = ["cmd+alt+1", "cmd+alt+2", "cmd+alt+3", "cmd+alt+4", "cmd+alt+5"]
         for (recorder, chord) in zip(recorders, chords) {
             await runtime.trigger("on-change", on: recorder.identity, event: Record([("chord", .string(chord))]))?.value
         }
         await Self.settle(shell)
-        #expect(["hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings"].map { Self.value(shell, $0) } == chords.map { .string($0) })
-        let after = Self.all(try #require(Self.surface(shell, "settings")).root).filter { $0.kind == "key-recorder" }
+        #expect(names.map { Self.value(shell, $0) } == chords.map { .string($0) })
+        let after = Self.all(try #require(Self.surface(shell, "prefs")).root).filter { $0.kind == "key-recorder" }
         #expect(after.map { $0.property("value") } == chords.map { .string($0) })
         let registrar = try #require(shell.registrar as? FakeRegistrar)
         for chord in chords { #expect(registrar.active[try #require(KeyChord.parse(chord)).canonical] != nil, "\(chord)") }
-        let buttons = Self.all(try #require(Self.surface(shell, "settings")).root).filter { element in
-            element.kind == "button" && Self.all([element]).contains { $0.kind == "text" && ($0.arguments.first?.value == .string("Hyper Key")) }
-        }
-        await runtime.trigger("on-click", on: try #require(buttons.last).identity, event: Record())?.value
-        await Self.settle(shell)
-        #expect(["hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings"].map { Self.value(shell, $0) } == ["f20", "hyper+d", "hyper+u", "hyper+comma"].map { .string($0) })
+        try await Self.click(shell, "prefs", "hk-reset")
+        #expect(names.map { Self.value(shell, $0) } == defaults)
     }
 
-    static func ids(_ shell: LiveShell, _ name: String) -> [Value] {
-        guard case .list(let items)? = value(shell, name) else { return [] }
-        return items.compactMap { if case .record(let record) = $0 { record["id"] } else { nil } }
-    }
-
-    @Test("Jede Einstellungsseite, jede Option, jede Rückfrage und jeder Einführungsschritt ohne Warnung")
+    @Test("Jede Einstellungsseite und jeder Einführungsschritt ohne Warnung")
     func sweepWithoutWarnings() async throws {
         let home = try Self.freshHome()
         defer { try? FileManager.default.removeItem(at: home.root) }
@@ -275,47 +246,26 @@ struct SettingsEndToEndTests {
         let before = shell.overlay.problems.map(\.message) + (shell.assembly?.warnings.map(\.message) ?? [])
         #expect(before.isEmpty, "\(before)")
         for step in 0...3 {
-            _ = vars.set("onboarding-step", .number(Double(step)))
+            _ = vars.set("obs", .number(Double(step)))
             await Self.settle(shell)
         }
-        runtime.open("settings", screenKey: nil)
-        for page in ["general", "shortcuts", "sidebar", "control-centre", "launcher", "dashboard", "desktop", "toasts", "providers", "system-settings", "about"] {
-            _ = vars.set("settings-page", .string(page))
+        runtime.open("prefs", screenKey: nil)
+        for page in ["look", "bar", "wx", "keys", "desk", "about"] {
+            _ = vars.set("pg", .string(page))
             await Self.settle(shell)
         }
-        _ = vars.set("settings-page", .string("sidebar"))
-        _ = vars.set("settings-sidebar-gallery", .bool(true))
-        for id in Self.ids(shell, "sidebar-modules") {
-            _ = vars.set("settings-sidebar-expanded", id)
+        for tab in ["dash", "media", "perf", "wx"] {
+            _ = vars.set("dt", .string(tab))
+            runtime.open("dash", screenKey: nil)
             await Self.settle(shell)
         }
-        _ = vars.set("settings-page", .string("control-centre"))
-        _ = vars.set("settings-toggle-gallery", .bool(true))
-        for id in Self.ids(shell, "utilities-toggles") {
-            _ = vars.set("settings-toggle-selected", id)
+        _ = vars.set("edit", .bool(true))
+        await Self.settle(shell)
+        _ = vars.set("edit", .bool(false))
+        for name in ["net", "bt", "bat", "vol", "win"] {
+            _ = vars.set("pv", .string(name))
+            _ = vars.set("po", .bool(true))
             await Self.settle(shell)
-        }
-        let areas: [(page: String, confirm: String, presets: [String], lists: [String], expand: String)] = [
-            ("sidebar", "settings-sidebar-confirm", ["minimal", "dock-only", "everything", "reset"], ["sidebar-modules"], "settings-sidebar-expanded"),
-            ("control-centre", "settings-utilities-confirm", ["minimal", "audio", "everything", "reset"], ["utilities-toggles"], "settings-toggle-selected"),
-        ]
-        for area in areas {
-            _ = vars.set("settings-page", .string(area.page))
-            for preset in area.presets {
-                let previous = area.lists.map { vars.value($0) }
-                _ = vars.set(area.confirm, .string(preset))
-                runtime.open("settings-confirm", screenKey: nil)
-                await Self.settle(shell)
-                try await Self.click(shell, "settings-confirm", "settings-default-button")
-                #expect(!Self.isOpen(shell, "settings-confirm"))
-                if preset != "reset" { #expect(area.lists.map { vars.value($0) } != previous, "\(area.page) \(preset)") }
-                for list in area.lists {
-                    for id in Self.ids(shell, list) {
-                        _ = vars.set(area.expand, id)
-                        await Self.settle(shell)
-                    }
-                }
-            }
         }
         let after = shell.overlay.problems.map(\.message) + (shell.assembly?.warnings.map(\.message) ?? [])
         #expect(after.isEmpty, "\(after)")

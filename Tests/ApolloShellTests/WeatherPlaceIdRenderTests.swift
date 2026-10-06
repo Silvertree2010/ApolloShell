@@ -5,25 +5,14 @@ import Foundation
 @MainActor
 @Suite("Render: Wetter-Widget liest place-id", .serialized)
 struct WeatherPlaceIdRenderTests {
-    private func render(_ config: String, _ fixture: String, _ out: String, id: String?) throws -> Data {
-        let root = PackageResources.root
-        let source = try String(contentsOf: root.appendingPathComponent("Resources/render/\(config)/shell.kdl"), encoding: .utf8)
-        let shell = source.replacingOccurrences(of: " place-id=\"zurich\"", with: id.map { " place-id=\"\($0)\"" } ?? "")
-        let folder = try RenderProbe.folder(["shell.kdl": Data(shell.utf8)])
-        let output = folder.appendingPathComponent(out)
-        let arguments = ["x", "--render", output.path, "--fixture", root.appendingPathComponent("Resources/render/\(fixture)/fixture.kdl").path,
-                         "--config", folder.path, "--resources", root.appendingPathComponent("Resources").path, "--appearance", "light", "--scale", "1"]
-        try RenderCommand.render(try RenderCommand.options(arguments, executable: URL(fileURLWithPath: "/tmp/x")))
-        let name = try #require(try FileManager.default.contentsOfDirectory(atPath: output.path).first)
-        return try Data(contentsOf: output.appendingPathComponent(name))
-    }
-
-    @Test("place-id wählt den Ort aus by-place, unbekannte id fällt auf den gewählten Favoriten zurück")
+    @Test("Wetter-Karte: mit Ort Temperatur und Symbol, ohne Ort die Ortswahl")
     func placeId() throws {
-        let chosen = try render("widget-weather-placeid", "widget-weather-placeid", "a", id: "zurich")
-        let selected = try render("widget-weather-placeid", "widget-weather-placeid", "b", id: nil)
-        let unknown = try render("widget-weather-placeid", "widget-weather-placeid", "c", id: "nowhere")
-        #expect(chosen != selected)
-        #expect(unknown == selected)
+        let ready = try DefaultRenderTests.shot("dash", state: "g2-wx-ready")
+        let none = try DefaultRenderTests.shot("dash", state: "g2-wx-none")
+        #expect(ready.size == none.size)
+        let ink = { (c: RGBA) in c.r < 90 && c.g < 90 && c.b < 90 }
+        #expect(ready.count(where: ink) != none.count(where: ink))
+        let accent = { (c: RGBA) in max(c.r, c.g, c.b) - min(c.r, c.g, c.b) > 80 }
+        #expect(none.count(where: accent) > 0)
     }
 }

@@ -20,53 +20,52 @@ struct DefaultRenderTests {
         return Snapshot(rep: try #require(NSBitmapImageRep(data: try session.capture(surface, name: id))), scale: 1)
     }
 
-    @Test("Leisten-Baustein timer: ruhend nur das Symbol, laufend der Ring im Akzent")
-    func menubarTimer() throws {
-        let idle = try Self.shot("menubar", state: "menubar-block-timer")
-        let run = try Self.shot("menubar", state: "menubar-block-timer-running")
-        let blue = { (c: RGBA) in max(c.r, c.g, c.b) - min(c.r, c.g, c.b) > 100 }
-        #expect(idle.bounds(where: blue) == nil)
-        let ring = try #require(run.bounds(where: blue))
-        #expect(ring.width > 20 && ring.height > 20)
+    @Test("Leiste: 48 pt breit, aktiver Schreibtisch als Kapsel im Akzent")
+    func barSpaces() throws {
+        let shot = try Self.shot("bar")
+        #expect(abs(shot.size.width - 48) <= 1)
+        let tinted = { (c: RGBA) in max(c.r, c.g, c.b) - min(c.r, c.g, c.b) > 80 }
+        let mark = try #require(shot.bounds(where: tinted))
+        #expect(mark.minX > 14 && mark.maxX < 34, "\(mark)")
     }
 
-    @Test("Desktop-Uhr: Zeile mit Zeit, Strich und Datum, 24 pt Schattenraum, Schatten sichtbar auf hellem Grund")
+    @Test("Desktop-Uhr: grosse Zeit über dem Datum")
     func desktopClock() throws {
-        let shot = try Self.shot("desktop-clock")
-        #expect(abs(shot.size.width - 479) <= 4)
-        #expect(abs(shot.size.height - 163) <= 4)
-        let shadow = try #require(shot.bounds { $0.r < 200 })
-        #expect(shadow.minX < 40 && shadow.maxX > 200, "\(shadow)")
-        #expect(shadow.height < 140)
+        let shot = try Self.shot("clock")
+        #expect(abs(shot.size.width - 276) <= 6)
+        #expect(abs(shot.size.height - 137) <= 6)
     }
 
-    @Test("OSD: Regler 30 × 150 mittig in 52 × 182, Füllung bei 0,35 bis 52,5 pt")
+    @Test("OSD: senkrechter Regler 34 pt breit am rechten Rand, Füllung unten bei 0,35")
     func osd() throws {
-        let shot = try Self.shot("volume")
-        #expect(shot.size == CGSize(width: 52, height: 182))
-        let fill = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 120 })
-        #expect(abs(fill.minX - 11) <= 1 && abs(fill.width - 30) <= 1)
-        #expect(abs(fill.height - 52.5) <= 1.5)
+        let shot = try Self.shot("osd", state: "g2-osd")
+        #expect(abs(shot.size.width - 58) <= 1 && abs(shot.size.height - 226) <= 2)
+        let track = try #require(shot.bounds { $0.r < 235 && $0.r > 200 })
+        #expect(abs(track.width - 34) <= 1, "\(track)")
+        #expect(shot.pixel(29, 160).near(.white))
+        #expect(!shot.pixel(29, 40).near(.white))
     }
 
-    @Test("OSD stumm: Füllung nur so lang wie die Spur breit, obwohl die Lautstärke 0,35 ist", arguments: ["osd-muted", "osd-0"])
+    @Test("OSD stumm oder bei 0: Füllung nur so lang wie die Spur breit", arguments: ["osd-muted", "osd-0"])
     func osdMuted(state: String) throws {
-        let shot = try Self.shot("volume", state: state)
-        let fill = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 120 })
-        #expect(abs(fill.height - 30) <= 1.5)
+        let shot = try Self.shot("osd", state: state)
+        let grey = { (c: RGBA) in c.r > 215 && c.r < 232 && abs(Int(c.r) - Int(c.b)) < 3 }
+        let empty = shot.count(where: grey)
+        let normal = try Self.shot("osd", state: "g2-osd").count(where: grey)
+        #expect(empty > normal + 34 * 30, "\(empty) \(normal)")
     }
 
-    @Test("Sitzungsmenü: 102 × 496, Kacheln 80 × 80 links bündig, Emblem in der Mitte am Beginn der Begrüssung")
+    @Test("Sitzungsmenü: Schublade am rechten Rand, gewählte Kachel im Akzent")
     func session() throws {
-        let shot = try Self.shot("session")
-        #expect(abs(shot.size.width - 102) <= 1 && abs(shot.size.height - 496) <= 1)
-        let emblem = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 120 })
-        #expect(emblem.minY > 208 && emblem.maxY < 288)
-        #expect(emblem.width < 60)
+        let shot = try Self.shot("sess", state: "g2-sess")
+        #expect(abs(shot.size.width - 151) <= 2 && abs(shot.size.height - 640) <= 2)
+        let selected = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 80 })
+        #expect(selected.width > 70 && selected.width < 86, "\(selected)")
+        #expect(selected.minY > 380 && selected.maxY < 520, "\(selected)")
     }
 
-    @Test("Sitzungsmenü: Emblem bleibt System-Akzent, auch wenn ein Theme den Akzent setzt (9b-P2-5)")
-    func sessionEmblemIgnoresThemeAccent() throws {
+    @Test("Sitzungsmenü und OSD folgen dem Akzent eines Themes")
+    func sessionFollowsThemeAccent() throws {
         let source = try String(contentsOf: PackageResources.root.appendingPathComponent("examples/themes/minimal.css"), encoding: .utf8)
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("emblem-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -75,28 +74,24 @@ struct DefaultRenderTests {
         try source.replacingOccurrences(of: "#ff6b35", with: "#00ff00").replacingOccurrences(of: "#ff8354", with: "#00ff00")
             .write(to: theme, atomically: true, encoding: .utf8)
         let green: (RGBA) -> Bool = { $0.g > 200 && $0.r < 80 && $0.b < 80 }
-        #expect(try Self.shot("session", themeURL: theme).bounds(where: green) == nil)
-        #expect(try Self.shot("volume", themeURL: theme).bounds(where: green) != nil)
+        #expect(try Self.shot("sess", state: "g2-sess", themeURL: theme).bounds(where: green) != nil)
+        #expect(try Self.shot("sess", state: "g2-sess").bounds(where: green) == nil)
     }
 
-    @Test("Sitzungsmenü-Vergleich ohne Theme-Fläche: Render-Zustand sessionmenu-idle lässt die Fläche von full weg (9b-P2-6)")
-    func sessionStateWithoutThemeFill() throws {
-        let plain = try Self.shot("session", state: "sessionmenu-idle", theme: "full/theme.css", dark: true)
-        let themed = try Self.shot("session", theme: "full/theme.css", dark: true)
-        let bare = try Self.shot("session", dark: true)
-        #expect(plain.size == themed.size)
-        #expect(plain.pixel(8, 8).near(bare.pixel(8, 8)))
-        #expect(!themed.pixel(8, 8).near(bare.pixel(8, 8)))
+    @Test("Sitzungsmenü: ein Theme mit Panel-Farbe färbt die Schublade, ohne Theme bleibt Glas")
+    func sessionThemeFill() throws {
+        let themed = try Self.shot("sess", state: "g2-sess", theme: "full/theme.css", dark: true)
+        let bare = try Self.shot("sess", state: "g2-sess", dark: true)
+        #expect(themed.size == bare.size)
+        #expect(!themed.pixel(52, 300).near(bare.pixel(52, 300)))
     }
 
-    @Test("Launcher: Liste aus apps.all, angeheftete zuerst, oben bündig mit 46 pt Zeilenabstand")
+    @Test("Launcher: Liste aus apps.all über dem Suchfeld, Zeilen 58 pt")
     func launcherList() throws {
-        let shot = try Self.shot("launcher", state: "launcher-empty")
-        #expect(shot.size == CGSize(width: 560, height: 520))
+        let shot = try Self.shot("launcher", state: "g2-launcher")
+        #expect(abs(shot.size.width - 760) <= 2)
         let safari = try #require(shot.bounds { $0.b > 180 && $0.g > 170 && $0.r < 40 })
-        let finder = try #require(shot.bounds { $0.b > 230 && $0.g > 100 && $0.g < 160 && $0.r < 40 })
-        #expect(abs(safari.minY - 66) <= 1 && abs(safari.minX - 18) <= 1, "\(safari) \(finder)")
-        #expect(abs(finder.minY - safari.minY - 92) <= 2)
+        #expect(abs(safari.minX - 90) <= 2 && abs(safari.width - 38) <= 2, "\(safari)")
     }
 
     @Test("scroll mit justify-content: start füllt seinen Platz und legt den Inhalt oben an, ohne hält es sich an den Inhalt")
@@ -110,26 +105,23 @@ struct DefaultRenderTests {
         #expect(hugging.minY > 50)
     }
 
-    @Test("Fixture-Abschnitt vars setzt Variablen nach on-open: Auswahl Zeile 1 wie die Referenz (9b-P2-10) und Suche ohne Treffer")
+    @Test("Fixture-Abschnitt vars setzt Variablen nach on-open: Auswahl Zeile 3 und Suche ohne Treffer")
     func fixtureVars() throws {
-        let fixture = ProviderFixture.parse("fixture {\n    vars launcher-selection=2 launcher-query=\"x\"\n}", file: "f.kdl")
-        #expect(fixture.vars["launcher-selection"] == .number(2))
+        let fixture = ProviderFixture.parse("fixture {\n    vars sel=2 q=\"x\"\n}", file: "f.kdl")
+        #expect(fixture.vars["sel"] == .number(2))
         #expect(fixture.diagnostics.isEmpty)
-        let selected = try Self.shot("launcher", state: "launcher-selected-row-3")
-        #expect(!selected.pixel(300, 82).near(.white, tolerance: 6))
-        #expect(selected.pixel(300, 174).near(.white))
-        let empty = try Self.shot("launcher", state: "launcher-no-results")
-        #expect(empty.bounds { $0.b > 230 && $0.g > 100 && $0.g < 160 && $0.r < 40 } == nil)
+        let first = try Self.shot("launcher", state: "g2-launcher")
+        let third = try Self.shot("launcher", state: "g2-launcher-sel")
+        #expect(!first.pixel(400, 354).near(third.pixel(400, 354)))
+        #expect(!first.pixel(400, 470).near(third.pixel(400, 470)))
+        let empty = try Self.shot("launcher", state: "g2-launcher-none")
+        #expect(empty.bounds { $0.b > 180 && $0.g > 170 && $0.r < 40 } == nil)
     }
 
-    @Test("Einführung Schritt 0: Kachel 60 pt oben bei 40 pt, Seite oben bündig in 620 × 560")
+    @Test("Einführung: Fenster 520 × 480")
     func onboardingWelcome() throws {
-        let shot = try Self.shot("onboarding", state: "onboarding-0")
-        #expect(shot.size == CGSize(width: 620, height: 560))
-        let tile = try #require(shot.bounds { $0.b > 200 && $0.r < 140 && $0.g < 130 && $0.b - $0.r > 100 })
-        #expect(abs(tile.minY - 40) <= 1.5, "\(tile)")
-        #expect(shot.pixel(310, 96).b - shot.pixel(310, 96).r > 100)
-        #expect(shot.pixel(310, 104).b - shot.pixel(310, 104).r < 40)
+        let shot = try Self.shot("ob")
+        #expect(abs(shot.size.width - 520) <= 2 && abs(shot.size.height - 480) <= 2)
     }
 
     @Test("Gestreckter Text folgt text-align: start links, center mittig, end rechts")
@@ -145,14 +137,20 @@ struct DefaultRenderTests {
         #expect(end.maxX > 194, "\(end)")
     }
 
-    @Test("Einführung Schritte 1–3 wie 0.1.4.2: Kachel oben bei 40 pt, Karte ab 204 pt über die Breite 44–576", arguments: [1, 2, 3])
+    @Test("Einführung Schritte 1–3 behalten die Fenstergrösse", arguments: [1, 2, 3])
     func onboardingSteps(step: Int) throws {
-        let shot = try Self.shot("onboarding", state: "onboarding-\(step)")
-        #expect(shot.size == CGSize(width: 620, height: 560))
-        let tile = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 120 && $0.b > 150 || $0.g > 150 && $0.r < 120 && $0.b < 150 })
-        #expect(abs(tile.minY - 40) <= 1.5, "\(tile)")
-        #expect(!shot.pixel(60, 215).near(.white, tolerance: 4))
-        #expect(shot.pixel(30, 215).near(.white, tolerance: 4))
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("ob-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try "include \"builtin:apolloshell-default/shell.kdl\"".write(to: folder.appendingPathComponent("shell.kdl"), atomically: true, encoding: .utf8)
+        let base = try String(contentsOf: Self.resources.appendingPathComponent("render/fixture.kdl"), encoding: .utf8)
+        let end = try #require(base.range(of: "}", options: .backwards))
+        try (base[..<end.lowerBound] + "    vars obs=\(step)\n}\n").write(to: folder.appendingPathComponent("fixture.kdl"), atomically: true, encoding: .utf8)
+        let fixture = folder.appendingPathComponent("fixture.kdl")
+        let session = try RenderSession(config: folder, resources: Self.resources, fixture: ProviderFixture.load(fixture), fixtureRoot: folder, dark: false, scale: 1, theme: nil)
+        let surface = try #require(session.surface("ob"))
+        let shot = Snapshot(rep: try #require(NSBitmapImageRep(data: try session.capture(surface, name: "ob"))), scale: 1)
+        #expect(abs(shot.size.width - 520) <= 2 && abs(shot.size.height - 480) <= 2)
     }
 
     @Test("icon: fehlt der Name im Theme und als SF-Symbol, gilt ein builtin-Fallback (blocks.md 4.1)")

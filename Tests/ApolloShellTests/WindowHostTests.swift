@@ -248,13 +248,14 @@ struct SurfaceWindowSpecTests {
         SurfaceWindowSpec(kind: kind, property: { values[$0] ?? .null })
     }
 
-    @Test("Nexus-Panel schliesst per globalem Esc und nimmt keine Tastatur")
-    func nexusGlobalEscape() throws {
-        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources/configs/apolloshell-default/nexus.kdl")
+    @Test("Dashboard-Schublade schliesst per Esc über ihre eigene Animation, nicht über das Fenster")
+    func drawerEscape() throws {
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources/configs/apolloshell-default/dash.kdl")
         let text = try String(contentsOf: url, encoding: .utf8)
-        let line = try #require(text.split(separator: "\n").first { $0.hasPrefix("popup \"nexus\"") })
-        #expect(line.contains("close-on=\"outside-click global-escape\""))
-        #expect(line.contains("keyboard=#false"))
+        let line = try #require(text.split(separator: "\n").first { $0.hasPrefix("popup \"dash\"") })
+        #expect(line.contains("close-on=\"escape\""))
+        #expect(line.contains("motion=\"none\""))
+        #expect(text.contains("key \"escape\" { emit \"dx\" }"))
     }
 
     @Test("Vorgaben je Art nach blocks.md 2.8 und 2.9")

@@ -30,7 +30,7 @@ struct DefaultSettingsPagesTests {
         let kdl = KDLShell()
         let result = try await kdl.load(shell, extra: files, id: "apolloshell-default")
         #expect(kdl.apply(result))
-        kdl.runtime.open("settings", screenKey: nil)
+        kdl.runtime.open("prefs", screenKey: nil)
         await kdl.settle()
         return kdl
     }
@@ -56,7 +56,7 @@ struct DefaultSettingsPagesTests {
     }
 
     static func find(_ shell: KDLShell, kind: String, withClass name: String? = nil, text: String) throws -> ElementInstance {
-        let roots = shell.fixture.surface("settings").root + (shell.runtime.surface("settings-confirm", screenKey: "A")?.root ?? [])
+        let roots = shell.fixture.surface("prefs").root
         let matches = all(roots).filter { element in
             element.kind == kind && (name.map { classes(element).contains($0) } ?? true) && texts(element).contains(text)
         }
@@ -64,7 +64,7 @@ struct DefaultSettingsPagesTests {
     }
 
     static func row(_ shell: KDLShell, _ title: String) throws -> ElementInstance {
-        let rows = all(shell.fixture.surface("settings").root).filter { $0.kind == "row" && !classes($0).contains("button-content") && texts($0).first == title }
+        let rows = all(shell.fixture.surface("prefs").root).filter { $0.kind == "row" && (classes($0).contains("srow") || classes($0).contains("mrow")) && texts($0).first == title }
         return try #require(rows.first, "no row \(title)")
     }
 
@@ -88,93 +88,39 @@ struct DefaultSettingsPagesTests {
         return items.compactMap { if case .record(let record) = $0 { record } else { nil } }
     }
 
-    @Test("Sidebar: Galerie fügt nach dem Dock ein, Optionen schreiben ins Modul, Vorlage erst nach Rückfrage")
-    func sidebarPage() async throws {
+    @Test("Leiste: Modul per Schalter ein, Desktops als Zahlen, Vorgaben zurück")
+    func barPage() async throws {
         let shell = try await Self.loaded()
-        set(shell, "settings-page", .string("sidebar"))
-        set(shell, "settings-sidebar-gallery", .bool(true))
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-gallery-tile", text: "Clock"))
-        #expect(list(shell, "sidebar-modules").map { $0["id"] } == ["dashboard-button", "spaces", "dock", "clock-2", "clock", "utilities-button", "status-icons", "power"].map { .string($0) })
-        #expect(list(shell, "sidebar-modules")[3]["show-icon"] == .bool(true))
-        #expect(shell.vars.value("settings-sidebar-gallery") == .bool(false))
-
-        set(shell, "settings-sidebar-gallery", .bool(true))
-        let dock = try Self.find(shell, kind: "button", withClass: "settings-gallery-tile", text: "Dock")
-        #expect(dock.property("disabled") == .bool(true))
-
-        set(shell, "settings-sidebar-expanded", .string("clock-2"))
-        await fire(shell, "on-change", try Self.toggle(in: Self.row(shell, "Show Date")), Record([("value", .bool(true))]))
-        #expect(list(shell, "sidebar-modules")[3]["show-date"] == .bool(true))
-        #expect(list(shell, "sidebar-modules")[4]["show-date"] == .bool(false))
-
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-button", text: "Reset"))
-        #expect(shell.vars.value("settings-sidebar-confirm") == .string("reset"))
-        #expect(shell.runtime.surface("settings-confirm", screenKey: "A")?.isOpen == true)
-        #expect(list(shell, "sidebar-modules").count == 8)
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-default-button", text: "Reset"))
-        #expect(list(shell, "sidebar-modules").count == 7)
-        #expect(shell.vars.value("settings-sidebar-confirm") == .string(""))
-        #expect(shell.runtime.surface("settings-confirm", screenKey: "A")?.isOpen == false)
-
-        set(shell, "settings-sidebar-confirm", .string("minimal"))
-        shell.runtime.open("settings-confirm", screenKey: nil)
-        await shell.settle()
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-default-button", text: "Load"))
-        #expect(list(shell, "sidebar-modules").map { $0["kind"] } == ["spaces", "spacer", "clock", "power"].map { .string($0) })
-        set(shell, "settings-sidebar-confirm", .string("everything"))
-        shell.runtime.open("settings-confirm", screenKey: nil)
-        await shell.settle()
-        shell.runtime.close("settings-confirm")
-        await shell.settle()
-        #expect(shell.vars.value("settings-sidebar-confirm") == .string(""))
-        #expect(list(shell, "sidebar-modules").count == 4)
+        set(shell, "pg", .string("bar"))
+        #expect(list(shell, "bm").first { $0["id"] == .string("dock") }?["on"] == .bool(false))
+        await fire(shell, "on-change", try Self.toggle(in: Self.row(shell, "Dock")), Record([("value", .bool(true))]))
+        #expect(list(shell, "bm").first { $0["id"] == .string("dock") }?["on"] == .bool(true))
+        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "sgb", text: "Numbers"))
+        #expect(shell.vars.value("ws") == .string("num"))
+        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "pill2", text: "Restore Defaults"))
+        #expect(list(shell, "bm").first { $0["id"] == .string("dock") }?["on"] == .bool(false))
         #expect(shell.fixture.warnings.isEmpty, "\(shell.fixture.warnings.map(\.message))")
     }
 
-    @Test("Control Centre: Karte aus, eigener Knopf aus der Galerie, Titel per Enter, Vorlage")
-    func controlCentrePage() async throws {
+    @Test("Schreibtisch: Uhr aus, Einstellung bleibt in der var")
+    func desktopPage() async throws {
         let shell = try await Self.loaded()
-        set(shell, "settings-page", .string("control-centre"))
-        await fire(shell, "on-change", try Self.toggle(in: Self.row(shell, "Sound")), Record([("value", .bool(false))]))
-        #expect(list(shell, "utilities-cards").map { $0["enabled"] } == [.bool(true), .bool(false), .bool(true), .bool(false), .bool(false), .bool(false)])
-
-        set(shell, "settings-toggle-gallery", .bool(true))
-        #expect(try Self.find(shell, kind: "button", withClass: "settings-gallery-tile", text: "Wi-Fi").property("disabled") == .bool(true))
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-gallery-tile", text: "Open App"))
-        set(shell, "settings-toggle-gallery", .bool(true))
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-gallery-tile", text: "Hide Apps"))
-        set(shell, "settings-toggle-gallery", .bool(true))
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-gallery-tile", text: "Open App"))
-        #expect(list(shell, "utilities-toggles").suffix(3).map { $0["id"] } == [.string("open-app"), .string("hide-apps"), .string("open-app-2")])
-
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-toggle-tile", text: "Open App"))
-        #expect(shell.vars.value("settings-toggle-selected") == .string("open-app-2"))
-        set(shell, "settings-toggle-title", .string("Mail"))
-        let inputs = Self.all(shell.fixture.surface("settings").root).filter { $0.kind == "input" && $0.property("placeholder") == .string("Automatic") }
-        let title = try #require(inputs.first)
-        await fire(shell, "on-submit", title)
-        #expect(list(shell, "utilities-toggles").last?["title"] == .string("Mail"))
-
-        set(shell, "settings-utilities-confirm", .string("minimal"))
-        shell.runtime.open("settings-confirm", screenKey: nil)
-        await shell.settle()
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-default-button", text: "Load"))
-        #expect(list(shell, "utilities-toggles").count == 5)
+        set(shell, "pg", .string("desk"))
+        await fire(shell, "on-change", try Self.toggle(in: Self.row(shell, "Desktop Clock")), Record([("value", .bool(false))]))
+        #expect(shell.vars.value("desktop-clock") == .bool(false))
         #expect(shell.fixture.warnings.isEmpty, "\(shell.fixture.warnings.map(\.message))")
     }
 
-    @Test("Dashboard: Seiten neu anlegen, letzte Seite nicht löschbar, Standardseiten zurück")
-    func dashboardPage() async throws {
+    @Test("Tastenkürzel: jede Aufnahme schreibt ihre var, Zurücksetzen holt die Vorgaben")
+    func shortcutsPage() async throws {
         let shell = try await Self.loaded()
-        set(shell, "settings-page", .string("dashboard"))
-        await shell.settle()
-        #expect(list(shell, "dashboard-pages").count == 4)
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-button", text: "New Page"))
-        #expect(list(shell, "dashboard-pages").count == 5)
-        set(shell, "dashboard-pages", .list([.record(list(shell, "dashboard-pages")[0])]))
-        await shell.settle()
-        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "settings-button", text: "Restore Default Pages"))
-        #expect(list(shell, "dashboard-pages").count == 4)
+        set(shell, "pg", .string("keys"))
+        let recorders = Self.all(shell.fixture.surface("prefs").root).filter { $0.kind == "key-recorder" }
+        #expect(recorders.count == 5)
+        await fire(shell, "on-change", try #require(recorders.first), Record([("chord", .string("cmd+alt+l"))]))
+        #expect(shell.vars.value("hotkey-launcher") == .string("cmd+alt+l"))
+        await fire(shell, "on-click", try Self.find(shell, kind: "button", withClass: "hk-reset", text: "Restore Defaults"))
+        #expect(shell.vars.value("hotkey-launcher") == .string("alt+space"))
         #expect(shell.fixture.warnings.isEmpty, "\(shell.fixture.warnings.map(\.message))")
     }
 

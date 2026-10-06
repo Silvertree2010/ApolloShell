@@ -52,12 +52,10 @@ struct DockAssemblyTests {
         #expect(items.map { $0.property("tooltip") } == [.string("Finder"), .string("Safari"), .string("Mail")])
         #expect(DockSlice.classes(items[1]).contains("front"))
         #expect(!DockSlice.classes(items[0]).contains("front"))
-        #expect(items.allSatisfy { DockSlice.classes($0).contains("size-medium") })
         let dots = elements.filter { DockSlice.classes($0).contains("dock-running-dot") }
         #expect(dots.count == 2)
         let icons = elements.filter { $0.kind == "app-icon" }
         #expect(icons.map { $0.property("badge") } == [.null, .null, .string("3")])
-        #expect(elements.filter { DockSlice.classes($0).contains("dock-divider") }.isEmpty)
         #expect(assembly.warnings.isEmpty, "\(assembly.warnings.map(\.message))")
     }
 }

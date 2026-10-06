@@ -5,7 +5,8 @@ define "obdot" {
     shape "capsule" class="obd" checked="{var.obs == n}"
 }
 
-popup "ob" anchor="center" motion="grow" scrim=0.18 close-on="" keyboard=#true {
+window "ob" class="onboarding" title="Welcome" titlebar=#false resizable=#false {
+    on-close { set "onboarding-done" #true }
     key "return" { emit "{var.obs >= 3 ? 'obdone' : 'obnext'}" }
     column class="obw" {
         switch "{var.obs}" {
@@ -17,7 +18,7 @@ popup "ob" anchor="center" motion="grow" scrim=0.18 close-on="" keyboard=#true {
                     column class="obl" {
                         row class="obli" { icon "sidebar.left" class="oblic"; text "Hover the icons in the bar for details." }
                         row class="obli" { icon "square.grid.2x2" class="oblic"; text "Click the clock for the dashboard." }
-                        row class="obli" { icon "magnifyingglass" class="oblic"; text "Press {var.hk-l | chord} to search apps and actions." }
+                        row class="obli" { icon "magnifyingglass" class="oblic"; text "Press {var.hotkey-launcher | chord} to search apps and actions." }
                         row class="obli" { icon "power" class="oblic"; text "The power button opens the session menu." }
                     }
                 }
@@ -87,14 +88,17 @@ popup "ob" anchor="center" motion="grow" scrim=0.18 close-on="" keyboard=#true {
                 use "obdot" n=3
             }
             spacer
-            when "{var.obs > 0}" {
-                button class="pill pill2" { on-click { set "obs" "{var.obs - 1}" }; text "Back" }
+            when "{var.obs < 3}" {
+                button class="pill pill3 ob-skip" { on-click { emit "obdone" }; text "Skip" }
             }
-            button class="pill" { on-click { emit "{var.obs >= 3 ? 'obdone' : 'obnext'}" }; text "{var.obs >= 3 ? 'Done' : 'Continue'}" }
+            when "{var.obs > 0}" {
+                button class="pill pill2 ob-back" { on-click { set "obs" "{var.obs - 1}" }; text "Back" }
+            }
+            button class="pill ob-next" { on-click { emit "{var.obs >= 3 ? 'obdone' : 'obnext'}" }; text "{var.obs >= 3 ? 'Done' : 'Continue'}" }
         }
     }
 }
 
 on "user.obo" { set "obs" 0; open "ob" }
 on "user.obnext" { set "obs" "{var.obs + 1}" }
-on "user.obdone" { set "ob" #true; close "ob" }
+on "user.obdone" { set "onboarding-done" #true; close "ob" }

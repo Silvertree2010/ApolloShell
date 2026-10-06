@@ -70,15 +70,20 @@ define "p-bt" {
         use "ph" t="Bluetooth" s="{bluetooth.on == false ? 'Off' : (bluetooth.connected + ' connected · ' + bluetooth.paired + ' paired')}"
         when "{(bluetooth.devices | count) > 0}" {
             column class="grp" {
-                each d in="{bluetooth.devices}" key="{d.name}" {
+                each d in="{bluetooth.devices}" key="{di}" index="di" {
                     row class="dev" {
                         stack class="devi" {
-                            icon "{d.kind == 'headphones' ? 'headphones' : (d.kind == 'keyboard' ? 'keyboard' : (d.kind == 'mouse' ? 'computermouse' : 'dot.radiowaves.left.and.right'))}"
+                            icon "{d.symbol ?? 'dot.radiowaves.left.and.right'}" fallback="dot.radiowaves.left.and.right"
                         }
                         text "{d.name}" class="devn" truncate="tail"
                         spacer
                         when "{d.battery.main != null}" {
                             text "{d.battery.main | percent}" class="kvv"
+                        }
+                        else {
+                            when "{d.battery.left != null || d.battery.right != null}" {
+                                text "L {(d.battery.left ?? 0) | percent} · R {(d.battery.right ?? 0) | percent}" class="kvv"
+                            }
                         }
                     }
                 }

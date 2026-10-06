@@ -1,12 +1,6 @@
 include "builtin:apolloshell-default/shell.kdl"
 style "style.css"
 
-var render-dock-modules {
-    - id="dock" kind="dock" show-running=#true icon-size="medium"
-}
-
 panel "dock" anchor="left" {
-    each module in="{var.render-dock-modules}" key="{module.id}" {
-        use "sidebar-dock" module="{module}"
-    }
+    use "m-dock"
 }

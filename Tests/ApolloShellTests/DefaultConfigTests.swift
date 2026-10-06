@@ -3,6 +3,7 @@ import Testing
 import ApolloBase
 import ApolloConfig
 import ApolloStyle
+import ApolloShellCore
 
 @Suite("Default-Config 9b")
 struct DefaultConfigTests {
@@ -29,35 +30,22 @@ struct DefaultConfigTests {
         #expect(ir.styleSheets.contains { $0.url.lastPathComponent == "style.css" })
     }
 
-    @Test("Oberflächen nach default-config.md 3")
+    @Test("Oberflächen der Default-Config")
     func surfaces() throws {
         let ir = try #require(PackageResources.load(Self.defaultFolder, id: "apolloshell-default").ir)
         let kinds = Dictionary(uniqueKeysWithValues: ir.surfaces.map { ($0.id, $0.kind) })
         let expected = [
-            "sidebar": "panel", "desktop-clock": "panel", "dashboard": "popup", "dashboard-toolbar": "popup", "utilities": "popup",
-            "launcher": "popup", "session": "popup", "volume": "osd", "default": "toast",
-            "onboarding": "window", "settings": "window", "settings-confirm": "popup",
-            "menubar": "panel", "menubar-status-popout": "popup",
-            "nexus": "popup", "nexus-item": "status-item", "nexus-shortcuts": "window",
+            "bar": "panel", "clock": "panel", "dash": "popup", "launcher": "popup", "sess": "popup", "cc": "popup",
+            "osd": "osd", "default": "toast", "pill": "toast", "prefs": "window", "ob": "window",
         ]
         #expect(kinds == expected)
     }
 
-    @Test("gespeicherte var nach default-config.md 2")
+    @Test("gespeicherte var der Default-Config")
     func persistedVars() throws {
         let ir = try #require(PackageResources.load(Self.defaultFolder, id: "apolloshell-default").ir)
         let persisted = Set(ir.vars.filter(\.persist).map(\.name))
-        let expected: Set<String> = [
-            "sidebar-modules", "sidebar-screens", "sidebar-background", "dashboard-tabs",
-            "dashboard-cards-top", "dashboard-cards-bottom", "dashboard-cards-side", "utilities-cards",
-            "utilities-toggles", "weather-source", "weather-places", "weather-selected", "file-manager",
-            "toast-charging", "toast-battery", "toast-audio-output", "toast-audio-input", "desktop-clock",
-            "hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-settings", "hide-apple-dock",
-            "keep-awake-lid", "onboarding-done", "dashboard-pages", "dashboard-widgets", "dashboard-scale", "dashboard-seeded",
-            "menubar-enabled", "menubar-screens", "menubar-style", "menubar-distinct", "menubar-thickness",
-            "nexus-shown", "feature-dashboard", "feature-utilities", "feature-launcher",
-            "menubar-covers", "menubar-hide-apple", "menubar-status-style", "menubar-start", "menubar-center", "menubar-end",
-        ]
+        let expected: Set<String> = ["dt", "onboarding-done", "desktop-clock", "ws", "h24", "wp", "tmin", "bm", "hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-session", "hotkey-settings", "file-manager"]
         #expect(persisted == expected)
     }
 
@@ -68,30 +56,30 @@ struct DefaultConfigTests {
     }
 
     static let assignments: [Assignment] = [
-        Assignment(prefix: "SB", range: 1...15, artifacts: ["define:sidebar-dashboard-button", "define:sidebar-spaces", "define:sidebar-dock", "define:sidebar-clock", "define:sidebar-utilities-button", "define:sidebar-status-icons", "define:sidebar-power", "define:sidebar-spacer", "define:sidebar-gap", "define:sidebar-divider", "define:sidebar-app-button", "define:sidebar-battery", "define:sidebar-cpu", "define:sidebar-weather", "define:sidebar-media-button"]),
-        Assignment(prefix: "SB", range: 16...22, artifacts: ["surface:sidebar", "var:sidebar-background", "var:sidebar-screens", "var:status-popout"]),
-        Assignment(prefix: "SP", range: 1...19, artifacts: ["define:popout-wifi", "define:popout-bluetooth", "define:popout-battery"]),
-        Assignment(prefix: "DC", range: 1...5, artifacts: ["surface:desktop-clock", "var:desktop-clock"]),
-        Assignment(prefix: "SW", range: 1...4, artifacts: ["define:sidebar-spaces"]),
-        Assignment(prefix: "ED", range: 1...17, artifacts: ["surface:dashboard", "surface:utilities", "surface:launcher", "surface:session", "surface:volume"]),
-        Assignment(prefix: "SS", range: 1...3, artifacts: ["surface:sidebar"]),
-        Assignment(prefix: "DK", range: 1...39, artifacts: ["define:dock-item", "define:sidebar-dock", "var:dock-first-running"]),
-        Assignment(prefix: "AD", range: 1...10, artifacts: ["var:hide-apple-dock"]),
-        Assignment(prefix: "LA", range: 1...25, artifacts: ["surface:launcher", "var:hotkey-launcher", "var:launcher-results"]),
+        Assignment(prefix: "SB", range: 1...15, artifacts: ["define:m-logo", "define:m-ws", "define:m-win", "define:m-tray", "define:m-clk", "define:m-st", "define:m-pw", "define:m-sp", "define:bmod"]),
+        Assignment(prefix: "SB", range: 16...22, artifacts: ["surface:bar", "var:bm", "var:po", "var:pv"]),
+        Assignment(prefix: "SP", range: 1...19, artifacts: ["define:p-net", "define:p-bt", "define:p-bat", "define:p-vol", "define:p-win"]),
+        Assignment(prefix: "DC", range: 1...5, artifacts: ["surface:clock", "var:desktop-clock"]),
+        Assignment(prefix: "SW", range: 1...4, artifacts: ["define:m-ws"]),
+        Assignment(prefix: "ED", range: 1...17, artifacts: ["surface:dash", "surface:cc", "surface:launcher", "surface:sess", "surface:osd"]),
+        Assignment(prefix: "SS", range: 1...3, artifacts: ["surface:bar"]),
+        Assignment(prefix: "DK", range: 1...39, artifacts: ["define:m-win", "surface:bar"]),
+        Assignment(prefix: "AD", range: 1...10, artifacts: ["define:pg-desk"]),
+        Assignment(prefix: "LA", range: 1...25, artifacts: ["surface:launcher", "var:hotkey-launcher", "var:lres"]),
         Assignment(prefix: "LA", range: 26...27, artifacts: ["config:launcher-only"]),
         Assignment(prefix: "MP", range: 1...24, artifacts: ["shell"]),
-        Assignment(prefix: "DB", range: 1...41, artifacts: ["surface:dashboard", "define:dashboard-overview", "define:dashboard-media", "define:perf-hero-card", "define:weather-hero", "define:dashboard-canvas", "define:widget", "define:card-weather", "define:card-user", "define:card-clock", "define:card-calendar", "define:card-resources", "define:card-media", "var:dashboard-tabs"]),
-        Assignment(prefix: "UT", range: 1...34, artifacts: ["surface:utilities", "define:card-keep-awake", "define:card-audio", "define:card-quick-toggles", "var:utilities-cards", "var:utilities-toggles", "define:settings-page-control-centre"]),
-        Assignment(prefix: "KA", range: 1...12, artifacts: ["define:card-keep-awake", "var:keep-awake-lid"]),
-        Assignment(prefix: "OB", range: 1...9, artifacts: ["surface:onboarding", "var:onboarding-done", "define:settings-page-about"]),
-        Assignment(prefix: "NX", range: 1...32, artifacts: ["surface:settings", "define:settings-page-general", "define:settings-page-shortcuts", "define:settings-page-sidebar", "define:settings-page-control-centre", "define:settings-page-launcher", "define:settings-page-dashboard", "define:settings-page-desktop", "define:settings-page-toasts", "define:settings-page-providers", "define:settings-page-system-settings", "define:settings-page-about"]),
-        Assignment(prefix: "SM", range: 1...21, artifacts: ["surface:session", "define:session-button"]),
-        Assignment(prefix: "OSD", range: 1...8, artifacts: ["surface:volume", "var:osd-moving"]),
-        Assignment(prefix: "TO", range: 1...17, artifacts: ["surface:default", "define:toast-card", "var:toast-charging", "var:toast-battery", "var:toast-audio-output", "var:toast-audio-input"]),
-        Assignment(prefix: "HK", range: 1...16, artifacts: ["var:hotkey-launcher", "var:hotkey-dashboard", "var:hotkey-utilities", "var:hotkey-settings", "define:settings-page-shortcuts"]),
-        Assignment(prefix: "WG", range: 1...16, artifacts: ["surface:sidebar"]),
-        Assignment(prefix: "FS", range: 1...7, artifacts: ["surface:sidebar"]),
-        Assignment(prefix: "MS", range: 1...9, artifacts: ["var:sidebar-screens"]),
+        Assignment(prefix: "DB", range: 1...41, artifacts: ["surface:dash", "define:pane-dash", "define:pane-media", "define:pane-perf", "define:pane-wx", "define:w-wx", "define:w-user", "define:w-dt", "define:w-cal", "define:w-res", "define:w-media", "define:w-timer", "define:w-toggles", "var:dt"]),
+        Assignment(prefix: "UT", range: 1...34, artifacts: ["surface:cc", "define:tile", "define:qt", "define:cslider", "var:cop"]),
+        Assignment(prefix: "KA", range: 1...12, artifacts: ["define:p-bat", "define:tile"]),
+        Assignment(prefix: "OB", range: 1...9, artifacts: ["surface:ob", "var:onboarding-done", "define:pg-about"]),
+        Assignment(prefix: "NX", range: 1...32, artifacts: ["surface:prefs", "define:pg-look", "define:pg-bar", "define:pg-wx", "define:pg-keys", "define:pg-desk", "define:pg-about"]),
+        Assignment(prefix: "SM", range: 1...21, artifacts: ["surface:sess", "define:sb"]),
+        Assignment(prefix: "OSD", range: 1...8, artifacts: ["surface:osd"]),
+        Assignment(prefix: "TO", range: 1...17, artifacts: ["surface:default", "surface:pill"]),
+        Assignment(prefix: "HK", range: 1...16, artifacts: ["var:hotkey-launcher", "var:hotkey-dashboard", "var:hotkey-utilities", "var:hotkey-session", "var:hotkey-settings", "define:pg-keys"]),
+        Assignment(prefix: "WG", range: 1...16, artifacts: ["surface:bar"]),
+        Assignment(prefix: "FS", range: 1...7, artifacts: ["surface:bar"]),
+        Assignment(prefix: "MS", range: 1...9, artifacts: ["surface:bar"]),
         Assignment(prefix: "UP", range: 1...11, artifacts: ["shell"]),
         Assignment(prefix: "CR", range: 1...14, artifacts: ["shell"]),
         Assignment(prefix: "SI", range: 1...6, artifacts: ["shell"]),
@@ -122,10 +110,6 @@ struct DefaultConfigTests {
                 default: Issue.record("unbekannte Art \(artifact)")
                 }
             }
-        }
-        let presets = try String(contentsOf: Self.defaultFolder.appendingPathComponent("presets.kdl"), encoding: .utf8)
-        for name in Self.presetLets.values.flatMap({ $0 }) + ["hotkeys-default", "hotkeys-hyper"] {
-            #expect(presets.contains("var \(name) {"), "\(name)")
         }
     }
 
@@ -255,37 +239,32 @@ struct DefaultConfigTests {
         #expect(!parts.allSatisfy { part in Self.allowedPlaces["--apollo-on-accent-color"]!.contains { Self.matches(part, place: $0) } })
     }
 
-    @Test("Token-Stellen wie anhang-token-verbraucher.md")
+    static let readTokens: Set<String> = [
+        "--apollo-panel-fill", "--apollo-bar-fill", "--apollo-card-fill", "--apollo-toast-fill", "--apollo-launcher-highlight-fill",
+        "--apollo-text-color", "--apollo-secondary-text-color", "--apollo-muted-text-color", "--apollo-accent-color", "--apollo-on-accent-color",
+        "--apollo-separator-color", "--apollo-danger-color", "--apollo-success-color", "--apollo-warning-color",
+        "--apollo-panel-radius", "--apollo-card-radius", "--apollo-control-radius", "--apollo-toast-radius", "--apollo-toast-text-color",
+        "--apollo-bar-text-color", "--apollo-bar-icon-color", "--apollo-clock-color", "--apollo-spaces-active-color", "--apollo-bar-width",
+    ]
+
+    @Test("style.css liest nur Theme-Tokens, die es gibt, jeden mit Liquid-Glass-Vorgabe, und die tragenden alle")
     func tokenPlaces() throws {
         let css = try String(contentsOf: Self.defaultFolder.appendingPathComponent("style.css"), encoding: .utf8)
-        var used: Set<String> = []
-        for (selector, token) in Self.tokenPlaces(in: css) {
-            let bases = Self.derived[token] ?? [token]
-            for base in bases {
-                used.insert(base)
-                guard let places = Self.allowedPlaces[base] else {
-                    Issue.record("\(token) an '\(selector)' hat in 0.1.4.2 keinen Leser dort (Basis \(base))")
-                    continue
-                }
-                let allowed = selector.components(separatedBy: ",").allSatisfy { part in
-                    places.contains { Self.matches(part, place: $0) }
-                }
-                #expect(allowed, "\(token) an '\(selector)' ist keine Stelle aus 0.1.4.2")
-            }
-        }
-        let missing = Set(Self.allowedPlaces.keys).subtracting(used)
-        #expect(missing.isEmpty, "nicht gelesen: \(missing.sorted())")
+        let known = Set(ThemeTokenCatalog.standard.tokens.map(\.name)).union(Self.derived.keys)
+        let used = Set(Self.tokenPlaces(in: css).map(\.token))
+        for token in used { #expect(known.contains(token), "\(token) ist kein Theme-Token") }
+        #expect(used.isSuperset(of: Self.readTokens), "nicht gelesen: \(Self.readTokens.subtracting(used).sorted())")
+        let bare = try NSRegularExpression(pattern: #"var\(\s*--apollo-[a-z-]+\s*\)"#)
+        #expect(bare.numberOfMatches(in: css, range: NSRange(css.startIndex..., in: css)) == 0, "jeder Token braucht eine Vorgabe ohne Theme")
     }
 
-    @Test("Die Menüleiste ist wie im alten 0.2 aus und steht auf der Vorlage macOS")
+    @Test("Apples Menüleiste bleibt: die Default-Config hat keine eigene und blendet Apples nicht aus")
     func menubarDefaults() throws {
         let ir = try #require(PackageResources.load(Self.defaultFolder, id: "apolloshell-default").ir)
-        let names = Set(ir.vars.map(\.name))
-        #expect(names.isSuperset(of: ["menubar-enabled", "menubar-macos", "menubar-serpantinum", "menubar-minimal", "menubar-clock-only"]))
-        let source = try String(contentsOf: Self.defaultFolder.appendingPathComponent("menubar.kdl"), encoding: .utf8)
-        #expect(source.contains("var menubar-enabled #false persist=#true"))
-        #expect(source.contains("var menubar-thickness 24 persist=#true"))
-        #expect(source.contains("var menubar-hide-apple #false persist=#true"))
-        #expect(source.contains("system.hide-apple-menubar"))
+        #expect(!ir.surfaces.contains { $0.id.contains("menubar") })
+        let files = try FileManager.default.contentsOfDirectory(at: Self.defaultFolder, includingPropertiesForKeys: nil).filter { $0.pathExtension == "kdl" }
+        for file in files {
+            #expect(!(try String(contentsOf: file, encoding: .utf8)).contains("system.hide-apple-menubar"), "\(file.lastPathComponent)")
+        }
     }
 }

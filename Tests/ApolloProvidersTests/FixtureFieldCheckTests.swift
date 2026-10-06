@@ -144,24 +144,24 @@ struct FixtureFieldCheckTests {
         let fixture = ProviderFixture.load(Self.fixtureURL)
         let ir = try #require(Self.builtin("apolloshell-default").ir)
         let session = FixtureFieldCheck.session(ir, fixture: fixture)
-        session.runtime.open("dashboard", screenKey: nil)
+        session.runtime.open("dash", screenKey: nil)
         session.flush()
-        let overview = Self.texts(try #require(session.runtime.surface("dashboard", screenKey: "main")).root)
-        #expect(session.vars.set("dashboard-tab", .string("weather")))
-        session.flush()
-        let weather = Self.texts(try #require(session.runtime.surface("dashboard", screenKey: "main")).root)
-        #expect(session.vars.set("status-popout", .string("bluetooth")))
-        session.flush()
-        let sidebar = Self.texts(try #require(session.runtime.surface("sidebar", screenKey: "main")).root)
-        #expect(overview.contains("Partly Cloudy") && overview.contains("H:17° L:8°"))
+        let overview = Self.texts(try #require(session.runtime.surface("dash", screenKey: "main")).root)
+        #expect(overview.contains("Partly Cloudy") && overview.contains("14°"))
         let calendar = try #require(overview.firstIndex(of: "September 2026"))
-        #expect(Array(overview[calendar...].prefix(9)) == ["September 2026", "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su", "31"])
-        #expect(overview[calendar...].filter { $0 == "30" }.count == 1)
-        for text in ["Feels like 12° · H:17° L:8°", "Weather data by Open-Meteo.com", "62 %", "07:18", "11 km/h", "19:16", "Now", "Today", "Fr", "9/25", "15°", "6°"] {
-            #expect(weather.contains(text), "\(text)")
+        #expect(overview[calendar...].contains("30"))
+        #expect(session.vars.set("dt", .string("wx")))
+        session.flush()
+        let weather = Self.texts(try #require(session.runtime.surface("dash", screenKey: "main")).root)
+        for text in ["Feels like", "12°", "62%", "07:18 – 19:16", "11 km/h", "Now", "Today", "Fr", "15°", "6°"] {
+            #expect(weather.contains(text), "\(text) \(weather)")
         }
-        let airpods = try #require(sidebar.firstIndex(of: "AirPods Pro"))
-        #expect(Array(sidebar[airpods...].prefix(9)) == ["AirPods Pro", "L", "80 %", "R", "15 %", "Case", "55 %", "Magic Keyboard", "64 %"])
+        #expect(session.vars.set("pv", .string("bt")))
+        #expect(session.vars.set("po", .bool(true)))
+        session.flush()
+        let bar = Self.texts(try #require(session.runtime.surface("bar", screenKey: "main")).root)
+        let airpods = try #require(bar.firstIndex(of: "AirPods Pro"))
+        #expect(Array(bar[airpods...].prefix(4)) == ["AirPods Pro", "L 80% · R 15%", "Magic Keyboard", "64%"], "\(bar)")
         #expect(session.diagnostics.map(\.message) == [])
     }
 
@@ -172,11 +172,10 @@ struct FixtureFieldCheckTests {
         let fixture = ProviderFixture.parse(text, file: "apolloshell-default.kdl")
         let ir = try #require(Self.builtin("apolloshell-default").ir)
         let session = FixtureFieldCheck.session(ir, fixture: fixture)
-        #expect(session.vars.set("status-popout", .string("bluetooth")))
-        session.runtime.open("sidebar", screenKey: nil)
+        #expect(session.vars.set("pv", .string("bt")))
         session.flush()
-        let sidebar = Self.texts(try #require(session.runtime.surface("sidebar", screenKey: "main")).root)
-        #expect(sidebar.filter { $0 == "AirPods Pro" }.count == 2)
+        let bar = Self.texts(try #require(session.runtime.surface("bar", screenKey: "main")).root)
+        #expect(bar.filter { $0 == "AirPods Pro" }.count == 2)
         #expect(!session.diagnostics.map(\.message).contains { $0.contains("duplicate keys") })
     }
 
@@ -191,22 +190,24 @@ struct FixtureFieldCheckTests {
         return out
     }
 
-    @Test("Wetter-Favorit mit UUID aus 0.1.4.2 gilt beim Hinzufügen als vorhanden (Koordinaten)")
-    func importedFavoriteMatchesByCoordinates() throws {
+    @Test("Ein Suchtreffer in den Wetter-Einstellungen wird der Ort des Dashboards")
+    func searchResultBecomesPlace() async throws {
         let fixture = ProviderFixture.load(Self.fixtureURL)
         let ir = try #require(Self.builtin("apolloshell-default").ir)
         let session = FixtureFieldCheck.session(ir, fixture: fixture)
-        let place = Record([("id", .string("5C0F6A2E-1D7B-4C1B-9F59-2E1B7A0C9D11")), ("name", .string("Chur")), ("region", .null), ("country", .null), ("latitude", .number(46.85)), ("longitude", .number(9.53))])
-        #expect(session.vars.set("weather-places", .list([.record(place)])))
-        #expect(session.vars.set("settings-page", .string("dashboard")))
-        session.runtime.open("settings", screenKey: nil)
+        #expect(session.vars.set("pg", .string("wx")))
+        session.runtime.open("prefs", screenKey: nil)
         session.flush()
-        let buttons = Self.all(try #require(session.runtime.surface("settings", screenKey: "main")).root)
-            .filter { $0.kind == "button" && $0.property("tooltip") == .string("Add to Favorites") }
-        #expect(buttons.count == 2)
-        #expect(buttons.map { $0.property("disabled") } == [.bool(true), .bool(false)])
-        let icons = buttons.map { Self.all([$0]).first { $0.kind == "icon" }?.arguments.first?.value }
-        #expect(icons == [.string("checkmark.circle.fill"), .string("plus.circle.fill")])
+        let buttons = Self.all(try #require(session.runtime.surface("prefs", screenKey: "main")).root)
+            .filter { $0.kind == "button" && Self.texts([$0]).contains("Zürich") }
+        let zurich = try #require(buttons.first)
+        await session.runtime.trigger("on-click", on: zurich.identity, event: Record())?.value
+        session.flush()
+        guard case .record(let place) = session.vars.value("wp") else {
+            Issue.record("no place")
+            return
+        }
+        #expect(place["name"] == .string("Zürich"))
         #expect(session.diagnostics.map(\.message) == [])
     }
 
@@ -215,30 +216,24 @@ struct FixtureFieldCheckTests {
         return value.split(separator: " ").map(String.init)
     }
 
-    @Test("Media-Karte: Dash rechts, Streifen oben mit Balken, Compact unten ohne Album und Quelle")
+    @Test("Media-Karte und Media-Seite zeigen Titel, Album, Künstler und Quelle")
     func mediaCardVariants() throws {
         let fixture = ProviderFixture.load(Self.fixtureURL)
         let ir = try #require(Self.builtin("apolloshell-default").ir)
         let session = FixtureFieldCheck.session(ir, fixture: fixture)
-        func w(_ id: String, _ x: Double, _ width: Double, _ height: Double) -> Value {
-            .record(Record([("id", .string(id)), ("page", .string("dashboard")), ("kind", .string("media")), ("x", .number(x)), ("y", .number(0)), ("width", .number(width)), ("height", .number(height)), ("display", .string("standard")), ("show-album", .bool(true)), ("show-source", .bool(true))]))
-        }
-        #expect(session.vars.set("dashboard-widgets", .list([w("a", 0, 552, 130), w("b", 560, 200, 392), w("c", 780, 60, 250)])))
-        session.runtime.open("dashboard", screenKey: nil)
+        session.runtime.open("dash", screenKey: nil)
         session.flush()
-        let elements = Self.all(try #require(session.runtime.surface("dashboard", screenKey: "main")).root)
-        func variant(_ name: String) throws -> ElementInstance {
-            try #require(elements.first { Self.classes($0).contains(name) }, "\(name)")
-        }
-        let tall = try variant("wm-dash")
-        #expect(Self.texts([tall]) == ["Starboy", "Starboy", "The Weeknd", "Spotify"])
-        #expect(Self.all([tall]).contains { $0.kind == "ring" })
-        let strip = try variant("wm-strip")
-        #expect(Self.texts([strip]) == ["Starboy", "The Weeknd · Starboy"])
-        #expect(Self.all([strip]).contains { $0.kind == "progress" })
-        let compact = try variant("wm-compact")
-        #expect(Self.texts([compact]) == ["Starboy", "The Weeknd"])
-        #expect(Self.all([compact]).contains { $0.kind == "ring" })
+        let elements = Self.all(try #require(session.runtime.surface("dash", screenKey: "main")).root)
+        let card = try #require(elements.first { Self.classes($0).contains("cmed") })
+        #expect(Self.texts([card]) == ["Starboy", "Starboy", "The Weeknd"])
+        #expect(Self.all([card]).contains { $0.kind == "ring" })
+        #expect(session.vars.set("dt", .string("media")))
+        session.flush()
+        let shown = Self.all(try #require(session.runtime.surface("dash", screenKey: "main")).root)
+        let pane = try #require(shown.first { Self.classes($0).contains("pmed") })
+        let texts = Self.texts([pane])
+        #expect(texts.prefix(3) == ["Starboy", "The Weeknd", "Starboy"], "\(texts)")
+        #expect(texts.contains("Playing in Spotify"))
         #expect(session.diagnostics.map(\.message) == [])
     }
 }

@@ -22,7 +22,7 @@ toast "pill" anchor="top" area="full" max=1 duration="1600ms" {
     }
 }
 
-on "battery.warning" { toast.show title="{event.title}" body="{event.body}" icon="{event.critical ? 'battery.0percent' : 'battery.25percent'}" kind="{event.critical ? 'error' : 'warning'}" duration="10s" }
+on "battery.warning" { toast.show title="{event.title}" body="{event.body}" icon="{event.critical ? 'minus.plus.batteryblock.exclamationmark.fill' : (event.level == '10' ? 'battery.0percent' : 'battery.25percent')}" kind="{event.critical ? 'error' : 'warning'}" duration="10s" }
 on "battery.charger-connected" { toast.show title="Charging · {battery.percent | percent}" icon="bolt.fill" style="pill" }
 on "timer.finished" { sound "Glass"; toast.show title="{event.mode == 'pomodoro' ? (event.phase == 'focus' ? 'Focus round done' : 'Break is over') : 'Timer done'}" body="{(event.duration | duration 'short')} passed" icon="timer" kind="success" duration="10s" }
 on "power.keep-awake-stopped" { toast.show title="Keep Awake ended" body="{event.reason}" icon="cup.and.saucer" }

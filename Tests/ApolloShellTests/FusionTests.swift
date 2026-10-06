@@ -193,10 +193,11 @@ struct FusionMenuBarTests {
         return fixture
     }
 
-    @Test("Die Vorgabe-Config hängt die Menüleiste in die Gruppe shell")
+    @Test("Die Vorgabe-Config verschmilzt ihre Popouts ohne Theme über shape=fused an der Leiste")
     func defaultConfig() throws {
-        let source = try String(contentsOf: PackageResources.root.appendingPathComponent("Resources/configs/apolloshell-default/menubar.kdl"), encoding: .utf8)
-        #expect(source.contains("panel \"menubar\" anchor=\"top\" fuse-group=\"shell\""))
+        let source = try String(contentsOf: PackageResources.root.appendingPathComponent("Resources/configs/apolloshell-default/bar.kdl"), encoding: .utf8)
+        #expect(source.contains("panel \"bar\" anchor=\"left\" area=\"below-menubar\" shape=\"fused\""))
+        #expect(!source.contains("fuse-group"))
     }
 
     @Test("Fusion aus: keine Haut, beide Hintergründe wie ohne Gruppe, Ebenen unverändert")

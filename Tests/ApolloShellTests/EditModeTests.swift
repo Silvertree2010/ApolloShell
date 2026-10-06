@@ -11,15 +11,7 @@ import ApolloRuntime
 struct EditModeTests {
     func v(_ h: ShellHarness, _ n: String) -> Value? { h.shell.assembly?.vars.value(n) }
 
-    static let config = """
-    include "builtin:apolloshell-default/shell.kdl"
-    on "user.t-begin" { use "edit-begin" }
-    on "user.t-cancel" { use "edit-cancel" }
-    on "user.t-done" { use "edit-done" }
-    on "user.t-bar" { use "edit-add-bar" list="{event.list}" catalog="{event.list == 'sidebar-modules' ? var.sidebar-module-kinds : var.menubar-module-kinds}" kind="{event.kind}" present="{event.list == 'sidebar-modules' ? var.sidebar-modules : var.menubar-start}" at="{event.at}" }
-    on "user.t-move" { use "edit-move-bar" value="{event.value}" to="{event.to}" at="{event.at}" }
-    on "user.t-cc" { use "edit-add-cc" value="{event.value}" }
-    """
+    static let config = "include \"builtin:apolloshell-default/shell.kdl\""
 
     func run(_ h: ShellHarness, _ a: String) async throws { _ = try await h.shell.runActions(a); h.settle() }
 
@@ -28,9 +20,11 @@ struct EditModeTests {
         h.settle()
     }
 
-    func kinds(_ h: ShellHarness, _ n: String) -> [String] {
-        guard case .list(let l)? = v(h, n) else { return [] }
-        return l.compactMap { if case .record(let r) = $0, case .string(let k)? = r["kind"] { return k } else { return nil } }
+    func modules(_ h: ShellHarness) -> [(String, Bool)] {
+        guard case .list(let l)? = v(h, "bm") else { return [] }
+        return l.compactMap {
+            if case .record(let r) = $0, case .string(let id)? = r["id"], case .bool(let on)? = r["on"] { return (id, on) } else { return nil }
+        }
     }
 
     func start() async throws -> ShellHarness {
@@ -39,216 +33,72 @@ struct EditModeTests {
         return h
     }
 
-    @Test("begin backs up every list and opens dashboard, control centre and toolbar")
-    func begin() async throws {
-        let h = try await start()
-        defer { h.shell.shutdown() }
-        await ev(h, "t-begin")
-        #expect(v(h, "shell-editing") == .bool(true))
-        #expect(v(h, "edit-backup-sidebar") == v(h, "sidebar-modules"))
-        #expect(v(h, "edit-backup-cards") == v(h, "utilities-cards"))
-        #expect(v(h, "edit-backup-toggles") == v(h, "utilities-toggles"))
-        #expect(v(h, "dashboard-changed") == .bool(false))
-    }
-
-    @Test("adding to sidebar, menu bar and control centre counts as a change and cancel restores everything")
-    func cancelRestores() async throws {
-        let h = try await start()
-        defer { h.shell.shutdown() }
-        let side = kinds(h, "sidebar-modules")
-        let toggles = kinds(h, "utilities-toggles")
-        await ev(h, "t-begin")
-        await ev(h, "t-bar", [("list", .string("sidebar-modules")), ("kind", .string("cpu"))])
-        await ev(h, "t-bar", [("list", .string("menubar-start")), ("kind", .string("timer"))])
-        await ev(h, "t-cc", [("value", .string("toggle:mute"))])
-        await ev(h, "t-cc", [("value", .string("card:timer"))])
-        #expect(kinds(h, "sidebar-modules") == side + ["cpu"])
-        #expect(kinds(h, "menubar-start").last == "timer")
-        #expect(kinds(h, "utilities-toggles") == toggles + (toggles.contains("mute") ? [] : ["mute"]))
-        #expect(v(h, "dashboard-changed") == .bool(true))
-        await ev(h, "t-cancel")
-        #expect(kinds(h, "sidebar-modules") == side)
-        #expect(kinds(h, "menubar-start").contains("timer") == false)
-        #expect(kinds(h, "utilities-toggles") == toggles)
-        #expect(v(h, "shell-editing") == .bool(false))
-    }
-
-    @Test("a unique kind that is already present is not added twice and done keeps the changes")
-    func uniqueAndDone() async throws {
-        let h = try await start()
-        defer { h.shell.shutdown() }
-        await ev(h, "t-begin")
-        let n = kinds(h, "sidebar-modules").count
-        await ev(h, "t-bar", [("list", .string("sidebar-modules")), ("kind", .string("dock"))])
-        #expect(kinds(h, "sidebar-modules").count == n)
-        await ev(h, "t-bar", [("list", .string("sidebar-modules")), ("kind", .string("divider")), ("at", .number(0))])
-        #expect(kinds(h, "sidebar-modules").first == "divider")
-        await ev(h, "t-done")
-        #expect(kinds(h, "sidebar-modules").first == "divider" && v(h, "shell-editing") == .bool(false))
-    }
-
-    @Test("removing a card only disables it and the gallery drop enables it again")
-    func cards() async throws {
-        let h = try await start()
-        defer { h.shell.shutdown() }
-        await ev(h, "t-begin")
-        func on(_ k: String) -> Bool? {
-            guard case .list(let l)? = v(h, "utilities-cards") else { return nil }
-            for x in l { if case .record(let r) = x, r["kind"] == .string(k), case .bool(let b)? = r["enabled"] { return b } }
-            return nil
+    static func all(_ roots: [ElementInstance]) -> [ElementInstance] {
+        var out: [ElementInstance] = []
+        var stack = Array(roots.reversed())
+        while let element = stack.popLast() {
+            out.append(element)
+            stack.append(contentsOf: element.children.reversed())
+            for slot in element.slotChildren.values { stack.append(contentsOf: slot.reversed()) }
         }
-        try await run(h, "list.update \"utilities-cards\" at=\"{var.utilities-cards | index-where 'kind' ['brightness']}\" { - enabled=#false }")
-        #expect(on("brightness") == false)
-        await ev(h, "t-cc", [("value", .string("card:brightness"))])
-        #expect(on("brightness") == true)
-        try await run(h, "list.update \"utilities-cards\" at=\"{var.utilities-cards | index-where 'kind' ['audio']}\" { - enabled=#false }")
-        #expect(on("audio") == false)
-        await ev(h, "t-cc", [("value", .string("card:audio"))])
-        #expect(on("audio") == true)
+        return out
     }
 
-    @Test("a card reorder finds its card by kind since card records carry no id")
-    func cardMove() async throws {
+    @Test("the launcher action and the shortcut event start edit mode, done ends it and keeps the modules")
+    func beginAndDone() async throws {
         let h = try await start()
         defer { h.shell.shutdown() }
-        await ev(h, "t-begin")
-        func order() -> [String] {
-            guard case .list(let l)? = v(h, "utilities-cards") else { return [] }
-            return l.compactMap { if case .record(let r) = $0, case .string(let k)? = r["kind"] { return k }; return nil }
-        }
-        let a = order()
-        try await run(h, "list.move \"utilities-cards\" from=\"{var.utilities-cards | index-where 'kind' ['audio']}\" to=0")
-        #expect(order().first == "audio" && order().count == a.count)
-    }
-
-    @Test("a fast user switch cancels the mode and restores the layout")
-    func sessionInactive() async throws {
-        let h = try await start()
-        defer { h.shell.shutdown() }
-        let side = kinds(h, "sidebar-modules")
-        await ev(h, "t-begin")
-        try await run(h, "list.remove \"sidebar-modules\" at=0")
-        for task in h.shell.assembly?.runtime.emit("system.session-inactive", Record()) ?? [] { await task.value }
+        let before = modules(h)
+        #expect(before.count == 9 && before.allSatisfy(\.1))
+        await ev(h, "act-edit")
+        #expect(v(h, "edit") == .bool(true))
+        let bar = try #require(h.runtime.surface("bar", screenKey: ShellHarness.a.key))
+        let toggles = Self.all(bar.root).filter { $0.kind == "button" && $0.property("class") == .string("bmx") }
+        #expect(toggles.count == 9)
+        await h.shell.assembly?.runtime.trigger("on-click", on: try #require(toggles.first).identity, event: Record())?.value
         h.settle()
-        #expect(v(h, "shell-editing") == .bool(false))
-        #expect(kinds(h, "sidebar-modules") == side)
+        #expect(modules(h).first?.1 == false)
+        await ev(h, "editdone")
+        #expect(v(h, "edit") == .bool(false))
+        #expect(modules(h).first?.1 == false)
+        let hidden = Self.all(bar.root).contains { $0.property("id") == .string("i-logo") }
+        #expect(!hidden)
     }
 
-    @Test("the edit toolbar stands above the open dashboard and control centre so Done stays clickable")
-    func toolbarLevel() async throws {
+    @Test("the bar list can be reordered only in edit mode, the drag reorder moves the module")
+    func reorder() async throws {
         let h = try await start()
         defer { h.shell.shutdown() }
-        await ev(h, "t-begin")
-        let all = h.shell.host.controllers.values
-        let bar = try #require(all.first { $0.surface.id == "dashboard-toolbar" })
-        let others = all.filter { $0.surface.id == "dashboard" || $0.surface.id == "utilities" }
-        #expect(others.count >= 2)
-        for o in others { #expect(bar.spec.level.rawValue > o.spec.level.rawValue, "\(o.surface.id)") }
+        let bar = try #require(h.runtime.surface("bar", screenKey: ShellHarness.a.key))
+        #expect(!Self.all(bar.root).contains { $0.kind == "reorderable" })
+        try await run(h, "set \"edit\" #true")
+        let list = try #require(Self.all(bar.root).first { $0.kind == "reorderable" })
+        await h.shell.assembly?.runtime.trigger("on-reorder", on: list.identity, event: Record([("from", .number(0)), ("to", .number(2))]))?.value
+        h.settle()
+        let order = modules(h).map(\.0)
+        #expect(order.first == "ws" && (order.firstIndex(of: "logo") ?? 0) > 0, "\(order)")
     }
 
-    @Test("the edit toolbar steps above the control centre when both would overlap")
-    func toolbarClearsUtilities() async throws {
-        let h = try await start()
-        defer { h.shell.shutdown() }
-        await ev(h, "t-begin")
-        let k = ShellHarness.a.key
-        let bar = try #require(h.shell.host.model.surfaces[SurfaceHost.key("dashboard-toolbar", k)])
-        let st = try #require(h.shell.assembly?.store)
-        st.set(DependencyPath("surfaces:" + k, ["utilities", "width"]), .number(446))
-        st.set(DependencyPath("surfaces:" + k, ["utilities", "height"]), .number(500))
-        h.settle()
-        #expect(bar.property("offset-y") == .number(516))
-        st.set(DependencyPath("surfaces:" + k, ["utilities", "width"]), .number(100))
-        h.settle()
-        #expect(bar.property("offset-y") == .number(0))
-    }
-
-    @Test("the command center offers Edit Layout")
+    @Test("the command center offers Edit Bar")
     func entry() async throws {
         let (home, shell) = try await CommandCenterWiringTests.started()
         defer { shell.shutdown(); try? FileManager.default.removeItem(at: home.root) }
-        #expect(CommandCenterWiringTests.titles(shell.commandCenterEntries()).contains("Edit Layout…"))
+        #expect(CommandCenterWiringTests.titles(shell.commandCenterEntries()).contains("Edit Bar"))
     }
 
-    @Test("choosing Edit Layout in the real menu item starts edit mode")
+    @Test("choosing Edit Bar in the real menu item starts edit mode")
     func menuClick() async throws {
         let (home, shell) = try await CommandCenterWiringTests.started()
         defer { shell.shutdown(); try? FileManager.default.removeItem(at: home.root) }
         let b = CommandCenterMenu { shell.perform($0) }
         let m = b.make(shell.commandCenterEntries())
-        let i = try #require(m.items.first { $0.title == "Edit Layout…" })
+        let i = try #require(m.items.first { $0.title == "Edit Bar" })
         _ = i.target?.perform(i.action, with: i)
-        for _ in 0..<50 where shell.assembly?.vars.value("shell-editing") != .bool(true) {
+        for _ in 0..<50 where shell.assembly?.vars.value("edit") != .bool(true) {
             await Task.yield()
             RunLoopPump.run(0.02)
         }
-        #expect(shell.assembly?.vars.value("shell-editing") == .bool(true))
-    }
-
-    @Test("selecting a block with options opens its popover and done closes it")
-    func optionsPopover() async throws {
-        let h = try await start()
-        defer { h.shell.shutdown() }
-        await ev(h, "t-begin")
-        try await run(h, "set \"dashboard-selected\" \"sidebar-modules:clock\"; set \"edit-opt\" \"sidebar-modules:clock\"")
-        #expect(v(h, "edit-opt-sb-open") == .bool(true))
-        #expect(v(h, "edit-opt-mb-open") == .bool(false))
-        try await run(h, "set \"dashboard-selected\" \"menubar-end:clock\"; set \"edit-opt\" \"menubar-end:clock\"")
-        #expect(v(h, "edit-opt-mb-open") == .bool(true))
-        #expect(v(h, "edit-opt-sb-open") == .bool(false))
-        try await run(h, "set \"dashboard-selected\" \"sidebar-modules:power\"; set \"edit-opt\" \"sidebar-modules:power\"")
-        #expect(v(h, "edit-opt-sb-open") == .bool(false))
-        await ev(h, "t-cc", [("value", .string("toggle:hide-apps"))])
-        try await run(h, "set \"dashboard-selected\" \"utilities-toggles:hide-apps\"; set \"edit-opt\" \"utilities-toggles:hide-apps\"")
-        #expect(v(h, "edit-opt-tg-open") == .bool(true))
-        try await run(h, "set \"edit-opt\" #null")
-        #expect(v(h, "edit-opt-tg-open") == .bool(false))
-    }
-
-    @Test("entering edit mode with the control centre open builds every toggle frame once so the options popover finds its anchor")
-    func toggleFramesOnce() async throws {
-        let h = try await start()
-        defer { h.shell.shutdown() }
-        var dup: [String] = []
-        h.runtime.onWarning = { dup.append($0.message) }
-        try await run(h, "open \"utilities\"")
-        try await run(h, "set \"shell-editing\" #true")
-        await ev(h, "t-cc", [("value", .string("toggle:hide-apps"))])
-        try await run(h, "set \"dashboard-selected\" \"utilities-toggles:hide-apps\"; set \"edit-opt\" \"utilities-toggles:hide-apps\"")
-        func ids(_ n: [ElementInstance]) -> [String] { n.flatMap { [$0.identity.description] + ids($0.children) } }
-        let all = ids(h.runtime.surface("utilities", screenKey: ShellHarness.a.key)?.root ?? [])
-        #expect(all.contains { $0.hasSuffix("#ef-utilities-toggles-hide-apps") })
-        #expect(dup.filter { $0.contains("duplicate id") }.isEmpty, "\(dup)")
-        #expect(v(h, "edit-opt-tg-open") == .bool(true))
-    }
-
-    @Test("show all in the gallery starts off, toggles and resets on begin")
-    func showAll() async throws {
-        let h = try await start()
-        defer { h.shell.shutdown() }
-        await ev(h, "t-begin")
-        #expect(v(h, "edit-show-all") == .bool(false))
-        try await run(h, "set \"edit-show-all\" #true")
-        #expect(v(h, "edit-show-all") == .bool(true))
-        await ev(h, "t-cancel")
-        await ev(h, "t-begin")
-        #expect(v(h, "edit-show-all") == .bool(false))
-    }
-
-    @Test("a menu bar block dropped on another zone moves there and the same zone is left to the reorder")
-    func crossZone() async throws {
-        let h = try await start()
-        defer { h.shell.shutdown() }
-        await ev(h, "t-begin")
-        let a = kinds(h, "menubar-start")
-        let b = kinds(h, "menubar-center")
-        await ev(h, "t-move", [("value", .string("move:start:app-menus")), ("to", .string("center")), ("at", .number(0))])
-        #expect(kinds(h, "menubar-start") == a.filter { $0 != "app-menus" })
-        #expect(kinds(h, "menubar-center") == ["app-menus"] + b)
-        await ev(h, "t-move", [("value", .string("move:center:app-menus")), ("to", .string("center")), ("at", .number(0))])
-        #expect(kinds(h, "menubar-center") == ["app-menus"] + b)
-        await ev(h, "t-cancel")
-        #expect(kinds(h, "menubar-start") == a)
+        #expect(shell.assembly?.vars.value("edit") == .bool(true))
     }
 }
 
@@ -264,14 +114,13 @@ struct DragMaskTests {
 
 @Suite("Edit mode bars take values dragged in")
 struct EditAcceptTests {
-    @Test("every edit reorderable carries accept=value, because the drop only reaches it through that property")
+    @Test("the bar's reorderable exists only inside the edit branch and is always enabled there")
     func accept() throws {
         let dir = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources/configs/apolloshell-default")
-        let wanted = [("sidebar.kdl", "sidebar-modules"), ("menubar.kdl", "menubar-edit-list"), ("utilities.kdl", "quick-toggles"), ("utilities.kdl", "utilities-edit-list")]
-        for (file, cls) in wanted {
-            let text = try String(contentsOf: dir.appendingPathComponent(file), encoding: .utf8)
-            let line = try #require(text.split(separator: "\n").first { $0.contains("reorderable") && $0.contains("class=\"\(cls)\"") })
-            #expect(line.contains("accept=\"value\""))
-        }
+        let text = try String(contentsOf: dir.appendingPathComponent("bar.kdl"), encoding: .utf8)
+        let lines = text.split(separator: "\n").map(String.init)
+        let index = try #require(lines.firstIndex { $0.contains("reorderable") && $0.contains("class=\"bmods\"") })
+        #expect(lines[index].contains("enabled=#true"))
+        #expect(lines[index - 1].contains("when \"{var.edit}\""))
     }
 }

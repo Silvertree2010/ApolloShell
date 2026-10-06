@@ -83,18 +83,19 @@ struct InteractionRoundFourTests {
         session.flush()
     }
 
-    @Test("session: ↑ ohne Auswahl wählt wie 0.1.4.2 den letzten Eintrag, ↓ den ersten")
+    @Test("session: ↑ vom ersten Eintrag springt zum letzten, ↓ vom letzten zum ersten")
     func sessionArrowsFromNothing() async throws {
         let url = PackageResources.root.appendingPathComponent("Resources/configs/apolloshell-default/session.kdl")
         let (session, _) = try RenderProbe.session(try String(contentsOf: url, encoding: .utf8))
         let vars = session.assembly.actions.vars
-        try await press("up", surface: "session", in: session)
-        #expect(vars.value("session-selection") == .number(3))
-        try await press("up", surface: "session", in: session)
-        #expect(vars.value("session-selection") == .number(2))
-        vars.set("session-selection", .null)
-        try await press("down", surface: "session", in: session)
-        #expect(vars.value("session-selection") == .number(0))
+        #expect(vars.value("ssel") == .string("lock"))
+        try await press("up", surface: "sess", in: session)
+        #expect(vars.value("ssel") == .string("shutdown"))
+        try await press("up", surface: "sess", in: session)
+        #expect(vars.value("ssel") == .string("restart"))
+        vars.set("ssel", .string("shutdown"))
+        try await press("down", surface: "sess", in: session)
+        #expect(vars.value("ssel") == .string("lock"))
     }
 
     func click(window: NSWindow) -> NSEvent {

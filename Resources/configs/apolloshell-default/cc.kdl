@@ -6,7 +6,8 @@ define "tile" {
     param "i"
     param "t"
     param "s"
-    button class="tile" checked="{on}" label="{t}" {
+    param "off" default=#false
+    button class="tile" checked="{on}" disabled="{off}" label="{t}" {
         slot
         row class="tlr" {
             stack class="tlc" { icon "{i}" class="tli" }
@@ -63,7 +64,7 @@ popup "cc" anchor="bottom-right" area="full" safe-area=#false overhang=#true sha
                     }
                 }
                 grid columns=2 class="tiles" {
-                    use "tile" on="{network.wifi.on ?? false}" i="{network.wifi.on == false ? 'wifi.slash' : 'wifi'}" t="Wi-Fi" s="{network.wifi.connected ? (network-info.name ?? 'Connected') : (network.wifi.on == false ? 'Off' : 'Not connected')}" {
+                    use "tile" on="{network.wifi.on ?? false}" i="{network.wifi.on == false ? 'wifi.slash' : 'wifi'}" t="Wi-Fi" off="{network.wifi.on == null}" s="{network.wifi.on == null ? 'No Wi-Fi' : (network.wifi.connected ? (network-info.name ?? 'Connected') : (network.wifi.on == false ? 'Off' : 'Not connected'))}" {
                         on-click { network.toggle-wifi }
                         on-right-click { network.open-settings }
                     }
@@ -116,4 +117,4 @@ on "user.copen" { open "cc" }
 on "user.cx" { set "csh" #false; wait "60ms"; set "cop" #false; wait "380ms"; close "cc" }
 on "user.cxo" when="{var.crdy}" { emit "cx" }
 
-bind "{var.hk-c}" { emit "cc" }
+bind "{var.hotkey-utilities}" { emit "cc" }

@@ -3,7 +3,7 @@ on "user.dopen" { open "dash" }
 on "user.dx" { set "dsh" #false; wait "60ms"; set "dop" #false; wait "380ms"; close "dash" }
 on "user.cc" { }
 on "user.prefs" { }
-bind "{var.hk-d}" { emit "dash" }
+bind "{var.hotkey-dashboard}" { emit "dash" }
 on "user.dxo" when="{var.drdy}" { emit "dx" }
 on "user.tpause" { timer.pause }
 on "user.tres" { timer.resume }

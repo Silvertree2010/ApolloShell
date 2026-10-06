@@ -59,7 +59,7 @@ define "lrow" {
     }
 }
 
-popup "lnch" anchor="bottom" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" keyboard=#true {
+popup "launcher" anchor="bottom" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" keyboard=#true {
     on-open { set "q" ""; set "sel" 0; set "arm" ""; set "lrdy" #false; set "lf" #true; wait "100ms"; set "lop" #true; wait "110ms"; set "lsh" #true; wait "410ms"; set "lrdy" #true }
     key "escape" { emit "lx" }
     key "down" { set "sel" "{(var.sel + 1) % (var.lcount | max 1)}" }
@@ -117,9 +117,9 @@ popup "lnch" anchor="bottom" area="full" safe-area=#false overhang=#true shape="
     }
 }
 
-on "user.lnch" { emit "{var.lop ? 'lx' : 'lopen'}" }
-on "user.lopen" { open "lnch" }
-on "user.lx" { set "lsh" #false; set "lf" #false; wait "60ms"; set "lop" #false; wait "380ms"; close "lnch" }
+on "user.launch" { emit "{var.lop ? 'lx' : 'lopen'}" }
+on "user.lopen" { open "launcher" }
+on "user.lx" { set "lsh" #false; set "lf" #false; wait "60ms"; set "lop" #false; wait "380ms"; close "launcher" }
 on "user.lxo" when="{var.lrdy}" { emit "lx" }
 
 on "user.lgo" when="{var.lcalc != null}" { clipboard.copy "{var.lcalc}"; toast.show title="Copied {var.lcalc}" icon="doc.on.clipboard" kind="success"; emit "lx" }
@@ -153,4 +153,4 @@ on "user.act-edit" { set "edit" #true }
 
 on "system.color-copied" { toast.show title="Copied {event.hex}" icon="eyedropper" kind="success" }
 
-bind "{var.hk-l}" { emit "lnch" }
+bind "{var.hotkey-launcher}" { emit "launch" }
