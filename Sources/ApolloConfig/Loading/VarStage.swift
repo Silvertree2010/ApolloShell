@@ -12,10 +12,18 @@ enum VarStage {
     static func run(_ nodes: [ExpandedNode], registry: SchemaRegistry) -> VarStageResult {
         var declarations: [VarDecl] = []
         var diagnostics: [Diagnostic] = []
+        var seen: [String: VarDecl] = [:]
         for node in nodes where node.kdl.name == "var" {
-            if let decl = declaration(for: node, diagnostics: &diagnostics) {
-                declarations.append(decl)
+            guard let decl = declaration(for: node, diagnostics: &diagnostics) else { continue }
+            if let first = seen[decl.name] {
+                diagnostics.append(DiagnosticCollector.withExpansionChain(
+                    Diagnostic(.error, "duplicate var '\(decl.name)'", span: node.kdl.span,
+                               notes: [DiagnosticNote("first declared here", span: first.span)], code: .duplicateDefinition),
+                    node: node))
+                continue
             }
+            seen[decl.name] = decl
+            declarations.append(decl)
         }
         return VarStageResult(declarations: declarations, diagnostics: diagnostics)
     }
