@@ -567,8 +567,11 @@ public enum WeatherText {
         String(localized: "H:\(temperature(max, unit: unit)) L:\(temperature(min, unit: unit))")
     }
 
-    public static func wind(_ kmh: Double) -> String {
-        "\(Int(kmh.rounded())) km/h"
+    public static func wind(_ kmh: Double, unit: SpeedUnit = .kmh) -> String {
+        switch unit {
+        case .kmh: "\(Int(kmh.rounded())) km/h"
+        case .mph: "\(Int((kmh / 1.609344).rounded())) mph"
+        }
     }
 
     public static func humidity(_ percent: Int) -> String {
@@ -582,19 +585,28 @@ public enum WeatherText {
         return "\(percent) %"
     }
 
-    public static func clock(_ date: Date, calendar: Calendar) -> String {
+    public static func clock(_ date: Date, calendar: Calendar, cycle: HourCycle = .h24) -> String {
         let c = calendar.dateComponents([.hour, .minute], from: date)
-        return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
+        let h = c.hour ?? 0, m = c.minute ?? 0
+        switch cycle {
+        case .h24: return String(format: "%02d:%02d", h, m)
+        case .h12: return String(format: "%d:%02d %@", (h + 11) % 12 + 1, m, h < 12 ? "AM" : "PM")
+        }
     }
 
     /// Zeigt an, von wann die angezeigten Daten sind, wenn sie nicht frisch sind.
-    public static func stand(_ date: Date, calendar: Calendar) -> String {
-        String(localized: "As of \(clock(date, calendar: calendar))")
+    public static func stand(_ date: Date, calendar: Calendar, cycle: HourCycle = .h24) -> String {
+        String(localized: "As of \(clock(date, calendar: calendar, cycle: cycle))")
     }
 
     /// "Now" oder "14 Uhr".
-    public static func hourLabel(_ date: Date, isNow: Bool, calendar: Calendar) -> String {
-        isNow ? String(localized: "Now") : String(localized: "\(calendar.component(.hour, from: date)):00")
+    public static func hourLabel(_ date: Date, isNow: Bool, calendar: Calendar, cycle: HourCycle = .h24) -> String {
+        if isNow { return String(localized: "Now") }
+        let h = calendar.component(.hour, from: date)
+        switch cycle {
+        case .h24: return String(localized: "\(h):00")
+        case .h12: return "\((h + 11) % 12 + 1) \(h < 12 ? "AM" : "PM")"
+        }
     }
 
     /// "Today", sonst zwei Buchstaben wie im Kalender ("Mo", "Di").
@@ -663,19 +675,19 @@ public enum WeatherRefresh {
 
 // MARK: - Einheit
 
-public enum TemperatureUnit: String, Codable, CaseIterable, Identifiable, Sendable {
+public enum TemperatureUnit: Sendable {
     case celsius, fahrenheit
 
-    public var id: Self { self }
-
-    public static var regional: TemperatureUnit {
-        Locale.current.measurementSystem == .us ? .fahrenheit : .celsius
+    public static var system: TemperatureUnit {
+        resolve(preference: UserDefaults.standard.string(forKey: "AppleTemperatureUnit"),
+                measurementSystem: Locale.current.measurementSystem)
     }
 
-    public var title: String {
-        switch self {
-        case .celsius: String(localized: "Celsius (°C)")
-        case .fahrenheit: String(localized: "Fahrenheit (°F)")
+    public static func resolve(preference: String?, measurementSystem: Locale.MeasurementSystem) -> TemperatureUnit {
+        switch preference {
+        case "Fahrenheit": .fahrenheit
+        case "Celsius": .celsius
+        default: measurementSystem == .us ? .fahrenheit : .celsius
         }
     }
 
@@ -687,16 +699,21 @@ public enum TemperatureUnit: String, Codable, CaseIterable, Identifiable, Sendab
     }
 }
 
-public struct WeatherSettings: Codable, Equatable, Sendable {
-    public var unit: TemperatureUnit
+public enum SpeedUnit: Sendable {
+    case kmh, mph
 
-    public init(unit: TemperatureUnit = .regional) {
-        self.unit = unit
+    public static var system: SpeedUnit { resolve(measurementSystem: Locale.current.measurementSystem) }
+
+    public static func resolve(measurementSystem: Locale.MeasurementSystem) -> SpeedUnit {
+        measurementSystem == .metric ? .kmh : .mph
     }
+}
 
-    public init(from decoder: any Decoder) throws {
-        self.init()
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        c.lenient(.unit, into: &unit)
+public enum HourCycle: Sendable {
+    case h24, h12
+
+    public static var system: HourCycle {
+        let f = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .current) ?? "H"
+        return f.contains("a") || f.contains("h") || f.contains("K") ? .h12 : .h24
     }
 }

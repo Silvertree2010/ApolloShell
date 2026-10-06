@@ -355,7 +355,7 @@ struct BarWeatherModule: View {
     let options: BarWeatherOptions
     let onOpen: () -> Void
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.temperatureUnit) private var unit
+    private var unit: TemperatureUnit { .system }
 
     var body: some View {
         let model = feed.model

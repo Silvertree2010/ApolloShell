@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 import ApolloShellCore
 import Observation
 import os
@@ -111,7 +110,7 @@ final class WeatherModel {
         guard let report, let fetchedAt,
               WeatherRefresh.showsStand(fetchedAt: fetchedAt, lastAttemptFailed: lastAttemptFailed, now: now)
         else { return nil }
-        return WeatherText.stand(fetchedAt, calendar: report.calendar)
+        return WeatherText.stand(fetchedAt, calendar: report.calendar, cycle: .system)
     }
 
     // MARK: - Abrufen
@@ -270,30 +269,5 @@ final class WeatherModel {
 
     private struct HTTPStatus: Error {
         let code: Int
-    }
-}
-
-private struct TemperatureUnitKey: EnvironmentKey {
-    static let defaultValue = TemperatureUnit.celsius
-}
-
-extension EnvironmentValues {
-    var temperatureUnit: TemperatureUnit {
-        get { self[TemperatureUnitKey.self] }
-        set { self[TemperatureUnitKey.self] = newValue }
-    }
-}
-
-struct TemperatureUnitScope: ViewModifier {
-    let settings: ShellSettingsStore
-
-    func body(content: Content) -> some View {
-        content.environment(\.temperatureUnit, settings.settings.weather.unit)
-    }
-}
-
-extension View {
-    func temperatureUnit(from settings: ShellSettingsStore) -> some View {
-        modifier(TemperatureUnitScope(settings: settings))
     }
 }

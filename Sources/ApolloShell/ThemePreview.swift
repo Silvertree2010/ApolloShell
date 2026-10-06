@@ -11,7 +11,7 @@ import SwiftUI
 struct ThemePreview: View {
     let theme: Theme
     let dark: Bool
-    @Environment(\.temperatureUnit) private var unit
+    private var unit: TemperatureUnit { .system }
 
     var body: some View {
         let style = ShellStyle(theme: theme, dark: dark)

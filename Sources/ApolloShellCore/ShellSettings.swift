@@ -38,7 +38,6 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public var theme = ThemeSettings()
     /// Absturzberichte (Nexus > Updates).
     public var crashReports = CrashReportSettings()
-    public var weather = WeatherSettings()
 
     /// Die Vorgaben der vier Abschnitte fuer die Veroeffentlichung
     /// (hotKeys, keepAwake, onboarding, appleDockHiding) sind hier die fuer
@@ -266,7 +265,6 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         theme = c.lenient(.theme) ?? ThemeSettings()
         // Erst ab 0.1.4.1; fehlt er, wird gefragt.
         crashReports = c.lenient(.crashReports) ?? CrashReportSettings()
-        weather = c.lenient(.weather) ?? WeatherSettings()
     }
 
     /// Inhalt von settings.json.

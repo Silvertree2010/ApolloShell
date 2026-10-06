@@ -18,7 +18,7 @@ import SwiftUI
 /// gleichnamige Typen im Modul sind ein Fehler, auch wenn einer privat ist.
 struct SmallWeatherCard: View {
     let model: WeatherModel
-    @Environment(\.temperatureUnit) private var unit
+    private var unit: TemperatureUnit { .system }
     /// Nexus > Dashboard; die Vorgabe zeigt alles wie Caelestia.
     var options = DashboardWeatherOptions()
     var vertical = false
@@ -235,7 +235,7 @@ private struct WeatherHero: View {
     let model: WeatherModel
     let now: Date
     let stand: String?
-    @Environment(\.temperatureUnit) private var unit
+    private var unit: TemperatureUnit { .system }
     @Environment(\.shellStyle) private var style
 
     var body: some View {
@@ -267,13 +267,13 @@ private struct WeatherHero: View {
                         WeatherStat(symbol: "humidity.fill", label: "Humidity",
                              value: current.humidity.map(WeatherText.humidity) ?? "–")
                         WeatherStat(symbol: "sunrise.fill", label: "Sunrise",
-                             value: today?.sunrise.map { WeatherText.clock($0, calendar: report.calendar) } ?? "–")
+                             value: today?.sunrise.map { WeatherText.clock($0, calendar: report.calendar, cycle: .system) } ?? "–")
                     }
                     GridRow {
                         WeatherStat(symbol: "wind", label: "Wind",
-                             value: current.windSpeed.map(WeatherText.wind) ?? "–")
+                             value: current.windSpeed.map { WeatherText.wind($0, unit: .system) } ?? "–")
                         WeatherStat(symbol: "sunset.fill", label: "Sunset",
-                             value: today?.sunset.map { WeatherText.clock($0, calendar: report.calendar) } ?? "–")
+                             value: today?.sunset.map { WeatherText.clock($0, calendar: report.calendar, cycle: .system) } ?? "–")
                     }
                 }
                 // Etwas hoeher als die Mitte: darunter steht die Quellenangabe,
@@ -352,7 +352,7 @@ private struct WeatherStat: View {
 private struct WeatherHourly: View {
     let slots: [HourSlot]
     let calendar: Calendar
-    @Environment(\.temperatureUnit) private var unit
+    private var unit: TemperatureUnit { .system }
     @Environment(\.shellStyle) private var style
 
     var body: some View {
@@ -360,7 +360,7 @@ private struct WeatherHourly: View {
             HStack(spacing: 0) {
                 ForEach(slots, id: \.time) { slot in
                     VStack(spacing: 5) {
-                        Text(WeatherText.hourLabel(slot.time, isNow: slot.isNow, calendar: calendar))
+                        Text(WeatherText.hourLabel(slot.time, isNow: slot.isNow, calendar: calendar, cycle: .system))
                             .font(style.font(size: 12, weight: slot.isNow ? .semibold : .medium))
                             .foregroundStyle(slot.isNow ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                         WeatherSymbol(name: WeatherCondition.symbol(code: slot.code, isDay: slot.isDay), size: 20)
@@ -385,7 +385,7 @@ private struct WeatherDaily: View {
     let days: [DayForecast]
     let now: Date
     let calendar: Calendar
-    @Environment(\.temperatureUnit) private var unit
+    private var unit: TemperatureUnit { .system }
     @Environment(\.shellStyle) private var style
 
     var body: some View {

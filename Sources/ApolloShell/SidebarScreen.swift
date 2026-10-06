@@ -33,7 +33,7 @@ final class SidebarScreen {
         // nur im selben GlassEffectContainer verschmilzt das Popout mit der
         // Leiste.
         let hosting = FirstMouseHostingView(
-            rootView: SidebarRoot(settings: settings, context: context, popout: popout.model).temperatureUnit(from: settings).shellTheme()
+            rootView: SidebarRoot(settings: settings, context: context, popout: popout.model).shellTheme()
         )
         // Ohne das bestimmt die Ansicht die Fenstergroesse mit und kaempft mit
         // `layout()`, sobald das Fenster fuer ein Popout breiter wird.

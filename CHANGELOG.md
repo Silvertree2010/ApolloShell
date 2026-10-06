@@ -6,14 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.1.4.3] - 2026-10-06
 
-A patch on 0.1.4: leftover German text and a temperature unit.
+A patch on 0.1.4: leftover German text, and weather in the units set in macOS.
 
 ### Added
 
-- **Celsius or Fahrenheit.** Nexus > Dashboard has a new Units section for
-  the weather. The default follows the region set in macOS, so a US Mac
-  starts in Fahrenheit. The bar, the Dashboard, the Weather tab and every
-  preview in Nexus use it.
+- **Weather follows the units set in macOS.** Temperature uses the
+  Temperature setting from System Settings > General > Language & Region,
+  so a US Mac shows Fahrenheit. Wind is in mph where the measurement system
+  is US or UK, and sunrise, sunset and the hourly forecast use the Mac's
+  12- or 24-hour time.
 
 ### Fixed
 

@@ -199,13 +199,22 @@ struct WeatherTextTests {
         #expect(WeatherText.temperature(value, unit: .fahrenheit) == text)
     }
 
-    @Test("Einheit: unbekannter Wert ergibt die Vorgabe der Region")
-    func unitSettings() throws {
-        let read = try JSONDecoder().decode(WeatherSettings.self, from: Data(#"{"unit":"kelvin"}"#.utf8))
-        #expect(read.unit == TemperatureUnit.regional)
-        let f = try JSONDecoder().decode(WeatherSettings.self, from: Data(#"{"unit":"fahrenheit"}"#.utf8))
-        #expect(f.unit == .fahrenheit)
+    @Test("Einheiten aus den Systemeinstellungen")
+    func systemUnits() {
+        #expect(TemperatureUnit.resolve(preference: "Fahrenheit", measurementSystem: .metric) == .fahrenheit)
+        #expect(TemperatureUnit.resolve(preference: "Celsius", measurementSystem: .us) == .celsius)
+        #expect(TemperatureUnit.resolve(preference: nil, measurementSystem: .us) == .fahrenheit)
+        #expect(TemperatureUnit.resolve(preference: nil, measurementSystem: .uk) == .celsius)
+        #expect(SpeedUnit.resolve(measurementSystem: .us) == .mph)
+        #expect(SpeedUnit.resolve(measurementSystem: .uk) == .mph)
+        #expect(SpeedUnit.resolve(measurementSystem: .metric) == .kmh)
         #expect(WeatherText.range(max: 22.4, min: 14.7, unit: .fahrenheit) == "H:72° L:58°")
+        #expect(WeatherText.wind(16, unit: .mph) == "10 mph")
+        #expect(WeatherText.clock(zurich(14, 6, 58), calendar: zurichCalendar, cycle: .h12) == "6:58 AM")
+        #expect(WeatherText.clock(zurich(14, 18, 29), calendar: zurichCalendar, cycle: .h12) == "6:29 PM")
+        #expect(WeatherText.clock(zurich(15, 0, 5), calendar: zurichCalendar, cycle: .h12) == "12:05 AM")
+        #expect(WeatherText.hourLabel(zurich(14, 14), isNow: false, calendar: zurichCalendar, cycle: .h12) == "2 PM")
+        #expect(WeatherText.hourLabel(zurich(14, 12), isNow: false, calendar: zurichCalendar, cycle: .h12) == "12 PM")
     }
 
     @Test("Wind, Feuchte, Spanne")
