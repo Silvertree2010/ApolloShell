@@ -348,6 +348,16 @@ struct HostStartIPCTests {
         harness.shell.shutdown()
     }
 
+    @Test("apollo open findet ein geschlossenes window ohne Fenster")
+    func openClosedWindow() async throws {
+        let harness = try ShellHarness("window \"prefs\" { text \"x\" }")
+        try await harness.start()
+        let control = LiveShellControl(shell: harness.shell)
+        try await control.surface(.open, "prefs")
+        #expect(harness.runtime.surface("prefs", screenKey: ShellHarness.a.key)?.isOpen == true)
+        harness.shell.shutdown()
+    }
+
     @Test("var persist: Wert aus state/<config>.kdl geladen, set schreibt zurück")
     func persistedVars() async throws {
         let harness = try ShellHarness("var tab \"a\" persist=#true\npanel \"bar\" { text \"{var.tab}\" }")
