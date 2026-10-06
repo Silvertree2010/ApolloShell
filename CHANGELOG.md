@@ -12,7 +12,8 @@ A patch on 0.1.4: leftover German text and a temperature unit.
 
 - **Celsius or Fahrenheit.** Nexus > Dashboard has a new Units section for
   the weather. The default follows the region set in macOS, so a US Mac
-  starts in Fahrenheit.
+  starts in Fahrenheit. The bar, the Dashboard, the Weather tab and every
+  preview in Nexus use it.
 
 ### Fixed
 
@@ -21,6 +22,9 @@ A patch on 0.1.4: leftover German text and a temperature unit.
   "Verschieben nach", "Quellenangabe", "Sperren", "Einstellungen" and
   others). Place names from the location search now come back in English
   as well.
+- **English sample data in the previews.** The Dashboard and Quick Actions
+  previews in Nexus showed German sample names ("Alex Beispiel", "Musik",
+  "Lautsprecher", "Mikrofon").
 
 ## [0.1.4.2] - 2026-09-23
 
