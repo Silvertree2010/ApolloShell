@@ -40,7 +40,7 @@ define "hk" {
     param "k"
     use "srow" t="{t}" s="{(v | hotkey-warning) ?? ''}" {
         key-recorder value="{v}" placeholder="Record" class="krec" {
-            on-change { set "{k}" "{event.value}" }
+            on-change { emit "set-{k}" event="{event}" }
         }
     }
 }
@@ -261,3 +261,7 @@ window "prefs" title="Settings" title-visible=#false resizable=#true miniaturiza
 }
 
 on "user.prefs" { open "prefs" }
+on "user.set-hk-l" { set "hk-l" "{event.value}" }
+on "user.set-hk-d" { set "hk-d" "{event.value}" }
+on "user.set-hk-c" { set "hk-c" "{event.value}" }
+on "user.set-hk-s" { set "hk-s" "{event.value}" }
