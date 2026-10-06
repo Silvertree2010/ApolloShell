@@ -669,18 +669,27 @@ final class WindowHost: SurfaceHosting {
         let work = DispatchWorkItem { [weak self, weak controller] in
             MainActor.assumeIsolated {
                 guard let self, let controller, self.controllers[key] === controller else { return }
-                controller.sleepWork = nil
-                guard !controller.shown, controller.ticker == nil else { return }
-                controller.asleep = true
-                controller.pendingContent = nil
-                controller.window.setContent(AnyView(EmptyView()))
-                self.context?.hits.remove(key)
-                self.context?.elementFrames.remove(key)
-                self.stats.sleeps += 1
+                self.sleep(controller, key: key)
             }
         }
         controller.sleepWork = work
         scheduleTimer(sleepDelay, work)
+    }
+
+    private func sleep(_ controller: SurfaceWindowController, key: String) {
+        controller.sleepWork?.cancel()
+        controller.sleepWork = nil
+        guard !controller.shown, !controller.asleep, controller.ticker == nil else { return }
+        controller.asleep = true
+        controller.pendingContent = nil
+        controller.window.setContent(AnyView(EmptyView()))
+        context?.hits.remove(key)
+        context?.elementFrames.remove(key)
+        stats.sleeps += 1
+    }
+
+    func releaseHidden() {
+        for (key, controller) in controllers { sleep(controller, key: key) }
     }
 
     private func wake(_ controller: SurfaceWindowController) {

@@ -404,6 +404,28 @@ struct WindowHostTests {
         #expect(fixture.host.stats.windowsCreated == 5)
     }
 
+    @Test("Hell/Dunkel-Wechsel gibt verborgene Flächen sofort frei, gezeigte bleiben (Glas sonst in alter Erscheinung)")
+    func appearanceReleasesHidden() throws {
+        let fixture = try HostFixture(Self.shell, css: Self.css)
+        fixture.host.scheduleTimer = { _, _ in }
+        let menu = try #require(fixture.window("menu"))
+        let controller = try #require(fixture.host.controllers[SurfaceHost.key("menu", HostFixture.screen.key)])
+        fixture.assembly.runtime.open("menu", screenKey: nil)
+        fixture.flush()
+        menu.finishAnimations()
+        fixture.host.releaseHidden()
+        #expect(!controller.asleep)
+        fixture.assembly.runtime.close("menu")
+        fixture.flush()
+        menu.finishAnimations()
+        fixture.host.releaseHidden()
+        #expect(controller.asleep)
+        fixture.assembly.runtime.open("menu", screenKey: nil)
+        fixture.flush()
+        #expect(!controller.asleep)
+        #expect(menu.isShown)
+    }
+
     @Test("Wiederöffnen vor Ablauf der Wartezeit lässt den Inhalt stehen")
     func reopenBeforeSleep() throws {
         let fixture = try HostFixture(Self.shell, css: Self.css)

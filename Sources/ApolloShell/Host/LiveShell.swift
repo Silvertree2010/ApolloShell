@@ -669,6 +669,7 @@ final class LiveShell: WindowHostLink {
     func appearanceChanged() {
         let dark = isDark()
         guard dark != lastDark, host.context != nil else { return }
+        host.releaseHidden()
         host.restyle(makeContext(lastIR))
     }
 
