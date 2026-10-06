@@ -326,6 +326,7 @@ final class WindowHost: SurfaceHosting {
         window.onOcclusion = { [weak self] visible in self?.occlusionChanged(key, visible: visible) }
         window.onFittingChange = { [weak self] in self?.fittingChanged(key) }
         controllers[key] = controller
+        context?.concealed.insert(key)
         sync(key)
         if !FusionCoordinator.groupName(surface).isEmpty, !fusionRegistered { updateFusion() }
     }
@@ -339,6 +340,7 @@ final class WindowHost: SurfaceHosting {
         controller.ticker = nil
         controller.window.close()
         stats.windowsClosed += 1
+        context?.concealed.remove(key)
         frames.publish(key, nil)
         context?.hits.remove(key)
         context?.elementFrames.remove(key)
@@ -610,6 +612,7 @@ final class WindowHost: SurfaceHosting {
     private func present(_ controller: SurfaceWindowController, key: String, placement: SurfacePlacement, screen: ScreenGeometry, focus: Bool) {
         controller.sleepWork?.cancel()
         controller.sleepWork = nil
+        context?.concealed.remove(key)
         let spec = controller.spec
         guard let motion = motion(spec) else {
             controller.window.show(focus: focus)
@@ -632,6 +635,7 @@ final class WindowHost: SurfaceHosting {
 
     private func dismiss(_ controller: SurfaceWindowController, key: String, placement: SurfacePlacement, screen: ScreenGeometry, closing: Bool) {
         controller.timeout?.cancel()
+        context?.concealed.insert(key)
         let spec = controller.spec
         scheduleSleep(controller, key: key)
         guard let motion = motion(spec), closing else {

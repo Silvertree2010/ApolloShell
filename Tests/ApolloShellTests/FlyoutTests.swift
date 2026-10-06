@@ -135,6 +135,19 @@ struct FlyoutTests {
         #expect(mounted.variable("open") == .bool(false))
     }
 
+    @Test("verborgene Oberfläche: Dickenwechsel beim Öffnen (Fenster noch nicht gezeigt) schliesst nicht")
+    func concealedThicknessKeepsOpen() async throws {
+        let mounted = try Mounted.mount(Self.resizeConfig, css: Self.resizeCSS)
+        let runtime = try #require(mounted.session.context.runtime)
+        let surface = try #require(mounted.session.surfaces.first)
+        mounted.session.context.concealed.insert(SurfaceHost.key(surface.id, surface.screenKey))
+        runtime.setVariable("wide", .bool(true))
+        mounted.session.flush()
+        mounted.pump()
+        await mounted.settle()
+        #expect(mounted.variable("open") == .bool(true))
+    }
+
     @Test("geschlossener Flyout fängt keine Klicks und zählt nicht als Trefferfläche")
     func closedIsInert() async throws {
         let mounted = try Mounted.mount(Self.resizeConfig, css: Self.resizeCSS)

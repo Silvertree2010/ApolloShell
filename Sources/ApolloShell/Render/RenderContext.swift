@@ -29,6 +29,7 @@ final class RenderContext {
     var nextPending = 0
     var flyoutExtents: [String: EdgeInsets] = [:]
     var occluded: Set<String> = []
+    var concealed: Set<String> = []
     var onFlyoutExtent: @MainActor (String, EdgeInsets) -> Void = { _, _ in }
     let hits = HitRegions()
     let elementFrames = ElementFrames()

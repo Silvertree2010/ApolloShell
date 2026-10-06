@@ -328,7 +328,8 @@ struct FlyoutView: View {
             if now, !renderMode { monitor.start(inside: { [slot] in slot.window }) { context.fire("on-close", element) } } else { monitor.stop() }
         }
         .onChange(of: container) { old, new in
-            guard open, Self.thicknessChanged(old, new, anchor: surface.property("anchor").plainText) else { return }
+            guard open, !context.concealed.contains(SurfaceHost.key(surface.id, surface.screenKey)),
+                  Self.thicknessChanged(old, new, anchor: surface.property("anchor").plainText) else { return }
             context.fire("on-close", element)
         }
         .onAppear { if open, !renderMode { monitor.start(inside: { [slot] in slot.window }) { context.fire("on-close", element) } } }
