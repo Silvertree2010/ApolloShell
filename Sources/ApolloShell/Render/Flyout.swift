@@ -230,6 +230,7 @@ struct SurfaceBox: ViewModifier {
     let style: ComputedStyle
     let context: RenderContext
     @State private var bulges: [FlyoutBulge] = []
+    @State private var jump = true
     @Namespace private var matches
 
     func body(content: Content) -> some View {
@@ -244,13 +245,18 @@ struct SurfaceBox: ViewModifier {
             .environment(\.matchNamespace, matches)
             .modifier(StyledBox(style: style, context: context, form: form, flyouts: overlay,
                                 dynamicInline: context.styles.declares("filter", StyleResolver.staticSubject(for: surface))))
-            .animation(Self.motion(bulges, context: context), value: bulges)
+            .animation(jump ? nil : Self.motion(bulges, context: context), value: bulges)
             .onPreferenceChange(FlyoutBulgeKey.self) { new in
+                jump = Self.jumps(bulges, new)
                 bulges = new
                 context.flyoutExtents[key] = FlyoutGeometry.extent(new)
                 context.onFlyoutExtent(key, FlyoutGeometry.extent(new))
                 context.onFlyoutBulges(key, new)
             }
+    }
+
+    static func jumps(_ old: [FlyoutBulge], _ new: [FlyoutBulge]) -> Bool {
+        old.map(\.key) != new.map(\.key)
     }
 
     @MainActor

@@ -148,6 +148,17 @@ struct FlyoutTests {
         #expect(mounted.variable("open") == .bool(true))
     }
 
+    @Test("neue oder wegfallende Flyouts springen statt aus dem Nullrechteck zu wachsen (kalter Neuaufbau)")
+    func newBulgesJump() {
+        let c = CGSize(width: 100, height: 1)
+        let a = FlyoutBulge(key: "a", rect: CGRect(x: 40, y: 1, width: 30, height: 0), side: .bottom, radius: 20, join: 10, joined: true, open: false, container: c)
+        var b = a
+        b.rect = CGRect(x: 0, y: 1, width: 100, height: 200)
+        #expect(SurfaceBox.jumps([], [a]))
+        #expect(!SurfaceBox.jumps([a], [b]))
+        #expect(SurfaceBox.jumps([a], [b, FlyoutBulge(key: "z", rect: .zero, side: .left, radius: 0, join: 0, joined: false, open: false, container: c)]))
+    }
+
     @Test("geschlossener Flyout fängt keine Klicks und zählt nicht als Trefferfläche")
     func closedIsInert() async throws {
         let mounted = try Mounted.mount(Self.resizeConfig, css: Self.resizeCSS)
