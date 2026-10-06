@@ -35,6 +35,23 @@ struct SurfaceBleedTests {
         #expect(w.frame.width == 120)
     }
 
+    @Test("Klicks im Schattenraum gehen durch, auf der Fläche nicht")
+    func clicksPassBleed() throws {
+        let f = try HostFixture("popup \"p\" anchor=\"center\" { text \"x\" }", css: "#p { width: 300px; height: 200px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }")
+        var watchers = 0
+        f.host.watchPointer = { _ in watchers += 1; return {} }
+        f.assembly.runtime.open("p", screenKey: HostFixture.screen.key)
+        f.flush()
+        let w = try #require(f.window("p"))
+        #expect(watchers == 1)
+        f.host.pointer = { CGPoint(x: 560, y: 400) }
+        f.host.pointerMoved()
+        #expect(w.ignoresMouse == true)
+        f.host.pointer = { CGPoint(x: 600, y: 400) }
+        f.host.pointerMoved()
+        #expect(w.ignoresMouse == false)
+    }
+
     @Test("ohne Schatten und Glas bleibt das Fenster so gross wie die Fläche")
     func none() {
         #expect(SurfaceBleed.insets(ComputedStyle(values: [:])) == EdgeInsets())

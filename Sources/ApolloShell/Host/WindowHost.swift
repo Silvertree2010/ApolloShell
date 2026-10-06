@@ -347,7 +347,7 @@ final class WindowHost: SurfaceHosting {
     }
 
     func updateClickThrough() {
-        let tracking = controllers.values.contains { $0.spec.clickThrough == .auto && $0.shown }
+        let tracking = controllers.values.contains { $0.shown && ($0.spec.clickThrough == .auto || Self.guardsBleed($0)) }
         guard tracking else {
             stopPointer?()
             stopPointer = nil
@@ -360,11 +360,18 @@ final class WindowHost: SurfaceHosting {
     func pointerMoved() {
         guard let hits = context?.hits else { return }
         let point = pointer()
-        for (key, controller) in controllers where controller.spec.clickThrough == .auto && controller.shown {
+        for (key, controller) in controllers where controller.shown {
+            let auto = controller.spec.clickThrough == .auto
+            guard auto || Self.guardsBleed(controller) else { continue }
             let frame = controller.window.frame
             let local = CGPoint(x: point.x - frame.minX - controller.pad.leading, y: frame.maxY - point.y - controller.pad.top)
-            controller.window.setIgnoresMouse(!(frame.contains(point) && hits.contains(local, surfaceKey: key)))
+            let hit = frame.contains(point) && hits.contains(local, surfaceKey: key)
+            controller.window.setIgnoresMouse(!(hit || !auto && controller.openFrame.contains(point)))
         }
+    }
+
+    static func guardsBleed(_ c: SurfaceWindowController) -> Bool {
+        c.spec.clickThrough == .off && c.spec.kind != "window" && c.bleed != EdgeInsets()
     }
 
     private func occlusionChanged(_ key: String, visible: Bool) {
@@ -483,6 +490,7 @@ final class WindowHost: SurfaceHosting {
             let bleed = SurfaceBleed.clamp(SurfaceBleed.insets(style), frame: frame, screen: screen.frame)
             if bleed != controller.bleed {
                 controller.bleed = bleed
+                if bleed == EdgeInsets(), spec.clickThrough == .off { controller.window.setIgnoresMouse(false) }
                 controller.pendingContent = content(surface, insets: controller.insets, flyout: controller.pad)
             }
             let flyout = controller.pad
