@@ -21,7 +21,7 @@ struct ButtonElement: View {
         let label = element.property("label").plainText ?? element.property("tooltip").plainText ?? ""
         let can = interactive && !element.property("disabled").isTruthy && element.ir.handlers.contains { $0.name == "on-click" }
         let rad = StyleValues.radius(style["border-radius"])
-        StackLayout(definite: Definite(style)) {
+        StackLayout(definite: Definite(style).union(scope.fill)) {
             ElementChildren(children: element.children, scope: scope)
         }
         .contentShape(Rectangle())

@@ -79,6 +79,7 @@ struct RenderScope {
     let parentKind: String
     var outerKind = ""
     var inherits = InheritedParts()
+    var fill = Definite()
 }
 
 @MainActor
@@ -138,12 +139,12 @@ struct ElementView: View {
         let style = styles.resolve(subject, ancestors: scope.ancestors, parent: scope.parentStyle, inline: inline)
         let plan = Self.plan(element, styles: styles, inherited: scope.inherits, inline: inline)
         let parts = plan.parts, motion = plan.motion
+        let spacer = element.kind == "spacer" && element.property("size") == .null
+        let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
         let inner = RenderScope(context: scope.context, ancestors: scope.ancestors + [subject], parentStyle: style, parentKind: Self.layoutKind(element), outerKind: scope.parentKind,
-                                inherits: InheritedParts(pointer: parts.pointer, cursor: parts.cursor))
+                                inherits: InheritedParts(pointer: parts.pointer, cursor: parts.cursor), fill: fill)
         if element.property("visible") != .bool(false) {
             let fixed = StyleResolver.staticSubject(for: element)
-            let spacer = element.kind == "spacer" && element.property("size") == .null
-            let fill = Self.fill(style, parentKind: scope.parentKind, parentStyle: scope.parentStyle, spacer: spacer)
             let mouse = MouseConfig(element, reorder: reorderEntry, canvas: canvasEntry)
             let hover = element.kind == "button" || SelfState.uses(element, "hover") || styles.stateStyled(.hover, fixed)
             let press = SelfState.uses(element, "pressed") || styles.stateStyled(.active, fixed)
