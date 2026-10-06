@@ -54,6 +54,21 @@ struct HostCallbacksTests {
         #expect(window.frame == before)
     }
 
+    @Test("Flyout-Wachstum nimmt die zuletzt gemessene Grösse, nicht fittingSize mitten im SwiftUI-Durchgang (dort 0)")
+    func flyoutGrowsFromLastFitting() throws {
+        let fixture = try HostFixture("panel \"d\" anchor=\"top\" { row { text \"a\" } }")
+        let window = try #require(fixture.window("d"))
+        let key = SurfaceHost.key("d", HostFixture.screen.key)
+        let before = window.frame
+        window.fittingSize = .zero
+        window.calls = []
+        try #require(fixture.host.context).onFlyoutExtent(key, EdgeInsets(top: 0, leading: 0, bottom: 200, trailing: 0))
+        #expect(window.calls.first == "content+frame")
+        #expect(window.frame.width == before.width)
+        #expect(window.frame.height == before.height + 200)
+        #expect(window.frame.maxY == before.maxY)
+    }
+
     @Test("AppKit-Fenster: Polsterung und Rahmen in einem Schritt, Inhalt danach schon im neuen Rahmen ausgelegt")
     func contentAndFrameTogether() {
         let window = AppKitHostWindow(spec: SurfaceWindowSpec(kind: "panel", property: { _ in .null }), content: AnyView(EmptyView()), stage: StageRecorder())

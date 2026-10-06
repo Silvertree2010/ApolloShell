@@ -295,10 +295,11 @@ final class WindowHost: SurfaceHosting {
 
     private func applyFlyout(_ key: String, _ extent: EdgeInsets) {
         guard let controller = controllers[key], controller.flyout != extent else { return }
+        let shown = controller.lastFitting.map { Self.contentFit($0, controller.insets, controller.pad) }
         controller.flyout = extent
         guard !controller.asleep else { return }
         controller.pendingContent = content(controller.surface, insets: controller.insets, flyout: controller.pad)
-        sync(key)
+        sync(key, content: shown)
         if let pending = controller.pendingContent {
             controller.pendingContent = nil
             controller.window.setContent(pending)
@@ -411,6 +412,10 @@ final class WindowHost: SurfaceHosting {
         visibleSize(fit, i, f)
     }
 
+    static func fit(_ shown: CGSize, _ i: EdgeInsets, _ f: EdgeInsets) -> CGSize {
+        CGSize(width: shown.width + i.leading + i.trailing + f.leading + f.trailing, height: shown.height + i.top + i.bottom + f.top + f.bottom)
+    }
+
     static func visibleSize(_ size: CGSize, _ i: EdgeInsets, _ f: EdgeInsets) -> CGSize {
         CGSize(width: max(0, size.width - i.leading - i.trailing - f.leading - f.trailing), height: max(0, size.height - i.top - i.bottom - f.top - f.bottom))
     }
@@ -426,7 +431,7 @@ final class WindowHost: SurfaceHosting {
         if !attachSyncing.contains(key) { syncAttached(to: key) }
     }
 
-    private func sync(_ key: String) {
+    private func sync(_ key: String, content shown: CGSize? = nil) {
         guard let controller = controllers[key], let context else { return }
         let surface = controller.surface
         let spec = SurfaceWindowSpec(surface: surface)
@@ -461,7 +466,8 @@ final class WindowHost: SurfaceHosting {
         let style = context.styles.resolve(surface: surface)
         let placement = SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: style)
         controller.window.watchFitting(spec.kind != "window" && (placement.width == nil || placement.height == nil))
-        let fit = controller.window.fittingSize, flyout = controller.pad
+        let flyout = controller.pad
+        let fit = shown.map { Self.fit($0, controller.insets, flyout) } ?? controller.window.fittingSize
         controller.lastFitting = fit
         let fitting = Self.contentFit(fit, controller.insets, flyout)
         let layout = SurfaceLayout.compute(placement: placement, spec: spec, radius: StyleValues.radius(style["border-radius"]), screen: screen, fitting: fitting)
