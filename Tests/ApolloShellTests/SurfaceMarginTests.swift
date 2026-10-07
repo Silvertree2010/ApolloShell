@@ -22,5 +22,17 @@ struct SurfaceMarginTests {
         let view = NSHostingView(rootView: SurfaceView(surface: surface, context: session.context, insets: EdgeInsets(top: 0, leading: 0, bottom: 20, trailing: 0)))
         #expect(abs(view.fittingSize.height - 120) < 0.5, "\(view.fittingSize)")
     }
+
+    @Test("drop-shadow-Raum verschiebt die verankerte Fläche nicht: sichtbarer Rand bleibt margin vom Bildschirmrand")
+    func shadowKeepsAnchor() throws {
+        let fixture = try HostFixture("panel \"c\" anchor=\"bottom-right\" area=\"visible\" { stack class=\"b\" }",
+                                      css: "#c { margin: 8px; filter: drop-shadow(0 4px 20px rgb(0 0 0 / 0.4)); } .b { width: 100px; height: 50px; }")
+        let controller = try #require(fixture.host.controllers[SurfaceHost.key("c", HostFixture.screen.key)])
+        let visible = HostFixture.screen.visible
+        #expect(controller.openFrame.maxX == visible.maxX - 8, "\(controller.openFrame)")
+        #expect(controller.openFrame.minY == visible.minY + 8, "\(controller.openFrame)")
+        let window = try #require(fixture.window("c"))
+        #expect(window.frame.maxX - controller.pad.trailing == controller.openFrame.maxX, "\(window.frame) \(controller.pad)")
+    }
 }
 
