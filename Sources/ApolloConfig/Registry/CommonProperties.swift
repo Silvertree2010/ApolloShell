@@ -31,7 +31,7 @@ enum CommonProperties {
         name: "fuse-group",
         type: .string,
         defaultValue: .null,
-        doc: "Surfaces of the same group that touch are drawn as one shape by a skin behind them.",
+        doc: "Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root.",
         feature: "fusion"
     )
 

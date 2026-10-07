@@ -770,7 +770,7 @@ Short feedback such as a volume indicator.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
 | property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `timeout` | duration | `"2s"` | Display duration. |
 | property | `motion` | "slide"\|"grow"\|"fade"\|"none"\|"jelly" | `"slide"` | Opening and closing. |
@@ -812,7 +812,7 @@ Covers the whole screen, click-through by default.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
 | property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 
 Handlers: `on-open`, `on-close`, `on-closed`, `key`
@@ -852,7 +852,7 @@ Always-visible surface such as bars, docks, desktop widgets.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
 | property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `reserve` | bool | `false` | Keeps app windows out of the surface's strip, only with left/right/top/bottom. |
 
@@ -925,7 +925,7 @@ Opens and closes on an action, such as a dashboard or launcher.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
 | property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `motion` | "slide"\|"grow"\|"fade"\|"none"\|"jelly" | `null` | Opening and closing. |
 | property | `scrim` | number | `null` | Dims the screen behind it, 0…1. |
@@ -1500,7 +1500,7 @@ Defines how a notification from the toast.show action looks.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
 | property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `max` | number | `4` | Toasts visible at the same time. |
 | property | `duration` | duration | `"5s"` | Display duration. |
@@ -1621,7 +1621,7 @@ A regular macOS window with a title bar.
 | property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
-| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them. |
+| property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
 | property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `title` | string | `""` | Window title. |
 | property | `title-visible` | bool | `true` | Whether the title bar shows the title. |

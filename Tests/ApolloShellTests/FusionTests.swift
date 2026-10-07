@@ -141,6 +141,17 @@ struct FusionTests {
 @MainActor
 @Suite("Fusion: Vorgaben wie release/0.2 und Werte wie feature/fusion")
 struct FusionDefaultTests {
+    @Test("Config-:root schaltet Fusion ohne Theme ein, ein Theme-Wert geht vor")
+    func configRoot() throws {
+        let fixture = try HostFixture("panel \"bar\" anchor=\"left\" fuse-group=\"shell\" { row {} }",
+                                      css: ":root { --fuse-style: rounded; --fuse-inner-radius: 20px; } #bar { width: 40px; height: 100%; background: red; }")
+        #expect(fixture.host.fusion.isOn)
+        #expect(fixture.host.fusion.settings.shape.innerRadius == 20)
+        #expect(fixture.host.painter != nil)
+        let themed = FusionSettings(tokens: TokenEnvironment(values: ["--apollo-fusion-style": "square"]), config: ["--fuse-style": "rounded"], reduceMotion: false)
+        #expect(themed.shape.style == .square)
+    }
+
     @Test("Ohne Theme-Wert ist Fusion aus (separate), wie in release/0.2")
     func offByDefault() throws {
         #expect(FusionSettings(tokens: .empty, reduceMotion: false).shape.style == .separate)

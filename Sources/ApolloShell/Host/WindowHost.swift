@@ -134,7 +134,8 @@ final class WindowHost: SurfaceHosting {
     }
 
     func updateFusion() {
-        let next = context.map { FusionSettings(tokens: $0.styles.environment.tokens, reduceMotion: $0.styles.environment.reduceMotion) } ?? .standard
+        let next = context.map { FusionSettings(tokens: $0.styles.environment.tokens, config: $0.styles.resolve(StyleSubject(kind: ":root"), ancestors: [], parent: nil).customProperties,
+                                                reduceMotion: $0.styles.environment.reduceMotion) } ?? .standard
         fusion.apply(next)
         let wanted = next.isOn && hasFusionMembers && context != nil
         guard wanted != fusionRegistered else { return }

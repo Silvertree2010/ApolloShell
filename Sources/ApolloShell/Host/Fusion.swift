@@ -14,13 +14,14 @@ struct FusionSettings: Equatable {
 
     static let standard = FusionSettings(tokens: .empty, reduceMotion: false)
 
-    init(tokens: TokenEnvironment, reduceMotion: Bool) {
+    init(tokens: TokenEnvironment, config: [String: String] = [:], reduceMotion: Bool) {
         let standard = FusionShape.standard
-        let style = tokens.value("--apollo-fusion-style").flatMap { FusionStyle(rawValue: $0.trimmingCharacters(in: .whitespaces).lowercased()) }
-        let radius = tokens.value("--apollo-fusion-radius").flatMap { ThemeValueReader.number($0, unit: .points) }
-        let edge = tokens.value("--apollo-fusion-screen-edge").flatMap { FusionScreenEdge(rawValue: $0.trimmingCharacters(in: .whitespaces).lowercased()) }
+        func value(_ token: String, _ own: String) -> String? { tokens.value(token) ?? config[own] }
+        let style = value("--apollo-fusion-style", "--fuse-style").flatMap { FusionStyle(rawValue: $0.trimmingCharacters(in: .whitespaces).lowercased()) }
+        let radius = value("--apollo-fusion-radius", "--fuse-inner-radius").flatMap { ThemeValueReader.number($0, unit: .points) }
+        let edge = value("--apollo-fusion-screen-edge", "--fuse-screen-edge").flatMap { FusionScreenEdge(rawValue: $0.trimmingCharacters(in: .whitespaces).lowercased()) }
         shape = FusionShape(style: style ?? .separate, innerRadius: CGFloat(min(48, max(0, radius ?? Double(standard.innerRadius)))), screenEdge: edge ?? standard.screenEdge)
-        jelly = tokens.value("--apollo-jelly").flatMap { JellyStrength(rawValue: $0.trimmingCharacters(in: .whitespaces).lowercased()) } ?? .subtle
+        jelly = value("--apollo-jelly", "--fuse-jelly").flatMap { JellyStrength(rawValue: $0.trimmingCharacters(in: .whitespaces).lowercased()) } ?? .subtle
         speed = tokens.animationsEnabled ? tokens.animationSpeed : 0
         self.reduceMotion = reduceMotion
     }
