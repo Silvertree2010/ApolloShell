@@ -139,8 +139,11 @@ struct FusedShape: Shape {
             guard j > 0.5 else { return }
             var fillet = Path()
             fillet.move(to: CGPoint(x: corner.x - along.dx * j, y: corner.y - along.dy * j))
+            let e: CGFloat = 2
             fillet.addQuadCurve(to: CGPoint(x: corner.x + out.dx * j, y: corner.y + out.dy * j), control: corner)
-            fillet.addLine(to: corner)
+            fillet.addLine(to: CGPoint(x: corner.x + out.dx * j + along.dx * e, y: corner.y + out.dy * j + along.dy * e))
+            fillet.addLine(to: CGPoint(x: corner.x - out.dx * e + along.dx * e, y: corner.y - out.dy * e + along.dy * e))
+            fillet.addLine(to: CGPoint(x: corner.x - out.dx * e - along.dx * j, y: corner.y - out.dy * e - along.dy * j))
             fillet.closeSubpath()
             path = path.union(fillet)
         }
