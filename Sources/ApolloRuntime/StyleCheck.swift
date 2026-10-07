@@ -11,7 +11,8 @@ public enum StyleCheck {
                 r.append(Diagnostic(.warning, "cannot read style sheet \(ref.url.path)", span: ref.span, code: .fileUnreadable))
                 continue
             }
-            r += StyleSheet.parse(text, file: ref.url.path, origin: .config, assetRoot: ref.url.deletingLastPathComponent()).1
+            let (sheet, found) = StyleSheet.parse(text, file: ref.url.path, origin: .config, assetRoot: ref.url.deletingLastPathComponent())
+            r += found + sheet.fallbackProblems()
         }
         return r
     }

@@ -108,6 +108,23 @@ public struct StyleSheet: Sendable, Hashable {
     public static let maximumRules = 8192
     public static let maximumDiagnostics = 200
 
+    public func fallbackProblems() -> [Diagnostic] {
+        let context = CSSParseContext(assetRoot: assetRoot)
+        var found: [Diagnostic] = []
+        for rule in rules {
+            for d in rule.declarations where !d.property.hasPrefix("--") && CSSVariables.containsVar(d.rawValue) {
+                guard let text = try? CSSVariables.substitute(d.rawValue, lookup: { _ in nil }), CSSWideKeyword(text) == nil else { continue }
+                do {
+                    _ = try CSSPropertyRegistry.parse(d.property, text, context: context)
+                } catch {
+                    let reason = (error as? CSSValueError)?.message ?? "unreadable value"
+                    found.append(Diagnostic(.warning, "the var() fallback of '\(d.property)' is not valid: \(reason)", span: d.span, code: .styleValue))
+                }
+            }
+        }
+        return found
+    }
+
     public static func parse(_ text: String, file: String, origin: StyleOrigin) -> (StyleSheet, [Diagnostic]) {
         parse(text, file: file, origin: origin, assetRoot: nil)
     }
