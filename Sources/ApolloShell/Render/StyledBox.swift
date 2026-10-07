@@ -100,10 +100,12 @@ struct StyledBox: ViewModifier {
 
     func body(content: Content) -> some View {
         let shape = form ?? AnyShape(StyleShape(style))
+        let glass = parts.paint || form != nil ? BackgroundLayers.hostedGlass(style) : nil
         content
             .boxLayout(style: style, padded: padded, fill: fill, alignment: alignment, parts: parts)
-            .boxPaint(style: style, context: context, parts: parts, shape: shape, forced: form != nil)
-            .modifier(BoxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline, outer: outer))
+            .boxPaint(style: style, context: context, parts: parts, shape: shape, forced: form != nil, hosted: glass != nil)
+            .modifier(BoxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline, outer: outer,
+                                 glass: glass.map { GlassHost(glass: $0, shape: shape) }))
     }
 }
 
@@ -114,9 +116,10 @@ struct BoxEffects: ViewModifier {
     let anchorID: String?
     let dynamicInline: Bool
     var outer = true
+    var glass: GlassHost?
 
     func body(content: Content) -> some View {
-        content.boxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline, outer: outer)
+        content.boxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline, outer: outer, glass: glass)
     }
 }
 
@@ -145,17 +148,18 @@ extension View {
             .gated(parts.aspect) { $0.modifier(AspectRatio(ratio: StyleValues.number(style["aspect-ratio"]))) }
     }
 
-    func boxPaint(style: ComputedStyle, context: RenderContext, parts: BoxParts, shape: AnyShape, forced: Bool) -> some View {
+    func boxPaint(style: ComputedStyle, context: RenderContext, parts: BoxParts, shape: AnyShape, forced: Bool, hosted: Bool = false) -> some View {
         self
-            .gated(parts.paint || forced) { $0.background { BackgroundLayers(style: style, shape: shape, context: context) } }
+            .gated(parts.paint || forced) { $0.background { BackgroundLayers(style: style, shape: shape, context: context, hosted: hosted) } }
             .gated(parts.border) { $0.overlay { BorderLayer(style: style, shape: shape) } }
             .gated(parts.clip) { $0.modifier(Clip(active: StyleValues.keyword(style["overflow"]) == "hidden", shape: shape)) }
             .gated(parts.shadow) { $0.modifier(BoxShadows(style["box-shadow"], shape: shape)) }
     }
 
-    func boxEffects(style: ComputedStyle, parts: BoxParts, flyouts: AnyView?, anchorID: String?, dynamicInline: Bool, outer: Bool = true) -> some View {
+    func boxEffects(style: ComputedStyle, parts: BoxParts, flyouts: AnyView?, anchorID: String?, dynamicInline: Bool, outer: Bool = true, glass: GlassHost? = nil) -> some View {
         self
             .gated(flyouts != nil) { $0.modifier(FlyoutOverlay(layer: flyouts)) }
+            .gated(glass != nil) { $0.modifier(glass ?? GlassHost(glass: nil, shape: AnyShape(Rectangle()))) }
             .gated(dynamicInline) { $0.modifier(Filters(style["filter"], enabled: dynamicInline)) }
             .gated(parts.opacity) { $0.opacity(StyleValues.number(style["opacity"]) ?? 1) }
             .gated(parts.transform && outer) { $0.modifier(Transform(style["transform"])) }
@@ -355,10 +359,30 @@ struct BorderLayer: View {
     }
 }
 
+struct GlassHost: ViewModifier {
+    let glass: Glass?
+    let shape: AnyShape
+    @Environment(\.renderMode) private var renderMode
+
+    func body(content: Content) -> some View {
+        if let glass, !renderMode {
+            content.glassEffect(glass, in: shape)
+        } else {
+            content
+        }
+    }
+}
+
 struct BackgroundLayers: View {
     let style: ComputedStyle
     let shape: AnyShape
     let context: RenderContext
+    var hosted = false
+
+    static func hostedGlass(_ style: ComputedStyle) -> Glass? {
+        guard case .layers(let list)? = style["background"], case .glass(let variant, let tint)? = list.last, style["background-color"] == nil else { return nil }
+        return StyleValues.glass(variant, tint: tint)
+    }
     @Environment(\.renderMode) private var renderMode
     @Environment(\.colorScheme) private var colorScheme
 
@@ -369,7 +393,7 @@ struct BackgroundLayers: View {
 
     var body: some View {
         ZStack {
-            ForEach(Array(layers.reversed().enumerated()), id: \.offset) { _, layer in
+            ForEach(Array((hosted && !renderMode && Self.hostedGlass(style) != nil ? Array(layers.dropLast()) : layers).reversed().enumerated()), id: \.offset) { _, layer in
                 self.layer(layer)
             }
         }
