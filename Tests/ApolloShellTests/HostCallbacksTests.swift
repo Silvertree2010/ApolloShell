@@ -69,6 +69,17 @@ struct HostCallbacksTests {
         #expect(window.frame.maxY == before.maxY)
     }
 
+    @Test("window titlebar=#false safe-area=#false: Inhalt beginnt an der Oberkante, ohne Titelleisten-Sicherheitsabstand")
+    func titlelessWindowIgnoresSafeArea() {
+        func spec(_ values: [String: Value]) -> SurfaceWindowSpec { SurfaceWindowSpec(kind: "window", property: { values[$0] ?? .null }) }
+        let bare = AppKitHostWindow(spec: spec(["titlebar": .bool(false), "safe-area": .bool(false)]), content: AnyView(EmptyView()), stage: StageRecorder())
+        #expect(bare.hosting.safeAreaRegions == [])
+        let kept = AppKitHostWindow(spec: spec(["titlebar": .bool(false)]), content: AnyView(EmptyView()), stage: StageRecorder())
+        #expect(kept.hosting.safeAreaRegions == .all)
+        bare.close()
+        kept.close()
+    }
+
     @Test("AppKit-Fenster: Polsterung und Rahmen in einem Schritt, Inhalt danach schon im neuen Rahmen ausgelegt")
     func contentAndFrameTogether() {
         let window = AppKitHostWindow(spec: SurfaceWindowSpec(kind: "panel", property: { _ in .null }), content: AnyView(EmptyView()), stage: StageRecorder())

@@ -250,6 +250,8 @@ final class AppKitHostWindow: NSObject, HostWindow, NSWindowDelegate {
             window.isMovableByWindowBackground = !spec.titlebar
             if window.styleMask != spec.styleMask { window.styleMask = spec.styleMask }
             if let autosave = spec.autosave, window.frameAutosaveName != autosave { window.setFrameAutosaveName(autosave) }
+            let regions: SafeAreaRegions = spec.titlebar || spec.safeArea ? .all : []
+            if hosting.safeAreaRegions != regions { hosting.safeAreaRegions = regions }
         }
         if stage.isVisible(window) { pinIfSticky() }
     }
