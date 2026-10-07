@@ -282,6 +282,16 @@ public final class ShellRuntime: SurfaceControlling {
         }
     }
 
+    public func hoverLeave(_ surfaceID: String) {
+        for node in nodes(for: surfaceID) where node.instance.isOpen && !node.isClosing {
+            if node.instance.ir.handlers.contains(where: { $0.name == "on-hover-leave" }) {
+                runSurfaceHandlers(node, "on-hover-leave")
+            } else {
+                closeNode(node)
+            }
+        }
+    }
+
     public func close(_ surfaceID: String, screenKey: String) {
         guard let node = surfaceNodes[surfaceID + "@" + screenKey] else { return }
         closeNode(node)

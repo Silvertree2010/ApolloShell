@@ -775,7 +775,7 @@ Short feedback such as a volume indicator.
 | property | `timeout` | duration | `"2s"` | Display duration. |
 | property | `motion` | "slide"\|"grow"\|"fade"\|"none"\|"jelly" | `"slide"` | Opening and closing. |
 
-Handlers: `on-open`, `on-close`, `on-closed`, `key`
+Handlers: `on-open`, `on-close`, `on-closed`, `on-hover-leave`, `key`
 
 ```kdl
 osd "volume" { }
@@ -815,7 +815,7 @@ Covers the whole screen, click-through by default.
 | property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
 | property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 
-Handlers: `on-open`, `on-close`, `on-closed`, `key`
+Handlers: `on-open`, `on-close`, `on-closed`, `on-hover-leave`, `key`
 
 ```kdl
 overlay "screen-corners" { }
@@ -856,7 +856,7 @@ Always-visible surface such as bars, docks, desktop widgets.
 | property | `fuse-fill` | bool | `false` | The skin of the fuse group takes this surface's background; without one, the first surface's. |
 | property | `reserve` | bool | `false` | Keeps app windows out of the surface's strip, only with left/right/top/bottom. |
 
-Handlers: `on-open`, `on-close`, `on-closed`, `key`
+Handlers: `on-open`, `on-close`, `on-closed`, `on-hover-leave`, `key`
 
 ```kdl
 panel "sidebar" anchor="left" { }
@@ -938,7 +938,7 @@ Opens and closes on an action, such as a dashboard or launcher.
 | property | `side` | "top"\|"bottom"\|"left"\|"right" | `"right"` | Side for attach. |
 | property | `align` | "start"\|"center"\|"end" | `"start"` | Alignment along the element for attach; CSS margin keeps the surface off the screen edges. |
 
-Handlers: `on-open`, `on-close`, `on-closed`, `key`
+Handlers: `on-open`, `on-close`, `on-closed`, `on-hover-leave`, `key`
 
 ```kdl
 popup "launcher" anchor="center" { }
@@ -1337,7 +1337,7 @@ Symbol or text in Apple's menu bar, drawn from its children; target for popup at
 | property | `match-id` | string | `null` | Elements with the same match-id glide into each other when they appear. |
 | property | `menu-on` | string | `"right-click"` | What opens the context menu, several separated by spaces. |
 
-Handlers: `on-open`, `on-close`, `on-closed`, `key`
+Handlers: `on-open`, `on-close`, `on-closed`, `on-hover-leave`, `key`
 
 ```kdl
 status-item "shell" { button { on-click { command-center.open }; icon "circle.hexagongrid" } }
@@ -1506,7 +1506,7 @@ Defines how a notification from the toast.show action looks.
 | property | `duration` | duration | `"5s"` | Display duration. |
 | property | `newest` | "last"\|"first" | `"last"` | Where the newest toast appears. |
 
-Handlers: `on-open`, `on-close`, `on-closed`, `key`
+Handlers: `on-open`, `on-close`, `on-closed`, `on-hover-leave`, `key`
 
 ```kdl
 toast "default" { }
@@ -1631,7 +1631,7 @@ A regular macOS window with a title bar.
 | property | `miniaturizable` | bool | `false` | Whether the window can be minimized. |
 | property | `autosave` | string | `null` | Remembers size and position under this name. |
 
-Handlers: `on-open`, `on-close`, `on-closed`, `key`
+Handlers: `on-open`, `on-close`, `on-closed`, `on-hover-leave`, `key`
 
 ```kdl
 window "settings" { }

@@ -66,7 +66,7 @@ enum CommonProperties {
 
     static let surfaceProperties: [PropertySchema] = baseline + surfaceCommon
 
-    static let surfaceHandlers: [String] = ["on-open", "on-close", "on-closed", "key"]
+    static let surfaceHandlers: [String] = ["on-open", "on-close", "on-closed", "on-hover-leave", "key"]
 
     static let elementHandlers: [String] = [
         "on-click", "on-right-click", "on-middle-click", "on-double-click", "on-long-press",

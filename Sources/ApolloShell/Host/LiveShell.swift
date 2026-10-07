@@ -315,7 +315,7 @@ final class LiveShell: WindowHostLink {
         edgeHover.targets = { [weak self] in self?.host.hoverTargets() ?? [] }
         edgeHover.isFullscreen = { [weak self] key in self?.fullscreen.contains(key) ?? false }
         edgeHover.open = { [weak self] id, screen in self?.assembly?.runtime.open(id, screenKey: screen) }
-        edgeHover.close = { [weak self] id in self?.assembly?.runtime.close(id) }
+        edgeHover.close = { [weak self] id in self?.assembly?.runtime.hoverLeave(id) }
         host.onOpenChanged = { [weak self] in self?.edgeHover.openChanged() }
         host.onHoverChanged = { [weak self] in self?.edgeHover.refresh() }
         edgeHover.refresh()
