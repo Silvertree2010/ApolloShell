@@ -19,6 +19,7 @@ var sel 0
 var edit #false
 var onboarding-done #false persist=#true
 var desktop-clock #true persist=#true
+var hide-apple-dock #true persist=#true
 var ws "dots" persist=#true
 var h24 #true persist=#true
 var wp #null type="record" persist=#true

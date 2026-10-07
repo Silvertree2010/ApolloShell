@@ -45,7 +45,7 @@ struct DefaultConfigTests {
     func persistedVars() throws {
         let ir = try #require(PackageResources.load(Self.defaultFolder, id: "apolloshell-default").ir)
         let persisted = Set(ir.vars.filter(\.persist).map(\.name))
-        let expected: Set<String> = ["dt", "onboarding-done", "desktop-clock", "ws", "h24", "wp", "tmin", "bm", "hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-session", "hotkey-settings", "file-manager"]
+        let expected: Set<String> = ["dt", "onboarding-done", "desktop-clock", "ws", "h24", "wp", "tmin", "bm", "hotkey-launcher", "hotkey-dashboard", "hotkey-utilities", "hotkey-session", "hotkey-settings", "file-manager", "hide-apple-dock"]
         #expect(persisted == expected)
     }
 

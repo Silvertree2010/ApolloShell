@@ -8,3 +8,4 @@ on "user.dxo" when="{var.drdy}" { emit "dx" }
 on "user.tpause" { timer.pause }
 on "user.tres" { timer.resume }
 on "user.tgo" { timer.start "{timer.mode == 'standard' ? var.tmin : null}" }
+on "shell.started" { system.hide-apple-dock "{var.hide-apple-dock}" }

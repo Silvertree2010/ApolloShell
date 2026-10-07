@@ -203,7 +203,7 @@ define "pg-desk" {
                 toggle checked="{var.desktop-clock}" { on-change { set "desktop-clock" "{event.value}" } }
             }
             use "srow" t="Hide Apple's Dock" s="The bar shows the front app and desktops instead." {
-                toggle checked="{system.apple-dock-hidden}" { on-change { system.hide-apple-dock "{event.value}" } }
+                toggle checked="{system.apple-dock-hidden}" { on-change { set "hide-apple-dock" "{event.value}"; system.hide-apple-dock "{event.value}" } }
             }
             use "srow" t="File Manager" s="Opened by the Finder icon and file actions." {
                 button class="pill pill2" menu-on="click" {
