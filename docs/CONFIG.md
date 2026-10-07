@@ -728,12 +728,12 @@ menu { item "Copy" { clipboard.copy "{system.full-name}" } }
 
 ### `on` (node)
 
-Reacts to an event of the shell or a provider.
+Reacts to an event of the shell or a provider. Several on for the same event run in file order.
 
 | | Name | Type | Default | |
 | --- | --- | --- | --- | --- |
 | argument | `event` | identifier | required | Name of the event. |
-| property | `when` | bool | `null` | Filters when the handler runs. |
+| property | `when` | bool | `null` | Filters when the handler runs; every when of an event is checked before the first handler runs, so two handlers can form a toggle. |
 
 ```kdl
 on "audio.volume-changed" { osd.show "volume" }

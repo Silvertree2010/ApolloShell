@@ -347,10 +347,10 @@ public final class ShellRuntime: SurfaceControlling {
     public func emit(_ event: String, _ fields: Record, chain: EmitChain? = nil) -> [Task<Void, Never>] {
         guard let config else { return [] }
         var tasks: [Task<Void, Never>] = []
-        for handler in config.events where handler.event == event {
-            if let when = handler.when, !bindings.evaluateOnce(when, scope: LocalScope(), event: fields).isTruthy {
-                continue
-            }
+        let chosen = config.events.filter { handler in
+            handler.event == event && handler.when.map { bindings.evaluateOnce($0, scope: LocalScope(), event: fields).isTruthy } ?? true
+        }
+        for handler in chosen {
             if let task = actions.trigger(handler.actions, site: "on@\(handler.span.file):\(handler.span.start.line):\(handler.span.start.column):\(handler.span.start.offset)", environment: ActionEnvironment(event: fields, emitChain: chain)) {
                 tasks.append(task)
             }

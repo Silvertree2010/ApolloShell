@@ -19,10 +19,10 @@ enum TopLevelBlocks {
             name: "on",
             category: .topLevelBlock,
             arguments: [ArgumentSchema(name: "event", type: .identifier, allowsExpression: false, doc: "Name of the event.")],
-            properties: [PropertySchema(name: "when", type: .bool, defaultValue: .null, doc: "Filters when the handler runs.")],
+            properties: [PropertySchema(name: "when", type: .bool, defaultValue: .null, doc: "Filters when the handler runs; every when of an event is checked before the first handler runs, so two handlers can form a toggle.")],
             childContext: .actions,
             contexts: [.topLevel],
-            doc: "Reacts to an event of the shell or a provider.",
+            doc: "Reacts to an event of the shell or a provider. Several on for the same event run in file order.",
             example: "on \"audio.volume-changed\" { osd.show \"volume\" }"
         ),
         NodeSchema(

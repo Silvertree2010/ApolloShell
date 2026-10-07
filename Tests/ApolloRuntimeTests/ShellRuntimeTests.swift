@@ -606,6 +606,22 @@ struct ShellRuntimeTests {
         #expect(fixture.log.entries == ["clicked b left", "always", "warn 5", "always"])
     }
 
+    @Test("mehrere on für ein Ereignis: alle when gelten für den Zustand vor dem Ereignis, ein Umschalter feuert nur einen Zweig")
+    func emitEvaluatesWhenBeforeRunning() async {
+        let fixture = ShellFixture()
+        fixture.apply([T.surface("panel", "p", children: [])], vars: [IR.plainVar("o", .bool, .bool(false))], events: [
+            EventHandlerIR(event: "user.t", when: IR.value("{!var.o}"), actions: [IR.call("set", [IR.string("o"), IR.literal(.bool(true))]), IR.log("opened")], span: IR.span(20)),
+            EventHandlerIR(event: "user.t", when: IR.value("{var.o}"), actions: [IR.call("set", [IR.string("o"), IR.literal(.bool(false))]), IR.log("closed")], span: IR.span(21)),
+        ])
+        fixture.runtime.emit("user.t", Record())
+        await settle()
+        #expect(fixture.log.entries == ["opened"])
+        #expect(fixture.vars.value("o") == .bool(true))
+        fixture.runtime.emit("user.t", Record())
+        await settle()
+        #expect(fixture.log.entries == ["opened", "closed"])
+    }
+
     @Test("on hält den Provider wach, Oberflächen-Aktionen laufen über ShellRuntime")
     func eventsKeepProvidersAwakeAndActionsReachRuntime() async {
         let fixture = ShellFixture()
