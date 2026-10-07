@@ -244,7 +244,7 @@ struct SurfaceBox: ViewModifier {
         content
             .environment(\.matchNamespace, matches)
             .modifier(StyledBox(style: style, context: context, form: form, flyouts: overlay,
-                                dynamicInline: context.styles.declares("filter", StyleResolver.staticSubject(for: surface))))
+                                dynamicInline: context.styles.declares("filter", StyleResolver.staticSubject(for: surface)), parts: Self.parts(surface.ir.kind)))
             .animation(jump ? nil : Self.motion(bulges, context: context), value: bulges)
             .onPreferenceChange(FlyoutBulgeKey.self) { new in
                 jump = Self.jumps(bulges, new)
@@ -253,6 +253,12 @@ struct SurfaceBox: ViewModifier {
                 context.onFlyoutExtent(key, FlyoutGeometry.extent(new))
                 context.onFlyoutBulges(key, new)
             }
+    }
+
+    static func parts(_ kind: String) -> BoxParts {
+        var parts = BoxParts.all
+        parts.margin = kind == "window"
+        return parts
     }
 
     static func jumps(_ old: [FlyoutBulge], _ new: [FlyoutBulge]) -> Bool {
