@@ -57,7 +57,7 @@ enum CommonProperties {
         PropertySchema(name: "offset-y", type: .number, defaultValue: .number(0), doc: "Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top."),
         PropertySchema(name: "sticky", type: .bool, defaultValue: .bool(true), doc: "On all Spaces and in its own Space."),
         PropertySchema(name: "fullscreen", type: .enumeration(["hide", "show"]), defaultValue: .null, doc: "Behavior on a screen with a full-screen app."),
-        PropertySchema(name: "overhang", type: .bool, defaultValue: .bool(false), doc: "Extends past the anchored edges by the corner radius."),
+        PropertySchema(name: "overhang", type: .bool, defaultValue: .bool(false), doc: "Extends past the anchored edges by the corner radius and lets the window leave the screen; popups sit above the macOS menu bar, so a drawer from the top edge can hang from a 1 pt row moved off screen with offset-y=-1."),
         PropertySchema(name: "safe-area", type: .bool, defaultValue: .bool(true), doc: "Content starts below the menu bar and notch."),
         PropertySchema(name: "shape", type: .enumeration(["rect", "fused"]), defaultValue: .string("rect"), doc: "Whether open flyouts form one shape with the background."),
         fuseGroup,

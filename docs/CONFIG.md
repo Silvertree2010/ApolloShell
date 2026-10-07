@@ -767,7 +767,7 @@ Short feedback such as a volume indicator.
 | property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
-| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius and lets the window leave the screen; popups sit above the macOS menu bar, so a drawer from the top edge can hang from a 1 pt row moved off screen with offset-y=-1. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
@@ -809,7 +809,7 @@ Covers the whole screen, click-through by default.
 | property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
-| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius and lets the window leave the screen; popups sit above the macOS menu bar, so a drawer from the top edge can hang from a 1 pt row moved off screen with offset-y=-1. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
@@ -849,7 +849,7 @@ Always-visible surface such as bars, docks, desktop widgets.
 | property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
-| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius and lets the window leave the screen; popups sit above the macOS menu bar, so a drawer from the top edge can hang from a 1 pt row moved off screen with offset-y=-1. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
@@ -922,7 +922,7 @@ Opens and closes on an action, such as a dashboard or launcher.
 | property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
-| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius and lets the window leave the screen; popups sit above the macOS menu bar, so a drawer from the top edge can hang from a 1 pt row moved off screen with offset-y=-1. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
@@ -1497,7 +1497,7 @@ Defines how a notification from the toast.show action looks.
 | property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
-| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius and lets the window leave the screen; popups sit above the macOS menu bar, so a drawer from the top edge can hang from a 1 pt row moved off screen with offset-y=-1. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
@@ -1618,7 +1618,7 @@ A regular macOS window with a title bar.
 | property | `offset-y` | number | `0` | Offset along y from the anchored position, away from the anchored edge; for anchors without a top or bottom edge (left, right, center) it counts from the vertical middle, positive downwards. Use top-left or top-right to count from the top. |
 | property | `sticky` | bool | `true` | On all Spaces and in its own Space. |
 | property | `fullscreen` | "hide"\|"show" | `null` | Behavior on a screen with a full-screen app. |
-| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius. |
+| property | `overhang` | bool | `false` | Extends past the anchored edges by the corner radius and lets the window leave the screen; popups sit above the macOS menu bar, so a drawer from the top edge can hang from a 1 pt row moved off screen with offset-y=-1. |
 | property | `safe-area` | bool | `true` | Content starts below the menu bar and notch. |
 | property | `shape` | "rect"\|"fused" | `"rect"` | Whether open flyouts form one shape with the background. |
 | property | `fuse-group` | string | `null` | Surfaces of the same group that touch are drawn as one shape by a skin behind them; the join comes from the theme (--apollo-fusion-style) or, without one, from --fuse-style, --fuse-inner-radius, --fuse-screen-edge and --fuse-jelly in the config's :root. |
