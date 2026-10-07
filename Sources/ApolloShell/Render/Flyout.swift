@@ -102,7 +102,6 @@ struct FusedShape: Shape {
     var radius: CGFloat
     var circular: Bool
     var bulges: [FlyoutBulge]
-    var lobes = false
 
     var animatableData: RectVector {
         get { RectVector(bulges.flatMap { [$0.rect.minX, $0.rect.minY, $0.rect.width, $0.rect.height] }.map(Double.init)) }
@@ -116,7 +115,7 @@ struct FusedShape: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
-        var path = lobes ? Path() : RoundedRectangle(cornerRadius: min(radius, min(rect.width, rect.height) / 2), style: circular ? .circular : .continuous).path(in: rect)
+        var path = RoundedRectangle(cornerRadius: min(radius, min(rect.width, rect.height) / 2), style: circular ? .circular : .continuous).path(in: rect)
         for bulge in bulges where bulge.joined {
             path = path.union(Self.bulgePath(bulge, surface: rect))
         }
@@ -240,14 +239,11 @@ struct SurfaceBox: ViewModifier {
         let form: AnyShape? = fused && bulges.contains(where: \.joined)
             ? AnyShape(FusedShape(radius: StyleValues.radius(style["border-radius"]), circular: StyleValues.keyword(style["-apollo-corner-shape"]) == "circular", bulges: bulges))
             : nil
-        let lobes: AnyShape? = fused
-            ? AnyShape(FusedShape(radius: StyleValues.radius(style["border-radius"]), circular: StyleValues.keyword(style["-apollo-corner-shape"]) == "circular", bulges: bulges.filter(\.joined), lobes: true))
-            : nil
         let key = SurfaceHost.key(surface.id, surface.screenKey)
         let overlay = AnyView(FlyoutLayer(surface: surface, flyouts: flyouts, fused: fused, bulges: bulges, context: context))
         content
             .environment(\.matchNamespace, matches)
-            .modifier(StyledBox(style: style, context: context, form: form, lobes: lobes, flyouts: overlay,
+            .modifier(StyledBox(style: style, context: context, form: form, flyouts: overlay,
                                 dynamicInline: context.styles.declares("filter", StyleResolver.staticSubject(for: surface)), parts: Self.parts(surface.ir.kind)))
             .animation(jump ? nil : Self.motion(bulges, context: context), value: bulges)
             .onPreferenceChange(FlyoutBulgeKey.self) { new in

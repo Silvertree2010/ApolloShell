@@ -91,7 +91,6 @@ struct StyledBox: ViewModifier {
     var padded = true
     var fill = Definite()
     var form: AnyShape?
-    var lobes: AnyShape?
     var flyouts: AnyView?
     var anchorID: String?
     var dynamicInline = false
@@ -106,7 +105,7 @@ struct StyledBox: ViewModifier {
             .boxLayout(style: style, padded: padded, fill: fill, alignment: alignment, parts: parts)
             .boxPaint(style: style, context: context, parts: parts, shape: shape, forced: form != nil, hosted: glass != nil)
             .modifier(BoxEffects(style: style, parts: parts, flyouts: flyouts, anchorID: anchorID, dynamicInline: dynamicInline, outer: outer,
-                                 glass: glass.map { GlassHost(glass: $0, shape: lobes == nil ? shape : AnyShape(StyleShape(style)), lobes: lobes) }))
+                                 glass: glass.map { GlassHost(glass: $0, shape: shape) }))
     }
 }
 
@@ -363,15 +362,10 @@ struct BorderLayer: View {
 struct GlassHost: ViewModifier {
     let glass: Glass?
     let shape: AnyShape
-    var lobes: AnyShape?
     @Environment(\.renderMode) private var renderMode
 
     func body(content: Content) -> some View {
-        if let glass, !renderMode, let lobes {
-            content
-                .glassEffect(glass, in: shape)
-                .background { Color.clear.glassEffect(glass, in: lobes) }
-        } else if let glass, !renderMode {
+        if let glass, !renderMode {
             content.glassEffect(glass, in: shape)
         } else {
             content
