@@ -230,6 +230,12 @@ public struct ComputedStyle: Sendable, Hashable {
     }
 
     public subscript(property: String) -> CSSValue? { values[property] }
+
+    public func setting(_ property: String, _ value: CSSValue?) -> ComputedStyle {
+        var copy = self
+        copy.values[property] = value
+        return copy
+    }
 }
 
 public struct CSSPropertySchema: Sendable, Hashable {

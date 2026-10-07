@@ -809,17 +809,32 @@ struct SurfaceLayout: Equatable {
     var insets: EdgeInsets
     var clipTop: CGFloat = 0
 
+    static func overhang(_ placement: SurfacePlacement, on: Bool, radius: CGFloat) -> EdgeInsets {
+        guard on, radius > 0 else { return EdgeInsets() }
+        let edges = placement.anchoredEdges
+        return EdgeInsets(top: edges.contains(.top) ? radius : 0, leading: edges.contains(.left) ? radius : 0,
+                          bottom: edges.contains(.bottom) ? radius : 0, trailing: edges.contains(.right) ? radius : 0)
+    }
+
+    static func grown(_ style: ComputedStyle, by i: EdgeInsets) -> ComputedStyle {
+        func add(_ s: ComputedStyle, _ name: String, _ extra: CGFloat) -> ComputedStyle {
+            guard extra > 0, case .length(let l)? = s[name], l.unit == .points else { return s }
+            return s.setting(name, .length(CSSLength(value: l.value + Double(extra), unit: .points)))
+        }
+        var s = style
+        for name in ["width", "min-width", "max-width"] { s = add(s, name, i.leading + i.trailing) }
+        for name in ["height", "min-height", "max-height"] { s = add(s, name, i.top + i.bottom) }
+        return s
+    }
+
     static func compute(placement: SurfacePlacement, spec: SurfaceWindowSpec, radius: CGFloat, screen: ScreenGeometry, fitting: CGSize) -> SurfaceLayout {
         var frame = placement.frame(screen: screen.frame, visible: screen.visible, fitting: fitting)
-        var insets = EdgeInsets()
-        var clipTop: CGFloat = 0
-        if spec.overhang, radius > 0 {
-            let edges = placement.anchoredEdges
-            if edges.contains(.left) { frame.origin.x -= radius; frame.size.width += radius; insets.leading += radius }
-            if edges.contains(.right) { frame.size.width += radius; insets.trailing += radius }
-            if edges.contains(.bottom) { frame.origin.y -= radius; frame.size.height += radius; insets.bottom += radius }
-            if edges.contains(.top) { frame.size.height += radius; insets.top += radius; clipTop = radius }
-        }
+        var insets = overhang(placement, on: spec.overhang, radius: radius)
+        let clipTop = insets.top
+        frame.origin.x -= insets.leading
+        frame.origin.y -= insets.bottom
+        frame.size.width += insets.leading + insets.trailing
+        frame.size.height += insets.top + insets.bottom
         if spec.safeArea {
             let menuBottom = screen.visible.maxY < screen.frame.maxY ? screen.visible.maxY : screen.frame.maxY
             let reach = frame.maxY - max(menuBottom, frame.minY)

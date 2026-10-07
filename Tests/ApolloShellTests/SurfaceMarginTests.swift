@@ -1,5 +1,6 @@
 import Testing
 import AppKit
+import SwiftUI
 @testable import ApolloShell
 
 @MainActor
@@ -12,4 +13,14 @@ struct SurfaceMarginTests {
         let shot = try RenderProbe.render(kdl, css: css)
         #expect(shot.size == CGSize(width: 100, height: 50), "\(shot.size)")
     }
+
+    @Test("overhang mit fester Höhe: der Überhang kommt zur Höhe dazu, sichtbar bleibt die volle CSS-Höhe")
+    func overhangKeepsHeight() throws {
+        let (session, _) = try RenderProbe.session("popup \"p\" anchor=\"bottom\" overhang=#true { stack class=\"box\" }",
+                                                   css: "#p { height: 100px; border-radius: 20px; } .box { width: 50px; height: 10px; }")
+        let surface = try #require(session.surfaces.first)
+        let view = NSHostingView(rootView: SurfaceView(surface: surface, context: session.context, insets: EdgeInsets(top: 0, leading: 0, bottom: 20, trailing: 0)))
+        #expect(abs(view.fittingSize.height - 120) < 0.5, "\(view.fittingSize)")
+    }
 }
+

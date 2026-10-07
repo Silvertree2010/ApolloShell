@@ -39,7 +39,9 @@ struct SurfaceView: View {
     var body: some View {
         let subject = StyleResolver.subject(for: surface)
         let resolved = context.styles.resolve(surface: surface)
-        let (style, painted) = SurfaceBackground.resolve(painter, surface: surface, style: resolved)
+        let (base, painted) = SurfaceBackground.resolve(painter, surface: surface, style: resolved)
+        let style = surface.ir.kind == "window" ? base : SurfaceLayout.grown(base, by: SurfaceLayout.overhang(SurfacePlacement(kind: surface.ir.kind, property: surface.property, style: resolved),
+                                                                                                             on: SurfaceWindowSpec(surface: surface).overhang, radius: StyleValues.radius(resolved["border-radius"])))
         let fixed = StyleResolver.staticSubject(for: surface)
         let scope = RenderScope(context: context, ancestors: [subject], parentStyle: style, parentKind: "column",
                                 inherits: InheritedParts(pointer: context.styles.declaresAny(["pointer-events"], fixed, includingNone: true), cursor: context.styles.declaresAny(["cursor"], fixed, includingNone: true)))
