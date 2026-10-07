@@ -70,7 +70,8 @@
 .tray { gap: 6px; align-items: center; }
 .ti { width: 28px; height: 22px; border-radius: 6px; align-items: center; justify-content: center; }
 .ti:hover { background: var(--f2); }
-.timg { height: 16px; max-width: 26px; -apollo-image-rendering: template; color: var(--tx); }
+.timg { height: 16px; max-width: 26px; }
+.tmono { -apollo-image-rendering: template; color: var(--tx); }
 
 .clk { width: 32px; padding: 6px 0; gap: 0; border-radius: 16px; align-items: center; transition: background 0.2s var(--fx); }
 .clk:hover { background: var(--f1); }
@@ -486,4 +487,4 @@
 .dkw { width: 36px; height: 36px; align-items: center; justify-content: center; }
 .dki { width: 28px; height: 28px; -apollo-badge-color: var(--red); -apollo-badge-offset: 3px -3px; -apollo-badge-appear: scale(0.4) 0.4s var(--sp), fade 0.2s var(--fx); }
 .dock-running-dot { width: 4px; height: 4px; background: var(--tx2); align-self: start; margin-left: -1px; }
-.docks { width: 40px; max-height: 320px; border-radius: 20px; -apollo-fade-edges: 14px; }
+.docks { width: 40px; max-height: 520px; border-radius: 20px; -apollo-fade-edges: 14px; }

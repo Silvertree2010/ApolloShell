@@ -73,12 +73,12 @@ define "m-win" {
 
 define "m-tray" {
     param "e" default=#false
-    when "{(status-items.list | count) > 0}" {
+    when "{(status-items.list | where-not 'image' null | count) > 0}" {
         column id="i-tray{e ? '-e' : ''}" class="tray" {
-            each t in="{status-items.list | take 6}" key="{t.id}" {
+            each t in="{status-items.list | where-not 'image' null | take 6}" key="{t.id}" {
                 button class="ti" tooltip="{t.name}" {
                     on-click { status-items.click "{t.id}" }
-                    image "{t.image}" class="timg" fit="fit"
+                    image "{t.image}" class="timg {t.monochrome ? 'tmono' : ''}" fit="fit"
                 }
             }
         }

@@ -32,8 +32,9 @@ define "cslider" {
     }
 }
 
-popup "cc" anchor="bottom-right" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" click-through="auto" {
+popup "cc" anchor="bottom-right" area="full" safe-area=#false overhang=#true shape="fused" motion="none" offset-y=-1 close-on="escape" group="edge" hover-edge=#true hover-margin=12 click-through="auto" {
     on-open { set "crdy" #false; set "cop" #true; wait "110ms"; set "csh" #true; wait "410ms"; set "crdy" #true }
+    on-hover-leave { emit "cx" }
     key "escape" { emit "cx" }
     row id="cA" class="strip cstrip"
     flyout anchor="cA" open="{var.cop}" side="top" class="drw ccd" {
