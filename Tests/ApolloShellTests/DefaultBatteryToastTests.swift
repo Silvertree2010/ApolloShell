@@ -24,6 +24,7 @@ struct DefaultBatteryToastTests {
         for task in harness.runtime.emit("battery.warning", Record([("level", .string(level)), ("title", .string("T")), ("body", .string("B")), ("critical", .bool(critical))])) {
             await task.value
         }
+        clock.drain()
         harness.settle()
         let rows = harness.runtime.surface("default", screenKey: ShellHarness.a.key)?.root ?? []
         guard case .record(let toast)? = rows.first?.scope["toast"] else {
