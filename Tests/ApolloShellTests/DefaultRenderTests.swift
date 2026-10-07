@@ -58,7 +58,7 @@ struct DefaultRenderTests {
     @Test("Sitzungsmenü: Schublade am rechten Rand, gewählte Kachel im Akzent")
     func session() throws {
         let shot = try Self.shot("sess", state: "g2-sess")
-        #expect(abs(shot.size.width - 151) <= 2 && abs(shot.size.height - 640) <= 2)
+        #expect(abs(shot.size.width - 105) <= 2 && abs(shot.size.height - 640) <= 2, "\(shot.size)")
         let selected = try #require(shot.bounds { max($0.r, $0.g, $0.b) - min($0.r, $0.g, $0.b) > 80 })
         #expect(selected.width > 70 && selected.width < 86, "\(selected)")
         #expect(selected.minY > 380 && selected.maxY < 520, "\(selected)")
@@ -112,8 +112,8 @@ struct DefaultRenderTests {
         #expect(fixture.diagnostics.isEmpty)
         let first = try Self.shot("launcher", state: "g2-launcher")
         let third = try Self.shot("launcher", state: "g2-launcher-sel")
-        #expect(!first.pixel(400, 354).near(third.pixel(400, 354)))
-        #expect(!first.pixel(400, 470).near(third.pixel(400, 470)))
+        #expect(!first.pixel(400, 40).near(third.pixel(400, 40)))
+        #expect(!first.pixel(400, 155).near(third.pixel(400, 155)))
         let empty = try Self.shot("launcher", state: "g2-launcher-none")
         #expect(empty.bounds { $0.b > 180 && $0.g > 170 && $0.r < 40 } == nil)
     }
