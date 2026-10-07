@@ -41,7 +41,7 @@ struct CSSColorTests {
 
     @Test("die Liste der Systemfarben ist vollständig")
     func systemColorCount() {
-        #expect(CSSColorParser.systemColorNames.count == 25)
+        #expect(CSSColorParser.systemColorNames.count == 26)
         #expect(CSSColorParser.systemColorNames.contains("-apple-system-selected-content-background"))
         #expect(CSSColorParser.systemColorNames.contains("-apple-system-mint"))
     }
@@ -49,6 +49,7 @@ struct CSSColorTests {
     @Test("contrast: Gegenfarbe im Farbton, Akzent bleibt symbolisch")
     func contrastColor() throws {
         #expect(try color("contrast(-apple-system-control-accent)") == .system(name: "-apollo-contrast-accent", alpha: 1))
+        #expect(try color("-apollo-on-accent") == .system(name: "-apollo-on-accent", alpha: 1))
         guard case let .rgba(r, g, b, a) = try color("contrast(#0000ff)") else { Issue.record("not rgba"); return }
         #expect(abs(r - 1) < 0.001 && abs(g - 1) < 0.001 && abs(b) < 0.001 && a == 1)
         #expect(try color("contrast(#808080)") == .rgba(red: 0.35, green: 0.35, blue: 0.35, alpha: 1))

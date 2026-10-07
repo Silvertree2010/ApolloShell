@@ -42,6 +42,7 @@ enum StyleValues {
         case "-apple-system-gray": .gray
         case "-apollo-accent-text": Color(nsColor: accentText)
         case "-apollo-contrast-accent": Color(nsColor: contrastAccent)
+        case "-apollo-on-accent": .onAccent
         default: .primary
         }
     }

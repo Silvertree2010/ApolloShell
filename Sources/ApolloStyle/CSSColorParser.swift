@@ -27,6 +27,7 @@ enum CSSColorParser {
         "-apple-system-gray",
         "-apollo-accent-text",
         "-apollo-contrast-accent",
+        "-apollo-on-accent",
     ]
 
     private static let systemColorSet = Set(systemColorNames)

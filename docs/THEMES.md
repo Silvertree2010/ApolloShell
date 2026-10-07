@@ -379,6 +379,11 @@ Since 0.2 the shell itself is a config: KDL files that say what exists and a
   `var(--apollo-on-accent-color, white)`. The built-in config reads its
   colours, sizes and fonts this way, which is why a theme restyles it.
 
+Colours can name the macOS system colours (`-apple-system-label`,
+`-apple-system-control-accent` and the rest) and `-apollo-on-accent`, the text
+colour that stays readable on the system accent: white, or 85 % black on a
+light accent such as yellow.
+
 A config's `style.css` can also use properties that CSS has no word for. They
 start with `-apollo-` and are not valid in a theme.
 
