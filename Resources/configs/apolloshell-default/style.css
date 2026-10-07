@@ -1,6 +1,6 @@
 :root {
-  --gl: var(--apollo-panel-fill, glass(regular, rgb(255 255 255 / 0.18)));
-  --glb: var(--apollo-bar-fill, glass(regular, rgb(255 255 255 / 0.18)));
+  --gl: var(--apollo-panel-fill, glass(regular));
+  --glb: var(--apollo-bar-fill, glass(regular));
   --tx: var(--apollo-text-color, -apple-system-label);
   --tx2: var(--apollo-secondary-text-color, -apple-system-secondary-label);
   --tx3: var(--apollo-muted-text-color, -apple-system-tertiary-label);
@@ -9,7 +9,7 @@
   --f1: rgb(from -apple-system-label r g b / 0.05);
   --cd: var(--apollo-card-fill, rgb(from -apple-system-label r g b / 0.05));
   --hl: var(--apollo-launcher-highlight-fill, rgb(from -apple-system-label r g b / 0.09));
-  --tf: var(--apollo-toast-fill, glass(regular, rgb(255 255 255 / 0.18)));
+  --tf: var(--apollo-toast-fill, glass(regular));
   --tt: var(--apollo-toast-text-color, -apple-system-label);
   --tr: var(--apollo-toast-radius, 22px);
   --btx: var(--apollo-bar-text-color, -apple-system-label);
@@ -487,10 +487,3 @@
 .dki { width: 28px; height: 28px; -apollo-badge-color: var(--red); -apollo-badge-offset: 3px -3px; -apollo-badge-appear: scale(0.4) 0.4s var(--sp), fade 0.2s var(--fx); }
 .dock-running-dot { width: 4px; height: 4px; background: var(--tx2); align-self: start; margin-left: -1px; }
 .docks { width: 40px; max-height: 320px; border-radius: 20px; -apollo-fade-edges: 14px; }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --gl: var(--apollo-panel-fill, glass(regular, rgb(0 0 0 / 0.22)));
-    --glb: var(--apollo-bar-fill, glass(regular, rgb(0 0 0 / 0.22)));
-    --tf: var(--apollo-toast-fill, glass(regular, rgb(0 0 0 / 0.22)));
-  }
-}
