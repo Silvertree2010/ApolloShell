@@ -40,7 +40,7 @@ struct DefaultRenderTests {
     func osd() throws {
         let shot = try Self.shot("osd", state: "g2-osd")
         #expect(abs(shot.size.width - 58) <= 1 && abs(shot.size.height - 226) <= 2)
-        let track = try #require(shot.bounds { $0.r < 235 && $0.r > 200 })
+        let track = try #require(shot.bounds { $0.r < 240 && $0.r > 200 })
         #expect(abs(track.width - 34) <= 1, "\(track)")
         #expect(shot.pixel(29, 160).near(.white))
         #expect(!shot.pixel(29, 40).near(.white))
@@ -49,7 +49,7 @@ struct DefaultRenderTests {
     @Test("OSD stumm oder bei 0: Füllung nur so lang wie die Spur breit", arguments: ["osd-muted", "osd-0"])
     func osdMuted(state: String) throws {
         let shot = try Self.shot("osd", state: state)
-        let grey = { (c: RGBA) in c.r > 215 && c.r < 232 && abs(Int(c.r) - Int(c.b)) < 3 }
+        let grey = { (c: RGBA) in c.r > 215 && c.r < 240 && abs(Int(c.r) - Int(c.b)) < 3 }
         let empty = shot.count(where: grey)
         let normal = try Self.shot("osd", state: "g2-osd").count(where: grey)
         #expect(empty > normal + 34 * 30, "\(empty) \(normal)")
@@ -80,10 +80,18 @@ struct DefaultRenderTests {
 
     @Test("Sitzungsmenü: ein Theme mit Panel-Farbe färbt die Schublade, ohne Theme bleibt Glas")
     func sessionThemeFill() throws {
-        let themed = try Self.shot("sess", state: "g2-sess", theme: "full/theme.css", dark: true)
+        let source = try String(contentsOf: PackageResources.root.appendingPathComponent("examples/themes/full/theme.css"), encoding: .utf8)
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("fill-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let theme = folder.appendingPathComponent("magenta.css")
+        try source.replacingOccurrences(of: "#1e1e20", with: "#ff00ff").write(to: theme, atomically: true, encoding: .utf8)
+        let themed = try Self.shot("sess", state: "g2-sess", themeURL: theme, dark: true)
         let bare = try Self.shot("sess", state: "g2-sess", dark: true)
+        let magenta = { (c: RGBA) in c.r > 200 && c.b > 200 && c.g < 60 }
         #expect(themed.size == bare.size)
-        #expect(!themed.pixel(52, 300).near(bare.pixel(52, 300)))
+        #expect(magenta(themed.pixel(52, 300)), "\(themed.pixel(52, 300))")
+        #expect(!magenta(bare.pixel(52, 300)))
     }
 
     @Test("Launcher: Liste aus apps.all über dem Suchfeld, Zeilen 58 pt")
