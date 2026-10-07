@@ -79,10 +79,15 @@ public enum CheckCommand {
 
     static func standardPaths(environment: [String: String], home: String, fileSystem: any ConfigFileSystem, executableURL: URL) -> ConfigPaths {
         let executable = fileSystem.resolvingSymlinks(executableURL)
-        let resources = executable
+        var resources = executable
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("Resources")
+        var dir = executable.deletingLastPathComponent()
+        while !fileSystem.exists(resources.appendingPathComponent("configs")), dir.path != "/" {
+            dir = dir.deletingLastPathComponent()
+            if fileSystem.exists(dir.appendingPathComponent("Resources/configs")) { resources = dir.appendingPathComponent("Resources") }
+        }
         var paths = ConfigPaths.standard(environment: environment, home: URL(fileURLWithPath: home), bundleResources: resources)
         if let builtin = environment["APOLLO_BUILTIN_CONFIGS"], !builtin.isEmpty {
             paths.builtinConfigs = URL(fileURLWithPath: builtin).standardizedFileURL

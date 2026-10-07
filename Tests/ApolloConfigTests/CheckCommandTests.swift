@@ -228,4 +228,16 @@ struct CheckCommandStyleTests {
         #expect(r.output.contains("bad css value"))
         #expect(r.exitCode == CheckCommand.Exit.ok)
     }
+
+    @Test("Entwicklungs-Build: apollo aus .build/<arch>/debug findet builtin: im Resources-Ordner des Pakets")
+    func builtinFromBuildFolder() {
+        let files = [
+            "/src/Resources/configs/apolloshell-default/shell.kdl": "panel \"bar\" { }\n",
+            "/cfg/shell.kdl": "include \"builtin:apolloshell-default/shell.kdl\"\n",
+        ]
+        let result = CheckCommand.run(arguments: ["/cfg"], environment: CheckHarness.environment, fileSystem: MemoryFileSystem(files),
+                                      executableURL: URL(fileURLWithPath: "/src/.build/arm64-apple-macosx/debug/apollo"))
+        #expect(result.exitCode == 0, "\(result.output)")
+    }
 }
+
