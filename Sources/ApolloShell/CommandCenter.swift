@@ -47,7 +47,7 @@ final class CommandCenter: NSObject, NSMenuDelegate {
         r.append(.separator())
         r.append(Self.item(String(localized: "Check for Updates…")) { [nexus, updates] in
             updates.checkNow()
-            nexus.show(page: .updates)
+            nexus.show(page: .about)
         })
         let login = Self.item(String(localized: "Start at Login")) { [autostart] in autostart.setEnabled(!autostart.state.isOn) }
         login.state = autostart.state.isOn ? .on : .off
@@ -61,11 +61,7 @@ final class CommandCenter: NSObject, NSMenuDelegate {
     }
 
     private static func restart() {
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/bin/sh")
-        p.arguments = ["-c", "while kill -0 \(ProcessInfo.processInfo.processIdentifier) 2>/dev/null; do sleep 0.2; done; /usr/bin/open \"$0\"", Bundle.main.bundlePath]
-        try? p.run()
-        NSApp.terminate(nil)
+        AppRestartModel().restart()
     }
 
     private static func item(_ title: String, key: String = "", _ run: @escaping @MainActor () -> Void) -> NSMenuItem {

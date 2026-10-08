@@ -12,7 +12,7 @@ import SwiftUI
 /// Bluetooth, Ton, Hintergrund, Sprache - bei Caelestia eigene Seiten), ist
 /// eine Seite mit Spruengen in die Systemeinstellungen, keine Nachbildung.
 enum NexusSection: CaseIterable, Identifiable {
-    case general, panels, services, system, about
+    case general, panels, about
 
     var id: Self { self }
 
@@ -21,8 +21,6 @@ enum NexusSection: CaseIterable, Identifiable {
         // Oberste Gruppe ohne Ueberschrift, wie in den Systemeinstellungen.
         case .general: nil
         case .panels: String(localized: "Panels")
-        case .services: String(localized: "Services")
-        case .system: String(localized: "macOS")
         case .about: nil
         }
     }
@@ -31,43 +29,35 @@ enum NexusSection: CaseIterable, Identifiable {
 /// Eine Seite von Nexus. Titel und Unterzeile wie Caelestias PageRegistry
 /// (label, description), auf Deutsch.
 enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case general, hotKeys, bar, utilities, launcher, dashboard, desktop, themes, toasts, providers, updates, system, about
+    case general, hotKeys, bar, utilities, launcher, dashboard, desktop, themes, about
 
     var id: Self { self }
 
     var title: String {
         switch self {
         case .general: String(localized: "General")
-        case .hotKeys: String(localized: "Keyboard Shortcuts")
+        case .hotKeys: String(localized: "Shortcuts")
         case .bar: String(localized: "Bar")
         case .utilities: String(localized: "Quick Actions")
         case .launcher: String(localized: "Launcher")
         case .dashboard: String(localized: "Dashboard")
         case .desktop: String(localized: "Desktop")
-        case .toasts: String(localized: "Toasts")
-        case .providers: String(localized: "Providers")
         case .themes: String(localized: "Themes")
-        case .updates: String(localized: "Updates")
-        case .system: String(localized: "System Settings")
         case .about: String(localized: "About")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .general: String(localized: "Start at login and the permissions ApolloShell needs from macOS.")
+        case .general: String(localized: "Start at login, permissions, file manager and macOS settings.")
         case .hotKeys: String(localized: "Global shortcuts for Launcher, Dashboard, Quick Actions and Nexus.")
         case .bar: String(localized: "The building blocks of the bar on the left: arrange, add, configure.")
         case .utilities: String(localized: "Cards and quick toggles in the Quick Actions panel, bottom right.")
         case .launcher: String(localized: "The pinned apps that appear at the top without a search text.")
         case .dashboard: String(localized: "The Dashboard's tabs and cards: arrange, add, configure. Plus the location for the weather.")
-        case .desktop: String(localized: "The clock at the bottom right of the desktop.")
-        case .toasts: String(localized: "Which events show a toast at the bottom right.")
-        case .providers: String(localized: "Where the weather comes from and which file manager sits at the top of the Dock.")
+        case .desktop: String(localized: "The desktop clock and which events show a toast.")
         case .themes: String(localized: "The look of the whole shell, from one CSS file.")
-        case .updates: String(localized: "How ApolloShell keeps itself up to date.")
-        case .system: String(localized: "macOS handles network, Bluetooth, sound, background and language.")
-        case .about: String(localized: "Version, system and source code.")
+        case .about: String(localized: "Version, updates, crash reports and system.")
         }
     }
 
@@ -80,11 +70,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .launcher: "magnifyingglass"
         case .dashboard: "square.grid.2x2.fill"
         case .desktop: "clock.fill"
-        case .toasts: "bell.badge.fill"
-        case .providers: "puzzlepiece.extension.fill"
         case .themes: "paintpalette.fill"
-        case .updates: "arrow.down.circle.fill"
-        case .system: "gearshape.fill"
         case .about: "info"
         }
     }
@@ -99,11 +85,8 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .launcher: .purple
         case .dashboard: .indigo
         case .desktop: .teal
-        case .toasts: .red
-        case .providers: .orange
         case .themes: .pink
-        case .updates: .indigo
-        case .system, .about: .gray
+        case .about: .gray
         }
     }
 
@@ -111,8 +94,6 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         switch self {
         case .general, .hotKeys: .general
         case .bar, .utilities, .launcher, .dashboard, .desktop, .themes: .panels
-        case .toasts, .providers, .updates: .services
-        case .system: .system
         case .about: .about
         }
     }
@@ -121,25 +102,20 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
     var keywords: [String] {
         switch self {
         case .general: ["autostart", "anmeldung", "anmeldeobjekte", "login", "bedienungshilfen", "freigabe",
-                        "berechtigung", "system events", "datenschutz"]
+                        "berechtigung", "system events", "datenschutz", "dateimanager", "finder", "forklift",
+                        "netzwerk", "bluetooth", "ton", "sprache", "systemeinstellungen"]
         case .hotKeys: ["hotkey", "shortcut", "keyboard", "keys", "launcher", "f20", "hyper", "spotlight", "karabiner"]
         case .bar: ["taskbar", "spaces", "dock", "uhr", "datum", "status", "wlan", "akku", "cpu", "wetter",
                     "medien", "abstand", "vorlage", "baustein", "app", "bildschirm", "monitor", "anzeige"]
         case .utilities: ["utilities", "schnellschalter", "kontrollzentrum", "karten", "wach halten", "ton", "knopf",
                           "kurzbefehl", "fokus", "link", "app", "bildschirm", "ausblenden", "vorlage"]
         case .launcher: ["apps", "angeheftet", "favoriten", "pinned", "reihenfolge"]
-        case .dashboard: ["wetter", "ort", "standort", "reiter", "karten", "kalender", "kalenderwoche", "uhr", "medien",
+        case .dashboard: ["open-meteo", "met norway", "yr", "wttr", "quelle", "wetter", "ort", "standort", "reiter", "karten", "kalender", "kalenderwoche", "uhr", "medien",
                           "ressourcen", "benutzer", "leistung", "vorlage"]
-        case .desktop: ["uhr", "hintergrund", "desktop"]
-        case .toasts: ["notifications", "toasts", "battery", "charger", "audio"]
-        case .providers: ["wetter", "open-meteo", "met norway", "yr", "wttr", "quelle", "dateimanager", "finder",
-                          "forklift"]
+        case .desktop: ["uhr", "hintergrund", "desktop", "notifications", "toasts", "battery", "charger", "audio"]
         case .themes: ["theme", "farbe", "farben", "aussehen", "css", "verlauf", "gradient", "schrift",
                        "dunkel", "hell", "importieren"]
-        case .updates: ["update", "aktualisierung", "version", "sparkle", "homebrew", "brew", "neustart",
-                        "release"]
-        case .system: ["netzwerk", "bluetooth", "ton", "audio", "hintergrund", "sprache", "updates"]
-        case .about: ["version", "macos", "laufzeit", "quelltext"]
+        case .about: ["version", "macos", "laufzeit", "quelltext", "update", "aktualisierung", "sparkle", "homebrew", "release", "crash"]
         }
     }
 
@@ -175,14 +151,15 @@ struct NexusView: View {
     var body: some View {
         NavigationSplitView {
             NexusSidebar(state: state)
+                .frame(minWidth: 210)
                 .searchable(text: $state.search, placement: .sidebar, prompt: "Search")
-                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 300)
+                .navigationSplitViewColumnWidth(min: 210, ideal: 230, max: 300)
                 .toolbar(removing: .sidebarToggle)
         } detail: {
             NexusDetail(page: state.page ?? .bar, settings: settings, pinned: pinned, weather: weather,
                         providers: providers, system: system, shell: shell)
         }
-        .frame(minWidth: 680, minHeight: 440)
+        .frame(minWidth: 820, minHeight: 500)
         // Mit Theme faerbt `--apollo-surface-color` auch das Fenster. Ohne
         // Theme bleibt es beim Fenster von macOS, samt Glas der Seitenleiste.
         .themedWindowBackground(style)
@@ -243,19 +220,15 @@ struct NexusDetail: View {
 
     var body: some View {
         switch page {
-        case .general: NexusGeneralPage(store: settings, autostart: shell.autostart, permissions: shell.permissions)
+        case .general: NexusGeneralPage(store: settings, autostart: shell.autostart, permissions: shell.permissions, providers: providers)
         case .hotKeys: NexusHotKeysPage(store: settings, center: shell.hotKeys)
         case .bar: NexusBarPage(store: settings)
         case .utilities: UtilitiesEditorPage(store: settings)
         case .launcher: NexusLauncherPage(model: pinned)
-        case .dashboard: NexusDashboardPage(store: settings, model: weather)
+        case .dashboard: NexusDashboardPage(store: settings, model: weather, providers: providers)
         case .desktop: NexusDesktopPage(store: settings)
-        case .toasts: NexusToastsPage(store: settings)
-        case .providers: NexusProvidersPage(store: settings, model: providers)
         case .themes: NexusThemesPage(store: settings, themes: shell.themes)
-        case .updates: NexusUpdatesPage(store: settings, updates: shell.updates)
-        case .system: NexusSystemPage()
-        case .about: NexusAboutPage(system: system, showOnboarding: shell.showOnboarding)
+        case .about: NexusAboutPage(system: system, store: settings, updates: shell.updates, showOnboarding: shell.showOnboarding)
         }
     }
 }
@@ -295,18 +268,18 @@ struct NexusPageForm<Content: View>: View {
     var body: some View {
         Form {
             Section {
-                VStack(spacing: 6) {
-                    NexusTile(symbol: page.symbol, tint: page.tint, size: 52)
-                        .padding(.bottom, 4)
-                    Text(title ?? page.title)
-                        .font(.title2.weight(.bold))
-                    Text(subtitle ?? page.subtitle)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                HStack(spacing: 12) {
+                    NexusTile(symbol: page.symbol, tint: page.tint, size: 34)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title ?? page.title)
+                            .font(.headline)
+                        Text(subtitle ?? page.subtitle)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(.vertical, 2)
             }
             content
         }

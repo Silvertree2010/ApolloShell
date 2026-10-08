@@ -12,7 +12,7 @@ struct NexusUpdatesPage: View {
     let updates: UpdateController
 
     var body: some View {
-        NexusPageForm(page: .updates) {
+        Group {
             Section {
                 LabeledContent("Installed version", value: NexusUpdatesPage.installedVersion)
                 LabeledContent("Last check", value: lastCheck)

@@ -22,7 +22,7 @@ struct NexusDesktopPage: View {
                 NexusSystemLink(title: "Wallpaper", subtitle: "System Settings",
                                 symbol: "photo.fill", tint: .cyan, pane: .wallpaper)
             }
-            NexusSaveWarning(failed: store.saveFailed)
+            NexusToastsPage(store: store)
         }
     }
 }
@@ -35,7 +35,7 @@ struct NexusToastsPage: View {
     @Bindable var store: ShellSettingsStore
 
     var body: some View {
-        NexusPageForm(page: .toasts) {
+        Group {
             Section {
                 NexusToggle(title: "Charger", subtitle: "Connected or unplugged",
                             isOn: $store.settings.toasts.chargingChanged)
@@ -46,7 +46,7 @@ struct NexusToastsPage: View {
                 NexusToggle(title: "Audio Input", subtitle: "A different microphone is chosen",
                             isOn: $store.settings.toasts.audioInputChanged)
             } header: {
-                Text("Events")
+                Text("Toasts")
             } footer: {
                 Text("Toasts appear at the bottom right, disappear after 5 seconds, and stay off in full screen.")
             }
@@ -64,29 +64,29 @@ struct NexusToastsPage: View {
 /// Caelestias Seiten, die auf macOS das System uebernimmt, als Spruenge -
 /// gruppiert wie dort (appearance, connectivity, system).
 struct NexusSystemPage: View {
+    @State private var open = false
+
     var body: some View {
-        NexusPageForm(page: .system) {
-            Section("Style") {
-                NexusSystemLink(title: "Wallpaper", symbol: "photo.fill", tint: .cyan, pane: .wallpaper)
+        Section {
+            DisclosureGroup(isExpanded: $open) {
                 NexusSystemLink(title: "Appearance", subtitle: "Light, dark, accent color",
                                 symbol: "circle.lefthalf.filled", tint: .gray, pane: .appearance)
-            }
-            Section("Connectivity") {
+                NexusSystemLink(title: "Wallpaper", symbol: "photo.fill", tint: .cyan, pane: .wallpaper)
                 NexusSystemLink(title: "Network", subtitle: "Wi-Fi, Ethernet, VPN",
                                 symbol: "network", tint: .blue, pane: .network)
                 NexusSystemLink(title: "Connected Devices", subtitle: "Bluetooth, pairing",
                                 symbol: "dot.radiowaves.left.and.right", tint: .blue, pane: .bluetooth)
                 NexusSystemLink(title: "Sound", subtitle: "Output, input, volume",
                                 symbol: "speaker.wave.2.fill", tint: .pink, pane: .sound)
-            }
-            Section("System") {
-                NexusSystemLink(title: "Software Update", symbol: "arrow.clockwise", tint: .gray, pane: .softwareUpdate)
                 NexusSystemLink(title: "Language & Region", subtitle: "Language, units, time format",
                                 symbol: "globe", tint: .blue, pane: .language)
-            }
-            Section {
+                NexusSystemLink(title: "Software Update", symbol: "arrow.clockwise", tint: .gray, pane: .softwareUpdate)
                 NexusSystemLink(title: "Open System Settings", symbol: "gearshape.fill", tint: .gray, pane: nil)
+            } label: {
+                Text("macOS Settings")
             }
+        } footer: {
+            Text("Network, Bluetooth, sound, wallpaper and language stay with macOS.")
         }
     }
 }
@@ -155,10 +155,13 @@ struct NexusSystemInfo: Sendable {
 /// Caelestia: AboutPage (Logo und Version, "System", "Software").
 struct NexusAboutPage: View {
     let system: NexusSystemInfo
+    var store: ShellSettingsStore?
+    var updates: UpdateController?
     var showOnboarding: @MainActor () -> Void = {}
 
     var body: some View {
         NexusPageForm(page: .about, title: "ApolloShell", subtitle: system.version) {
+            if let store, let updates { NexusUpdatesPage(store: store, updates: updates) }
             Section("System") {
                 LabeledContent("Computer Name", value: system.computerName)
                 LabeledContent("Device", value: system.model)

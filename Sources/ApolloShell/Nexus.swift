@@ -18,7 +18,7 @@ import SwiftUI
 @MainActor
 final class Nexus: NSObject, NSWindowDelegate {
     private static let frameName = "Nexus"
-    private static let defaultSize = NSSize(width: 820, height: 600)
+    private static let defaultSize = NSSize(width: 980, height: 680)
 
     private let state = NexusState()
     private let settings: ShellSettingsStore

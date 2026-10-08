@@ -102,7 +102,7 @@ struct NexusProvidersPage: View {
     @Bindable var model: NexusProvidersModel
 
     var body: some View {
-        NexusPageForm(page: .providers) {
+        Group {
             weather
             fileManager
             NexusSaveWarning(failed: store.saveFailed)
@@ -111,7 +111,7 @@ struct NexusProvidersPage: View {
 
     // MARK: Wetter
 
-    private var weather: some View {
+    var weather: some View {
         let chosen = store.settings.providers.weather.provider()
         return Section {
             ForEach(WeatherProviderID.allCases) { id in
@@ -146,7 +146,7 @@ struct NexusProvidersPage: View {
 
     // MARK: Dateimanager
 
-    private var fileManager: some View {
+    var fileManager: some View {
         let setting = store.settings.providers.fileManager
         let automatic = ProviderFileManager.automatic(isInstalled: model.isInstalled)
         let active = ProviderFileManager.resolve(setting: setting, isInstalled: model.isInstalled)
@@ -267,4 +267,18 @@ struct NexusChoiceRow<Label: View>: View {
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
+}
+
+struct NexusWeatherSourceSection: View {
+    let store: ShellSettingsStore
+    let model: NexusProvidersModel
+
+    var body: some View { NexusProvidersPage(store: store, model: model).weather }
+}
+
+struct NexusFileManagerSection: View {
+    let store: ShellSettingsStore
+    let model: NexusProvidersModel
+
+    var body: some View { NexusProvidersPage(store: store, model: model).fileManager }
 }

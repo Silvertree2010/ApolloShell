@@ -167,15 +167,17 @@ final class NexusWeatherModel {
 struct NexusDashboardPage: View {
     @Bindable var store: ShellSettingsStore
     @Bindable var model: NexusWeatherModel
+    var providers: NexusProvidersModel?
     @State private var showsGallery = false
     @State private var pending: LayoutPresetReplacement<DashboardPreset>?
     /// Aufgeklappte Karten: bleiben beim Umsortieren offen.
     @State private var expanded: Set<DashboardCardKind>
 
     /// `expanded`: schon aufgeklappte Karten (Bildprobe).
-    init(store: ShellSettingsStore, model: NexusWeatherModel, expanded: Set<DashboardCardKind> = []) {
+    init(store: ShellSettingsStore, model: NexusWeatherModel, providers: NexusProvidersModel? = nil, expanded: Set<DashboardCardKind> = []) {
         _store = Bindable(store)
         _model = Bindable(model)
+        self.providers = providers
         _expanded = State(initialValue: expanded)
     }
 
@@ -187,6 +189,7 @@ struct NexusDashboardPage: View {
                     NexusDashboardCardSections(store: store, expanded: $expanded,
                                                onAdd: { showsGallery = true }, onReplace: { pending = $0 })
                     weatherSections
+                    if let providers { NexusWeatherSourceSection(store: store, model: providers) }
                     NexusSaveWarning(failed: store.saveFailed)
                     NexusSaveWarning(failed: model.saveFailed, file: "weather.json")
                 }

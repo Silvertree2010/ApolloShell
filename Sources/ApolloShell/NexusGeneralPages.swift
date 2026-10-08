@@ -12,6 +12,7 @@ struct NexusGeneralPage: View {
     @Bindable var store: ShellSettingsStore
     let autostart: OnboardingAutostartModel
     let permissions: OnboardingPermissions
+    var providers: NexusProvidersModel?
 
     var body: some View {
         NexusPageForm(page: .general) {
@@ -36,6 +37,8 @@ struct NexusGeneralPage: View {
             } footer: {
                 Text("Both can be revoked at any time under Privacy & Security.")
             }
+            if let providers { NexusFileManagerSection(store: store, model: providers) }
+            NexusSystemPage()
         }
         .animation(.snappy, value: permissions.accessibility)
         .onAppear {
