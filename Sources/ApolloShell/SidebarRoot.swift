@@ -145,26 +145,27 @@ struct SidebarGlassShape: Shape {
             return path
         }
         let r = min(StatusPopoutLayout.cornerRadius, bulge.width / 2, bulge.height / 2)
-        let j = min(StatusPopoutLayout.join, bulge.width, max(0, (rect.height - bulge.height) / 2))
         let x = rect.minX
         let edge = x + barWidth
         let top = max(rect.minY, bulge.minY)
         let bottom = min(rect.maxY, bulge.maxY)
         let right = edge + bulge.width
+        let j = StatusPopoutJoin.radii(top: top, bottom: bottom, minY: rect.minY, maxY: rect.maxY,
+                                       width: bulge.width, join: StatusPopoutLayout.join)
 
         path.move(to: CGPoint(x: x, y: rect.minY))
         path.addLine(to: CGPoint(x: edge, y: rect.minY))
         // Rechte Leistenkante hinunter bis zur Beule, dann einwaerts gekruemmt
         // hinein.
-        path.addLine(to: CGPoint(x: edge, y: top - j))
-        path.addQuadCurve(to: CGPoint(x: edge + j, y: top),
+        path.addLine(to: CGPoint(x: edge, y: top - j.top))
+        path.addQuadCurve(to: CGPoint(x: edge + j.top, y: top),
                           control: CGPoint(x: edge, y: top))
         path.addLine(to: CGPoint(x: right - r, y: top))
         path.addQuadCurve(to: CGPoint(x: right, y: top + r), control: CGPoint(x: right, y: top))
         path.addLine(to: CGPoint(x: right, y: bottom - r))
         path.addQuadCurve(to: CGPoint(x: right - r, y: bottom), control: CGPoint(x: right, y: bottom))
-        path.addLine(to: CGPoint(x: edge + j, y: bottom))
-        path.addQuadCurve(to: CGPoint(x: edge, y: bottom + j), control: CGPoint(x: edge, y: bottom))
+        path.addLine(to: CGPoint(x: edge + j.bottom, y: bottom))
+        path.addQuadCurve(to: CGPoint(x: edge, y: bottom + j.bottom), control: CGPoint(x: edge, y: bottom))
         // Weiter die Leistenkante hinunter und um die Leiste herum zurueck.
         path.addLine(to: CGPoint(x: edge, y: rect.maxY))
         path.addLine(to: CGPoint(x: x, y: rect.maxY))

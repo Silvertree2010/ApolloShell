@@ -98,3 +98,23 @@ struct StatusPopoutPlacementTests {
         #expect(StatusPopoutPlacement.top(anchorY: anchor, height: height, containerHeight: container) == expected)
     }
 }
+
+@Suite("Detailfenster: Uebergang zur Leiste")
+struct StatusPopoutJoinTests {
+    @Test("Kehle nie ueber den Fensterrand und nie breiter als die Beule", arguments: [
+        (300.0, 600.0, 300.0, 14.0, 14.0, 14.0),
+        (0.0, 300.0, 300.0, 14.0, 0.0, 14.0),
+        (5.0, 300.0, 300.0, 14.0, 5.0, 14.0),
+        (400.0, 1000.0, 300.0, 14.0, 14.0, 0.0),
+        (400.0, 992.0, 300.0, 14.0, 14.0, 8.0),
+        (0.0, 1000.0, 300.0, 14.0, 0.0, 0.0),
+        (300.0, 330.0, 6.0, 14.0, 6.0, 6.0),
+        (300.0, 330.0, 0.0, 14.0, 0.0, 0.0),
+        (300.0, 330.0, -4.0, 14.0, 0.0, 0.0),
+    ])
+    func radii(top: Double, bottom: Double, width: Double, join: Double, wantTop: Double, wantBottom: Double) {
+        let j = StatusPopoutJoin.radii(top: top, bottom: bottom, minY: 0, maxY: 1000, width: width, join: join)
+        #expect(j.top == wantTop)
+        #expect(j.bottom == wantBottom)
+    }
+}

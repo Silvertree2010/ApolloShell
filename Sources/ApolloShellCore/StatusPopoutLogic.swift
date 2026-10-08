@@ -137,6 +137,14 @@ public enum StatusPopoutPlacement {
     }
 }
 
+public enum StatusPopoutJoin {
+    public static func radii(top: Double, bottom: Double, minY: Double, maxY: Double,
+                             width: Double, join: Double) -> (top: Double, bottom: Double) {
+        let cap = max(0, min(join, width))
+        return (min(cap, max(0, top - minY)), min(cap, max(0, maxY - bottom)))
+    }
+}
+
 public struct SpeedResult: Equatable, Sendable {
     public var down: Double
     public var up: Double
