@@ -73,26 +73,50 @@ final class StatusPopoutModel {
     /// Popout dann ebenfalls ab).
     @ObservationIgnored var onOpenedSettings: () -> Void = {}
     private(set) var stack: DockStack?
-    enum Speed: Equatable { case idle, running, done(SpeedResult), failed }
+    enum Speed: Equatable { case idle, running(SpeedResult?, Date), done(SpeedResult), failed }
     private(set) var speed: Speed = .idle
+    nonisolated static let speedLimit: TimeInterval = 20
+
+    var speedRunning: Bool { if case .running = speed { true } else { false } }
 
     func runSpeedTest() {
-        guard live, speed != .running else { return }
-        speed = .running
-        Task.detached {
+        guard live, !speedRunning else { return }
+        let start = Date()
+        speed = .running(nil, start)
+        Task.detached { [weak self] in
             let p = Process()
-            p.executableURL = URL(fileURLWithPath: "/usr/bin/networkQuality")
-            p.arguments = ["-c", "-M", "25"]
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/script")
+            p.arguments = ["-q", "/dev/null", "/usr/bin/networkQuality", "-M", String(Int(StatusPopoutModel.speedLimit))]
             let out = Pipe()
             p.standardOutput = out
             p.standardError = FileHandle.nullDevice
-            var r: SpeedResult?
-            if (try? p.run()) != nil {
-                let d = out.fileHandleForReading.readDataToEndOfFile()
-                p.waitUntilExit()
-                r = SpeedResult.parse(d)
+            p.standardInput = FileHandle.nullDevice
+            guard (try? p.run()) != nil else {
+                await MainActor.run { [weak self] in self?.speed = .failed }
+                return
             }
-            await MainActor.run { [weak self] in self?.speed = r.map(Speed.done) ?? .failed }
+            var all = ""
+            var last: SpeedResult?
+            let h = out.fileHandleForReading
+            while true {
+                let d = h.availableData
+                if d.isEmpty { break }
+                let chunk = String(decoding: d, as: UTF8.self)
+                all += chunk
+                for line in chunk.split(whereSeparator: { $0 == "\r" || $0 == "\n" }) {
+                    if let r = SpeedResult.live(String(line)), r.down > 0 || r.up > 0 {
+                        last = r
+                        let snap = r
+                        await MainActor.run { [weak self] in
+                            guard let self, self.speedRunning else { return }
+                            self.speed = .running(snap, start)
+                        }
+                    }
+                }
+            }
+            p.waitUntilExit()
+            let final = SpeedResult.summary(all, last: last)
+            await MainActor.run { [weak self] in self?.speed = final.map(Speed.done) ?? .failed }
         }
     }
     @ObservationIgnored var onStackHover: (DockStack, CGRect, Bool) -> Void = { _, _, _ in }

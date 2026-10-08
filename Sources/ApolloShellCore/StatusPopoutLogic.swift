@@ -151,6 +151,37 @@ public struct SpeedResult: Equatable, Sendable {
                            rtt: (o["base_rtt"] as? NSNumber)?.doubleValue)
     }
 
+    public init(down: Double, up: Double, rpm: Double? = nil, rtt: Double? = nil) {
+        self.down = down
+        self.up = up
+        self.rpm = rpm
+        self.rtt = rtt
+    }
+
+    public static func live(_ line: String) -> SpeedResult? {
+        let n = line.replacingOccurrences(of: "\u{1B}[2K", with: "")
+        guard let d = num(n, after: "Downlink: "), let u = num(n, after: "Uplink: ") else { return nil }
+        let rpm = num(n, after: "Mbps, ")
+        return SpeedResult(down: d * 1_000_000, up: u * 1_000_000, rpm: (rpm ?? 0) > 0 ? rpm : nil)
+    }
+
+    public static func summary(_ text: String, last: SpeedResult?) -> SpeedResult? {
+        let d = num(text, after: "Downlink capacity: ").map { $0 * 1_000_000 } ?? last?.down
+        let u = num(text, after: "Uplink capacity: ").map { $0 * 1_000_000 } ?? last?.up
+        guard let d, let u else { return nil }
+        var rpm = last?.rpm
+        if let r = text.range(of: "Responsiveness:"), let bar = text[r.upperBound...].range(of: "| ") {
+            rpm = num(String(text[bar.upperBound...]), after: "") ?? rpm
+        }
+        return SpeedResult(down: d, up: u, rpm: rpm, rtt: nil)
+    }
+
+    static func num(_ s: String, after key: String) -> Double? {
+        guard let r = key.isEmpty ? s.startIndex..<s.startIndex : s.range(of: key) else { return nil }
+        let tail = s[r.upperBound...].prefix { $0.isNumber || $0 == "." }
+        return Double(tail)
+    }
+
     public static func mbit(_ bps: Double) -> String {
         let m = bps / 1_000_000
         return m >= 100 ? "\(Int(m.rounded())) Mbit/s" : String(format: "%.1f Mbit/s", m)

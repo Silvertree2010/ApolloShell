@@ -498,11 +498,13 @@ private struct StatusPopoutSpeedCard: View {
                     Button(model.speed == .failed ? "Try Again" : "Run") { model.runSpeedTest() }
                         .controlSize(.small)
                 }
-            case .running:
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text("Measuring…").foregroundStyle(.secondary)
-                    Spacer()
+            case .running(let r, let start):
+                StatusPopoutValueRow(label: "Download", value: r.map { SpeedResult.mbit($0.down) } ?? "…")
+                StatusPopoutValueRow(label: "Upload", value: r.map { SpeedResult.mbit($0.up) } ?? "…")
+                TimelineView(.periodic(from: start, by: 0.25)) { ctx in
+                    ProgressView(value: min(1, ctx.date.timeIntervalSince(start) / StatusPopoutModel.speedLimit))
+                        .progressViewStyle(.linear)
+                        .controlSize(.small)
                 }
             case .done(let r):
                 StatusPopoutValueRow(label: "Download", value: SpeedResult.mbit(r.down))

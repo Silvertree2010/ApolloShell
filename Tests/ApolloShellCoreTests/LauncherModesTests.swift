@@ -58,4 +58,16 @@ struct SpeedResultTests {
         #expect(r.responsiveness?.hasPrefix("High") == true)
         #expect(SpeedResult.parse(Data("{}".utf8)) == nil)
     }
+
+    @Test("Live-Zeilen und Zusammenfassung")
+    func live() throws {
+        let l = try #require(SpeedResult.live("\u{1B}[2KDownlink: 8.914 Mbps, 258 RPM - Uplink: 39.128 Mbps, 258 RPM"))
+        #expect(SpeedResult.mbit(l.down) == "8.9 Mbit/s")
+        #expect(SpeedResult.mbit(l.up) == "39.1 Mbit/s")
+        #expect(l.rpm == 258)
+        #expect(SpeedResult.live("^D") == nil)
+        let s = try #require(SpeedResult.summary("==== SUMMARY ====\nUplink capacity: 45.845 Mbps\nDownlink capacity: 9.903 Mbps\nResponsiveness: Low (666.643 milliseconds | 90 RPM)\n", last: l))
+        #expect(SpeedResult.mbit(s.down) == "9.9 Mbit/s")
+        #expect(s.rpm == 90)
+    }
 }
