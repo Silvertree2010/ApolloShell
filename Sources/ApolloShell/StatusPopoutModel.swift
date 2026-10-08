@@ -137,6 +137,7 @@ final class StatusPopoutModel {
 
     /// Oeffnen oder in-place wechseln: sofort lesen, dann alle 2 s.
     func show(_ kind: StatusPopoutKind, anchorY: CGFloat) {
+        if live { StatusPopoutSound.use(kind == .sound) }
         shown = kind
         self.anchorY = anchorY
         isOpen = true
@@ -149,6 +150,7 @@ final class StatusPopoutModel {
     }
 
     func hide() {
+        if live { StatusPopoutSound.use(false) }
         isOpen = false
         timer?.invalidate()
         timer = nil
@@ -165,7 +167,7 @@ final class StatusPopoutModel {
         case .battery: readBattery()
         case .bluetooth where includingBluetooth: readBluetooth()
         case .bluetooth: break
-        case .stack: break
+        case .stack, .sound: break
         }
     }
 
@@ -259,6 +261,7 @@ final class StatusPopoutModel {
         case .bluetooth: "com.apple.BluetoothSettings"
         case .battery: "com.apple.Battery-Settings.extension"
         case .stack: ""
+        case .sound: "com.apple.Sound-Settings.extension"
         }
         guard !pane.isEmpty else { return }
         guard let url = URL(string: "x-apple.systempreferences:\(pane)") else { return }

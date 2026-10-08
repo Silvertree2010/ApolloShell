@@ -309,6 +309,7 @@ private struct NexusBarOptions: View {
             NexusToggle(title: "Wi-Fi", isOn: options.showWifi)
             NexusToggle(title: "Bluetooth", isOn: options.showBluetooth)
             NexusToggle(title: "Battery", isOn: options.showBattery)
+            NexusToggle(title: "Sound", isOn: options.showSound)
         case .gap:
             let options = binding(\.gap, BarModule.gap, fallback: BarGapOptions())
             // Stepper statt Schieber: jeder Schritt schreibt settings.json,
@@ -412,7 +413,7 @@ enum NexusBarText {
     }
 
     private static func statusDetail(_ o: BarStatusIconsOptions) -> String {
-        let parts = [o.showWifi ? String(localized: "Wi-Fi") : nil, o.showBluetooth ? String(localized: "Bluetooth") : nil,
+        let parts = [o.showSound ? String(localized: "Sound") : nil, o.showWifi ? String(localized: "Wi-Fi") : nil, o.showBluetooth ? String(localized: "Bluetooth") : nil,
                      o.showBattery ? String(localized: "Battery") : nil]
             .compactMap { $0 }
         return parts.isEmpty ? String(localized: "None chosen – invisible") : parts.joined(separator: " · ")

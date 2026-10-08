@@ -167,8 +167,15 @@ private struct StatusCapsule: View {
 
     var body: some View {
         let battery = options.showBattery ? StatusGlyphs.batterySymbol(status.battery) : nil
-        if options.showWifi || options.showBluetooth || battery != nil {
+        if options.showSound || options.showWifi || options.showBluetooth || battery != nil {
             VStack(spacing: 2) {
+                if options.showSound {
+                    popoutIcon(.sound, help: String(localized: "Sound")) {
+                        ThemedIcon("status-sound", fallback: "speaker.wave.2.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(width: 16, height: 16)
+                    }
+                }
                 if options.showWifi {
                     let wifi = StatusGlyphs.wifi(powerOn: status.wifiOn, rssi: status.wifiRSSI)
                     popoutIcon(.wifi, help: wifiHelp) {

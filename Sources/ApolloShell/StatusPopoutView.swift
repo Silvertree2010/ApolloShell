@@ -57,6 +57,7 @@ struct StatusPopoutContent: View {
         case .bluetooth: 300
         case .battery: 270
         case .stack: 300
+        case .sound: 300
         }
     }
 
@@ -70,6 +71,7 @@ struct StatusPopoutContent: View {
                 case .bluetooth: StatusPopoutBluetoothView(model: model)
                 case .battery: StatusPopoutBatteryView(model: model)
                 case .stack: EmptyView()
+                case .sound: StatusPopoutSoundView(model: model)
                 }
             }
             .padding(16)
@@ -442,5 +444,30 @@ private struct StatusPopoutSwitchStyle: ToggleStyle {
         .animation(StatusPopoutMotion.fadeOut, value: on)
         .accessibilityAddTraits(.isToggle)
         .accessibilityValue(on ? "On" : "Off")
+    }
+}
+
+@MainActor
+enum StatusPopoutSound {
+    static var model: UtilitiesModel?
+    private static var on = false
+
+    static func use(_ v: Bool) {
+        guard v != on, let model else { return }
+        on = v
+        if v { model.acquire() } else { model.release() }
+    }
+}
+
+private struct StatusPopoutSoundView: View {
+    let model: StatusPopoutModel
+
+    var body: some View {
+        if let m = StatusPopoutSound.model {
+            UtilitiesAudioCard(model: m)
+            Button("Sound Settings…") { model.openSettings(for: .sound) }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+        }
     }
 }

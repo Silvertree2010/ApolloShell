@@ -15,7 +15,7 @@ import SwiftUI
 /// `UtilitiesLayout.panelHeight` dafuer rechnet.
 @MainActor
 final class UtilitiesPanel {
-    private let model: UtilitiesModel
+    let model: UtilitiesModel
     private let state: UtilitiesLayoutState
     private let drawer: EdgeDrawer<UtilitiesPanelView>
     private var observation: Task<Void, Never>?
@@ -49,11 +49,11 @@ final class UtilitiesPanel {
         drawer = EdgeDrawer(edge: .bottomRight, size: Self.size(for: layout), cornerRadius: 25, rootView: view)
         drawer.opensOnHover = true
         drawer.onOpen = { [weak self] in
-            self?.model.start()
+            self?.model.acquire()
             self?.onVisibilityChange(true)
         }
         drawer.onClose = { [weak self] in
-            self?.model.stop()
+            self?.model.release()
             self?.onVisibilityChange(false)
         }
         // Panel ausdruecklich zu, dann Nexus auf. Nicht darauf warten, dass

@@ -197,7 +197,7 @@ public enum DashboardCardWidth: Equatable, Sendable {
 /// Welche Karten es gibt; jede hoechstens einmal (es gibt ein Wetter, einen
 /// Benutzer, eine Wiedergabe). Rohwert in settings.json ("kind").
 public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
-    case weather, user, clock, calendar, resources, media
+    case weather, user, clock, calendar, resources, media, timer
 
     public var id: Self { self }
 
@@ -206,9 +206,10 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
         case .weather: String(localized: "Weather")
         case .user: String(localized: "User")
         case .clock: String(localized: "Clock")
-        case .calendar: String(localized: "Kalender")
+        case .calendar: String(localized: "Calendar")
         case .resources: String(localized: "Resources")
         case .media: String(localized: "Media")
+        case .timer: String(localized: "Timer")
         }
     }
 
@@ -221,6 +222,7 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
         case .calendar: String(localized: "The month with today marked, to page through.")
         case .resources: String(localized: "CPU, memory and storage as rings.")
         case .media: String(localized: "What's currently playing, with cover art and buttons.")
+        case .timer: String(localized: "Countdown, Pomodoro and stopwatch with a toast at the end.")
         }
     }
 
@@ -232,6 +234,7 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
         case .calendar: "calendar"
         case .resources: "gauge.with.dots.needle.33percent"
         case .media: "music.note"
+        case .timer: "timer"
         }
     }
 
@@ -239,7 +242,7 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
     public var home: DashboardZone {
         switch self {
         case .weather, .user: .top
-        case .clock, .calendar, .resources: .bottom
+        case .clock, .calendar, .resources, .timer: .bottom
         case .media: .side
         }
     }
@@ -252,6 +255,7 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
         case .weather, .user: [.top, .bottom, .side]
         case .clock, .resources: [.bottom, .top, .side]
         case .media: [.side, .top, .bottom]
+        case .timer: [.bottom, .top, .side]
         }
     }
 
@@ -273,7 +277,8 @@ public enum DashboardCardKind: String, CaseIterable, Identifiable, Sendable {
         // Wetter, Benutzer und Wiedergabe hochkant in der unteren Reihe.
         case (.resources, _): .fixed(230)
         case (.media, .top): .flexible(minimum: 300)
-        case (.weather, _), (.user, _), (.media, _): .fixed(200)
+        case (.timer, .bottom): .fixed(150)
+        case (.weather, _), (.user, _), (.media, _), (.timer, _): .fixed(200)
         }
     }
 }
@@ -433,6 +438,7 @@ public enum DashboardCard: BlockModule, Codable, Equatable, Identifiable, Sendab
     case calendar(DashboardCalendarOptions)
     case resources(DashboardResourcesOptions)
     case media(DashboardMediaOptions)
+    case timer(DashboardTimerOptions)
 
     public init(_ kind: DashboardCardKind) {
         self.init(kind: kind, options: nil)
@@ -448,6 +454,7 @@ public enum DashboardCard: BlockModule, Codable, Equatable, Identifiable, Sendab
         case .calendar: .calendar(Self.decoded(c, forKey: .options, default: .init()))
         case .resources: .resources(Self.decoded(c, forKey: .options, default: .init()))
         case .media: .media(Self.decoded(c, forKey: .options, default: .init()))
+        case .timer: .timer(Self.decoded(c, forKey: .options, default: .init()))
         }
     }
 
@@ -459,6 +466,7 @@ public enum DashboardCard: BlockModule, Codable, Equatable, Identifiable, Sendab
         case .calendar: .calendar
         case .resources: .resources
         case .media: .media
+        case .timer: .timer
         }
     }
 
@@ -474,6 +482,7 @@ public enum DashboardCard: BlockModule, Codable, Equatable, Identifiable, Sendab
         case .calendar(let o): o
         case .resources(let o): o
         case .media(let o): o
+        case .timer(let o): o
         }
     }
 
@@ -910,4 +919,26 @@ enum Reorder {
         list.swapAt(index, target)
         return list
     }
+}
+
+public struct DashboardTimerOptions: Codable, Equatable, Sendable {
+    public var minutes: Int
+    public var sound: Bool
+
+    public init(minutes: Int = 25, sound: Bool = true) {
+        self.minutes = minutes
+        self.sound = sound
+    }
+
+    public init(from decoder: any Decoder) throws {
+        self.init()
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        c.lenient(.minutes, into: &minutes)
+        c.lenient(.sound, into: &sound)
+        minutes = min(max(minutes, 1), 180)
+    }
+}
+
+public extension DashboardCard {
+    var timer: DashboardTimerOptions? { if case .timer(let o) = self { o } else { nil } }
 }

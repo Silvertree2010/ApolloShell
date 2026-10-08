@@ -7,6 +7,7 @@ public enum StatusPopoutKind: String, CaseIterable, Sendable {
     case bluetooth
     case battery
     case stack
+    case sound
 }
 
 /// WLAN-Signal in Worte und Balken fassen.

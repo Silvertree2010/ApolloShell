@@ -267,6 +267,12 @@ private struct NexusDashboardCardOptions: View {
             let o = binding(\.media, DashboardCard.media, fallback: DashboardMediaOptions())
             NexusToggle(title: "Album", tip: "Not shown in the small card in the bottom row.", isOn: o.showAlbum)
             NexusToggle(title: "Source", tip: "Which app is playing. Side column only.", isOn: o.showSource)
+        case .timer:
+            let o = binding(\.timer, DashboardCard.timer, fallback: DashboardTimerOptions())
+            Stepper(value: o.minutes, in: 1...180) {
+                LabeledContent("Own Preset", value: "\(o.wrappedValue.minutes) min")
+            }
+            NexusToggle(title: "Sound", isOn: o.sound)
         }
         place
     }
@@ -472,6 +478,8 @@ enum NexusDashboardText {
         case .resources(let o):
             [o.showCPU ? String(localized: "CPU") : nil, o.showMemory ? String(localized: "RAM") : nil,
              o.showStorage ? String(localized: "Storage") : nil]
+        case .timer(let o):
+            [String(localized: "5, 15 and \(o.minutes) min"), o.sound ? String(localized: "Sound") : nil]
         case .media(let o):
             switch zone {
             case .side:
@@ -521,6 +529,7 @@ extension DashboardCardKind {
         case .calendar: .red
         case .resources: .green
         case .media: .pink
+        case .timer: .orange
         }
     }
 }

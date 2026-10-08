@@ -18,7 +18,7 @@ struct LauncherView: View {
                 Divider().opacity(0.4)
             }
             if model.results.isEmpty {
-                Text("No App Found")
+                Text("Nothing Found")
                     .foregroundStyle(style.paint(.secondaryText, or: .secondary))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -59,8 +59,8 @@ struct LauncherView: View {
                     // Swifts Isolationspruefung an (EXC_BREAKPOINT in
                     // LauncherView.list); alles mit Main-Actor steckt jetzt in
                     // `LauncherListRow`.
-                    ForEach(Array(model.results.enumerated()), id: \.element.id) { @Sendable index, app in
-                        LauncherListRow(model: model, index: index, app: app)
+                    ForEach(Array(model.results.enumerated()), id: \.element.id) { @Sendable index, item in
+                        LauncherListRow(model: model, index: index, item: item)
                     }
                 }
                 .padding(8)
@@ -73,39 +73,33 @@ struct LauncherView: View {
     }
 }
 
-/// Eine Zeile der Liste mit ihren Klicks. Eigene View, damit die
-/// `ForEach`-Closure oben nichts vom Main-Actor anfasst.
 private struct LauncherListRow: View {
     let model: LauncherModel
     let index: Int
-    let app: AppEntry
+    let item: LauncherItem
 
     var body: some View {
-        AppRow(
-            app: app,
-            icon: model.icon(for: app),
-            selected: index == model.selectedIndex
-        )
-        .id(app.id)
-        .onTapGesture {
-            model.selectedIndex = index
-            model.launchSelected()
-        }
-        // Rechtsklick wie im Dock: das Menue der App selbst.
-        // Es kommt aus Apples Dock und braucht einen Moment,
-        // deshalb AppKit statt `contextMenu`.
-        .overlay {
-            RightClickCatcher { view in
+        ItemRow(model: model, item: item, selected: index == model.selectedIndex)
+            .id(item.id)
+            .onTapGesture {
+                guard item.selectable else { return }
                 model.selectedIndex = index
-                model.onRightClick(app, view)
+                model.launchSelected()
             }
-        }
+            .overlay {
+                if case .app(let app) = item {
+                    RightClickCatcher { view in
+                        model.selectedIndex = index
+                        model.onRightClick(app, view)
+                    }
+                }
+            }
     }
 }
 
-private struct AppRow: View {
-    let app: AppEntry
-    let icon: NSImage
+private struct ItemRow: View {
+    let model: LauncherModel
+    let item: LauncherItem
     let selected: Bool
 
     @Environment(\.shellStyle) private var style
@@ -113,24 +107,34 @@ private struct AppRow: View {
     var body: some View {
         let radius = style.controlRadius(10)
         HStack(spacing: 12) {
-            Image(nsImage: icon)
-                .resizable()
+            icon
                 .frame(width: 32, height: 32)
-            Text(app.name)
-                .font(style.font(size: 15))
-                .lineLimit(1)
-                .foregroundStyle(style.paint(.text, or: .primary))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(style.font(size: big ? 20 : 15, weight: big ? .semibold : .regular))
+                    .lineLimit(1)
+                    .foregroundStyle(style.paint(.text, or: .primary))
+                if let sub {
+                    Text(sub)
+                        .font(style.font(size: 11))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .foregroundStyle(style.paint(.secondaryText, or: .secondary))
+                }
+            }
             Spacer(minLength: 0)
+            if let trail {
+                Text(trail)
+                    .font(style.font(size: 11))
+                    .foregroundStyle(style.paint(.secondaryText, or: .secondary))
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        // Mit Theme gibt `--apollo-launcher-row-height` die Zeilenhoehe vor;
-        // ohne Theme bestimmt sie wie bisher der Inhalt.
         .frame(minHeight: style.length(.launcherRowHeight))
+        .opacity(item.selectable ? 1 : 0.7)
         .background {
-            // Mit Theme faerbt `--apollo-launcher-highlight-color` die
-            // gewaehlte Zeile (oder der Verlauf daneben).
-            if selected {
+            if selected && item.selectable {
                 if style.paintsLauncherHighlight {
                     RoundedRectangle(cornerRadius: radius).fill(style.launcherHighlightFill)
                 } else {
@@ -139,5 +143,51 @@ private struct AppRow: View {
             }
         }
         .contentShape(.rect)
+    }
+
+    private var big: Bool { if case .calc = item { true } else { false } }
+
+    @ViewBuilder private var icon: some View {
+        switch item {
+        case .app(let a): Image(nsImage: model.icon(for: a)).resizable()
+        case .file(let u): Image(nsImage: model.icon(u)).resizable()
+        case .calc: sym("equal")
+        case .action(let a): sym(a.symbol)
+        case .clip: sym("doc.on.clipboard")
+        case .hint: sym("lightbulb")
+        }
+    }
+
+    private func sym(_ n: String) -> some View {
+        Image(systemName: n)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(style.paint(.secondaryText, or: .secondary))
+            .frame(width: 32, height: 32)
+            .background(Color.primary.opacity(0.08), in: .rect(cornerRadius: 8))
+    }
+
+    private var title: String {
+        switch item {
+        case .app(let a): a.name
+        case .file(let u): FileManager.default.displayName(atPath: u.path)
+        case .calc(_, let v): v
+        case .action(let a): a.title
+        case .clip(let c): c.text.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: .newlines).first ?? ""
+        case .hint(let t, _): t
+        }
+    }
+
+    private var sub: String? {
+        switch item {
+        case .file(let u): (u.deletingLastPathComponent().path as NSString).abbreviatingWithTildeInPath
+        case .calc(let e, _): e + "  ·  " + String(localized: "Return copies")
+        case .hint(_, let s): s
+        default: nil
+        }
+    }
+
+    private var trail: String? {
+        if case .clip(let c) = item { return c.date.formatted(.relative(presentation: .named)) }
+        return nil
     }
 }

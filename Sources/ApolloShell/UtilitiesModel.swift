@@ -144,6 +144,18 @@ final class UtilitiesModel {
 
     // MARK: - Abfragen
 
+    @ObservationIgnored private var users = 0
+
+    func acquire() {
+        users += 1
+        start()
+    }
+
+    func release() {
+        users = max(0, users - 1)
+        if users == 0 { stop() }
+    }
+
     func start() {
         guard live, timer == nil else { return }
         startVolume()

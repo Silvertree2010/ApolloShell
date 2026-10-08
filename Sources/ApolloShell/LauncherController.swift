@@ -39,7 +39,7 @@ final class LauncherController {
             guard let self else { return }
             self.model.reload(self.catalog.scan(), usage: self.usage.stats, pinned: PinnedApps.load())
         }
-        model.onLaunch = { [weak self] app in self?.launch(app) }
+        model.onActivate = { [weak self] item in self?.activate(item) }
         model.onClose = { [weak self] in self?.close() }
         model.onRightClick = { [weak self] app, view in self?.showMenu(for: app, at: view) }
         observeAppLaunches()
@@ -116,6 +116,27 @@ final class LauncherController {
         }
         usage.record(app.usageKey)
         DockAppCommands.press(command, of: running)
+    }
+
+    private func activate(_ item: LauncherItem) {
+        switch item {
+        case .app(let a): launch(a)
+        case .calc(_, let v):
+            close()
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(v, forType: .string)
+        case .clip(let c):
+            close()
+            model.clips.copy(c)
+        case .file(let u):
+            close()
+            NSWorkspace.shared.open(u)
+        case .action(let a):
+            close()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { MainActor.assumeIsolated { LauncherActions.run(a) } }
+        case .hint: break
+        }
     }
 
     private func launch(_ app: AppEntry) {

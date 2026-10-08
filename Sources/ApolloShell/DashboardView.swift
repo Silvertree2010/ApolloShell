@@ -184,6 +184,8 @@ private struct DashboardCardView: View {
                 CalendarCard(model: model, options: options, tall: size.height > 300)
             case .resources(let options):
                 ResourcesCard(model: model, options: options, horizontal: size.width > size.height)
+            case .timer(let options):
+                TimerCard(options: options, vertical: upright)
             case .media(let options):
                 // Rechts (200 x 392) Caelestias Karte; flach und breit ein
                 // Streifen; sonst die kleine hochkant.

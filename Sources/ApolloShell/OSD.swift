@@ -33,7 +33,13 @@ final class OSD {
         drawer.closesOnResignKey = false
 
         model.onDrag = { [weak self] value in
-            self?.monitor.setVolume(value)
+            guard let self else { return }
+            if self.model.bright {
+                self.model.brightness = value
+                OSDBrightness.set(value)
+            } else {
+                self.monitor.setVolume(value)
+            }
         }
         model.onHoverChanged = { [weak self] hovered in
             // Maus weg: ab jetzt wieder 2 s bis zum Ausblenden.
@@ -47,7 +53,15 @@ final class OSD {
         model.muted = monitor.muted
     }
 
+    func showBrightness(_ v: Float) {
+        model.bright = true
+        model.brightness = v
+        drawer.open()
+        scheduleHide()
+    }
+
     private func show(volume: Float, muted: Bool) {
+        model.bright = false
         model.volume = volume
         model.muted = muted
         model.moving = true

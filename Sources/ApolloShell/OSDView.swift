@@ -7,6 +7,8 @@ import SwiftUI
 final class OSDModel {
     var volume: Float = 0
     var muted = false
+    var bright = false
+    var brightness: Float = 0
     /// Waehrend sich der Wert aendert (und 500 ms danach) zeigt der Griff die
     /// Prozentzahl statt des Symbols - wie Caelestia.
     var moving = false
@@ -50,7 +52,8 @@ private struct VolumeSlider: View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
-            let value = model.muted ? 0 : CGFloat(min(max(model.volume, 0), 1))
+            let value = model.bright ? CGFloat(min(max(model.brightness, 0), 1))
+                : (model.muted ? 0 : CGFloat(min(max(model.volume, 0), 1)))
             // Mindestens so hoch wie der Griff, sonst verschwindet er unten.
             let fill = max(w, value * h)
             // Caelestia: Fuellung "StandardLarge" 600 ms, Kurve (0.2, 0, 0, 1).
@@ -75,7 +78,7 @@ private struct VolumeSlider: View {
             })
         }
         .accessibilityElement()
-        .accessibilityLabel("Volume \(VolumeGlyphs.percent(model.volume)) percent")
+        .accessibilityLabel(model.bright ? "Brightness \(VolumeGlyphs.percent(model.brightness)) percent" : "Volume \(VolumeGlyphs.percent(model.volume)) percent")
     }
 
     private func handle(diameter: CGFloat) -> some View {
@@ -84,7 +87,10 @@ private struct VolumeSlider: View {
                 .fill(style.color(.onAccent) ?? Color.white)
                 .shadow(color: .black.opacity(style.shadowOpacity(0.25)), radius: 1.5, y: 0.5)
             Group {
-                if model.moving {
+                if model.bright {
+                    Image(systemName: model.brightness < 0.5 ? "sun.min.fill" : "sun.max.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                } else if model.moving {
                     Text("\(VolumeGlyphs.percent(model.muted ? 0 : model.volume))")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
                         .monospacedDigit()

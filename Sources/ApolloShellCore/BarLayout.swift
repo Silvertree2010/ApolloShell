@@ -176,11 +176,13 @@ public struct BarClockOptions: Codable, Equatable, Sendable {
 }
 
 public struct BarStatusIconsOptions: Codable, Equatable, Sendable {
+    public var showSound: Bool
     public var showWifi: Bool
     public var showBluetooth: Bool
     public var showBattery: Bool
 
-    public init(showWifi: Bool = true, showBluetooth: Bool = true, showBattery: Bool = true) {
+    public init(showSound: Bool = true, showWifi: Bool = true, showBluetooth: Bool = true, showBattery: Bool = true) {
+        self.showSound = showSound
         self.showWifi = showWifi
         self.showBluetooth = showBluetooth
         self.showBattery = showBattery
@@ -189,6 +191,7 @@ public struct BarStatusIconsOptions: Codable, Equatable, Sendable {
     public init(from decoder: any Decoder) throws {
         self.init()
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        c.lenient(.showSound, into: &showSound)
         c.lenient(.showWifi, into: &showWifi)
         c.lenient(.showBluetooth, into: &showBluetooth)
         c.lenient(.showBattery, into: &showBattery)

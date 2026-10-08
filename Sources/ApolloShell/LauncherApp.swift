@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var utilities: UtilitiesPanel?
     /// Lautstaerke-Anzeige; lebt fuer sich (reagiert auf Aenderungen).
     private var osd: OSD?
+    private var osdExtras: OSDExtras?
     private var desktopClock: DesktopClock?
     /// Kurzmeldungen unten rechts und wer sie ausloest.
     private var toaster: Toaster?
@@ -116,13 +117,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           updates: updates, themes: themes)
         self.nexus = nexus
         hotKeys.setHandler(.nexus) { [weak nexus] in nexus?.show() }
+        LauncherActions.openSettings = { [weak nexus] in nexus?.show() }
         commandCenter = CommandCenter(nexus: nexus, updates: updates, autostart: autostart, themes: themes)
         let sidebar = Sidebar(settings: settings)
         self.sidebar = sidebar
         let sessionMenu = SessionMenu()
         self.sessionMenu = sessionMenu
         sidebar.onPower = { [weak sessionMenu] in sessionMenu?.toggle() }
-        osd = OSD()
+        LauncherActions.openSession = { [weak sessionMenu] in sessionMenu?.open() }
+        ClipboardHistory.shared.start()
+        let osd = OSD()
+        self.osd = osd
+        osdExtras = OSDExtras(osd: osd)
         desktopClock = DesktopClock(settings: settings)
         let dashboard = Dashboard(settings: settings)
         self.dashboard = dashboard
@@ -135,6 +141,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let utilities = UtilitiesPanel(settings: settings)
         self.utilities = utilities
         sidebar.onUtilities = { [weak utilities] in utilities?.toggle() }
+        StatusPopoutSound.model = utilities.model
         // Caelestia: der Einstellungs-Knopf der Utilities oeffnet Nexus.
         utilities.onOpenSettings = { [weak nexus] in nexus?.show() }
         hotKeys.setHandler(.utilities) { [weak utilities] in utilities?.toggle() }
@@ -147,6 +154,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.toaster = toaster
         // Farbpipette der Utilities meldet "Color Copied".
         utilities.onToast = { [weak toaster] content in toaster?.toast(content) }
+        DashTimer.shared.onDone = { [weak toaster] t in
+            toaster?.toast(title: String(localized: "Timer Done"), message: t, symbol: "timer")
+        }
         let toastWindow = ToastWindow(toaster: toaster, utilitiesHeight: utilities.height)
         self.toastWindow = toastWindow
         utilities.onVisibilityChange = { [weak toastWindow] open in toastWindow?.utilitiesChanged(open: open) }
