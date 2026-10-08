@@ -502,7 +502,19 @@ private struct StatusPopoutSpeedCard: View {
 }
 
 private struct StatusPopoutNetworkList: View {
+    static let shown = 5
     let nets: WifiNetworks
+
+    @MainActor static func menu(_ nets: WifiNetworks) {
+        let m = NSMenu()
+        for n in nets.nets {
+            let i = DockSmartMenu.Item(n.ssid) { nets.join(n) }
+            i.image = NSImage(systemSymbolName: "wifi", accessibilityDescription: nil)
+            m.addItem(i)
+        }
+        m.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    }
+
     @Environment(\.shellStyle) private var style
 
     var body: some View {
@@ -513,8 +525,25 @@ private struct StatusPopoutNetworkList: View {
                     Spacer()
                     if nets.loading { ProgressView().controlSize(.mini) }
                 }
-                ForEach(nets.nets.prefix(8)) { n in
+                ForEach(nets.nets.prefix(Self.shown)) { n in
                     StatusPopoutNetworkRow(net: n, joining: nets.joining == n.ssid, failed: nets.failed == n.ssid) { nets.join(n) }
+                }
+                if nets.nets.count > Self.shown {
+                    Button {
+                        Self.menu(nets)
+                    } label: {
+                        HStack {
+                            Text("All Saved Networks (\(nets.nets.count))…")
+                            Spacer()
+                            Image(systemName: "chevron.up.chevron.down").font(.system(size: 9, weight: .semibold))
+                        }
+                        .font(style.font(size: 12))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 4)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
