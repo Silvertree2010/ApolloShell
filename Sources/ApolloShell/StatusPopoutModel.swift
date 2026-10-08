@@ -24,7 +24,6 @@ struct StatusPopoutWifiInfo: Equatable {
     var channel: Int?
     /// Rohwert von `CWChannelBand`.
     var band: Int?
-    var ssid: String?
 
     var connected: Bool { powerOn && (rssi ?? 0) != 0 }
 }
@@ -187,7 +186,7 @@ final class StatusPopoutModel {
     /// Oeffnen oder in-place wechseln: sofort lesen, dann alle 2 s.
     func show(_ kind: StatusPopoutKind, anchorY: CGFloat) {
         if live { StatusPopoutSound.use(kind == .sound) }
-        if live, kind == .wifi, nets.allowed { nets.scan() }
+        if live, kind == .wifi { nets.load() }
         shown = kind
         self.anchorY = anchorY
         isOpen = true
@@ -236,8 +235,7 @@ final class StatusPopoutModel {
                 transmitRate: on && rssi != 0 ? iface.transmitRate() : nil,
                 phyMode: on ? iface.activePHYMode().rawValue : 0,
                 channel: channel?.channelNumber,
-                band: channel?.channelBand.rawValue,
-                ssid: on ? iface.ssid() : nil
+                band: channel?.channelBand.rawValue
             )
         }
         if next != wifi { wifi = next }

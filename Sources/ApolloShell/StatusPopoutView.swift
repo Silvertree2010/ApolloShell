@@ -97,8 +97,8 @@ private struct StatusPopoutWifiView: View {
             let glyph = StatusGlyphs.wifi(powerOn: true, rssi: wifi.rssi)
             StatusPopoutLeadRow(
                 symbol: glyph.symbol, variableValue: glyph.strength, active: true,
-                title: LocalizedStringKey(wifi.ssid ?? String(localized: "Connected")),
-                subtitle: LocalizedStringKey(StatusPopoutSignal.quality(rssi: wifi.rssi))
+                title: "Connected",
+                subtitle: "\(StatusPopoutSignal.quality(rssi: wifi.rssi))"
             )
         } else {
             StatusPopoutLeadRow(
@@ -506,33 +506,12 @@ private struct StatusPopoutNetworkList: View {
     @Environment(\.shellStyle) private var style
 
     var body: some View {
-        StatusPopoutCard {
-            if !nets.allowed {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(nets.denied ? "Location access is off for ApolloShell" : "Other Networks")
-                        .font(style.font(size: 12, weight: .medium))
-                    Text("macOS only shows network names to apps with location access.")
-                        .font(style.font(size: 11))
-                        .foregroundStyle(.secondary)
-                    Button(nets.denied ? "Open Privacy Settings" : "Allow") {
-                        if nets.denied {
-                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices")!)
-                        } else {
-                            nets.requestAccess()
-                        }
-                    }
-                    .controlSize(.small)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
+        if !nets.nets.isEmpty || nets.loading {
+            StatusPopoutCard {
                 HStack {
-                    Text("Other Networks").font(style.font(size: 12, weight: .medium)).foregroundStyle(.secondary)
+                    Text("Saved Networks").font(style.font(size: 12, weight: .medium)).foregroundStyle(.secondary)
                     Spacer()
-                    if nets.scanning { ProgressView().controlSize(.mini) }
-                }
-                if nets.nets.isEmpty && !nets.scanning {
-                    Text("No networks found").font(style.font(size: 12)).foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if nets.loading { ProgressView().controlSize(.mini) }
                 }
                 ForEach(nets.nets.prefix(8)) { n in
                     StatusPopoutNetworkRow(net: n, joining: nets.joining == n.ssid, failed: nets.failed == n.ssid) { nets.join(n) }
@@ -551,20 +530,17 @@ private struct StatusPopoutNetworkRow: View {
     @Environment(\.shellStyle) private var style
 
     var body: some View {
-        let g = StatusGlyphs.wifi(powerOn: true, rssi: net.rssi)
         Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: g.symbol, variableValue: g.strength)
+                Image(systemName: "wifi")
                     .font(.system(size: 12, weight: .semibold))
                     .frame(width: 16)
-                Text(net.ssid).lineLimit(1)
+                Text(verbatim: net.ssid).lineLimit(1)
                 Spacer(minLength: 6)
                 if joining {
                     ProgressView().controlSize(.mini)
                 } else if failed {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                } else if net.secure {
-                    Image(systemName: "lock.fill").font(.system(size: 10)).foregroundStyle(.secondary)
                 }
             }
             .font(style.font(size: 12))
@@ -576,6 +552,6 @@ private struct StatusPopoutNetworkRow: View {
         .buttonStyle(.plain)
         .disabled(joining)
         .background { HoverTracker { hov = $0 } }
-        .help(failed ? String(localized: "Could not join") : net.known ? String(localized: "Known network") : net.ssid)
+        .help(failed ? String(localized: "Not in range or could not join") : String(localized: "Join"))
     }
 }

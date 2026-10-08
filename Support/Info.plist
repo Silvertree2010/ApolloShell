@@ -31,10 +31,6 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationUsageDescription</key>
-	<string>macOS only shows Wi-Fi network names to apps with location access. ApolloShell uses it for the Wi-Fi list and never stores or sends your location.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>macOS only shows Wi-Fi network names to apps with location access. ApolloShell uses it for the Wi-Fi list and never stores or sends your location.</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>ApolloShell steuert System Events für Abmelden, Neustart und Ausschalten im Sitzungsmenü.</string>
 	<key>NSHumanReadableCopyright</key>
