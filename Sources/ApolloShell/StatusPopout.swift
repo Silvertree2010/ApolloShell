@@ -52,9 +52,10 @@ final class StatusPopout {
 
     private var hoverOpen: DispatchWorkItem?
     private var hoverClose: DispatchWorkItem?
-    private var overIcon = false
-    private var overPanel = false
+    private var over: String?
+    private var overPanel = 0
     private var byHover = false
+    private var closing = false
 
     init() {
         model.onIconClick = { [weak self] kind in self?.iconClicked(kind) }
@@ -65,15 +66,27 @@ final class StatusPopout {
         model.onIconHover = { [weak self] kind, inside in self?.iconHover(kind, inside) }
     }
 
-    private func stackHover(_ st: DockStack, _ fr: CGRect, _ inside: Bool) {
-        overIcon = inside
+    private func hovered(_ key: String, _ inside: Bool) -> Bool {
+        if inside {
+            over = key
+        } else if over == key {
+            over = nil
+        } else {
+            return false
+        }
         hoverOpen?.cancel()
+        return true
+    }
+
+    private func stackHover(_ st: DockStack, _ fr: CGRect, _ inside: Bool) {
+        let key = "s:" + st.id
+        guard hovered(key, inside) else { return }
         if inside {
             hoverClose?.cancel()
             if model.isOpen, model.shown == .stack, model.stack?.id == st.id { return }
             let fast = model.isOpen && model.shown == .stack
             let w = DispatchWorkItem { [weak self] in
-                guard let self, self.overIcon else { return }
+                guard let self, self.over == key else { return }
                 self.byHover = true
                 self.showStack(st, fr)
             }
@@ -85,14 +98,14 @@ final class StatusPopout {
     }
 
     private func iconHover(_ kind: StatusPopoutKind, _ inside: Bool) {
-        overIcon = inside
-        hoverOpen?.cancel()
+        let key = "k:\(kind)"
+        guard hovered(key, inside) else { return }
         guard inside else { scheduleHoverClose(); return }
         hoverClose?.cancel()
         if model.isOpen, model.shown == kind { return }
         let fast = model.isOpen
         let w = DispatchWorkItem { [weak self] in
-            guard let self, self.overIcon, let anchor = self.model.iconFrames[kind]?.midY else { return }
+            guard let self, self.over == key, let anchor = self.model.iconFrames[kind]?.midY else { return }
             if self.model.isOpen {
                 withAnimation(StatusPopoutMotion.spatial) { self.model.show(kind, anchorY: anchor) }
             } else {
@@ -105,15 +118,15 @@ final class StatusPopout {
     }
 
     private func panelHover(_ inside: Bool) {
-        overPanel = inside
-        if inside { hoverClose?.cancel() } else { scheduleHoverClose() }
+        overPanel = max(0, overPanel + (inside ? 1 : -1))
+        if overPanel > 0 { hoverClose?.cancel() } else { scheduleHoverClose() }
     }
 
     private func scheduleHoverClose() {
         guard model.isOpen, byHover else { return }
         hoverClose?.cancel()
         let w = DispatchWorkItem { [weak self] in
-            guard let self, !self.overIcon, !self.overPanel else { return }
+            guard let self, self.over == nil, self.overPanel == 0 else { return }
             self.close()
         }
         hoverClose = w
@@ -169,9 +182,12 @@ final class StatusPopout {
         onOpen()
         setExpanded(true)
         // Keim ohne Bewegung zum angeklickten Symbol, dann herauswachsen.
-        var instant = Transaction()
-        instant.disablesAnimations = true
-        withTransaction(instant) { model.prepare(kind, anchorY: anchorY) }
+        if !closing {
+            var instant = Transaction()
+            instant.disablesAnimations = true
+            withTransaction(instant) { model.prepare(kind, anchorY: anchorY) }
+        }
+        closing = false
         withAnimation(StatusPopoutMotion.spatial) { model.show(kind, anchorY: anchorY) }
         installMonitors()
         registerEscape()
@@ -181,10 +197,11 @@ final class StatusPopout {
         guard model.isOpen else { return }
         hoverOpen?.cancel()
         hoverClose?.cancel()
-        overPanel = false
+        overPanel = 0
         byHover = false
         generation += 1
         let current = generation
+        closing = true
         withAnimation(StatusPopoutMotion.spatial) { model.hide() }
         removeMonitors()
         escapeKey?.unregister()
@@ -192,6 +209,7 @@ final class StatusPopout {
         // Erst nach der Schliessbewegung schmal; oeffnet man vorher neu, bleibt es breit.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self, self.generation == current else { return }
+            self.closing = false
             self.setExpanded(false)
         }
     }
@@ -241,6 +259,6 @@ final class StatusPopout {
         // Auf ein Statussymbol: das erledigt dessen Knopf (zu oder wechseln).
         // Sonst, auch im durchsichtigen Teil des breiten Fensters: zu.
         let onIcon = model.iconFrames.values.contains { screenRect($0)?.contains(point) == true }
-        if !onIcon, !(model.shown == .stack && overIcon) { close() }
+        if !onIcon, !(model.shown == .stack && over != nil) { close() }
     }
 }

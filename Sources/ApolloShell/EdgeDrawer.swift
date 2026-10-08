@@ -37,6 +37,7 @@ enum DrawerMotion {
     func closedTransform(edge: DrawerEdge, size: NSSize, topInset: CGFloat, container: NSView) -> CATransform3D {
         switch self {
         case .slide:
+            if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return CATransform3DIdentity }
             switch edge {
             case .top: return CATransform3DMakeTranslation(0, size.height + topInset + 5, 0)
             case .right: return CATransform3DMakeTranslation(size.width + 5, 0, 0)

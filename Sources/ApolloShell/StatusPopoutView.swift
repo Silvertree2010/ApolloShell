@@ -4,7 +4,9 @@ import SwiftUI
 /// Caelestias Kurven (Tokens.anim): Raum 500 ms mit leichtem Ueberschiessen
 /// fuer Groesse und Lage, Effekte 200/300 ms fuer das Ueberblenden.
 enum StatusPopoutMotion {
-    static let spatial = Animation.shellSpatial
+    static var spatial: Animation {
+        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? .easeOut(duration: 0.2) : .shellSpatial
+    }
     static let fadeOut = Animation.timingCurve(0.34, 0.8, 0.34, 1, duration: 0.2)
     static let fadeIn = Animation.timingCurve(0.34, 0.88, 0.34, 1, duration: 0.3)
 }
