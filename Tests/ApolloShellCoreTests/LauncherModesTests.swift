@@ -1,3 +1,4 @@
+import Foundation
 import ApolloShellCore
 import Testing
 
@@ -43,5 +44,18 @@ struct LauncherModesTests {
     func actions() {
         #expect(LauncherAction.matching("sperr") == [.lock])
         #expect(LauncherAction.matching("").count == LauncherAction.allCases.count)
+    }
+}
+
+@Suite("Speedtest")
+struct SpeedResultTests {
+    @Test("networkQuality-JSON lesen")
+    func parse() throws {
+        let j = #"{"dl_throughput": 412345678, "ul_throughput": 38123456, "responsiveness": 950.4, "base_rtt": 18.2, "interface_name": "en0"}"#
+        let r = try #require(SpeedResult.parse(Data(j.utf8)))
+        #expect(SpeedResult.mbit(r.down) == "412 Mbit/s")
+        #expect(SpeedResult.mbit(r.up) == "38.1 Mbit/s")
+        #expect(r.responsiveness?.hasPrefix("High") == true)
+        #expect(SpeedResult.parse(Data("{}".utf8)) == nil)
     }
 }

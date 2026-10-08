@@ -136,3 +136,29 @@ public enum StatusPopoutPlacement {
         return max(0, min(wanted, containerHeight - height))
     }
 }
+
+public struct SpeedResult: Equatable, Sendable {
+    public var down: Double
+    public var up: Double
+    public var rpm: Double?
+    public var rtt: Double?
+
+    public static func parse(_ data: Data) -> SpeedResult? {
+        guard let o = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let d = (o["dl_throughput"] as? NSNumber)?.doubleValue,
+              let u = (o["ul_throughput"] as? NSNumber)?.doubleValue else { return nil }
+        return SpeedResult(down: d, up: u, rpm: (o["responsiveness"] as? NSNumber)?.doubleValue,
+                           rtt: (o["base_rtt"] as? NSNumber)?.doubleValue)
+    }
+
+    public static func mbit(_ bps: Double) -> String {
+        let m = bps / 1_000_000
+        return m >= 100 ? "\(Int(m.rounded())) Mbit/s" : String(format: "%.1f Mbit/s", m)
+    }
+
+    public var responsiveness: String? {
+        guard let rpm else { return nil }
+        let q = rpm >= 800 ? String(localized: "High") : rpm >= 300 ? String(localized: "Medium") : String(localized: "Low")
+        return "\(q) · \(Int(rpm.rounded())) RPM"
+    }
+}

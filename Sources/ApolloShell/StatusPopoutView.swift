@@ -132,6 +132,7 @@ private struct StatusPopoutWifiView: View {
                 subtitle: wifi?.powerOn == true ? "No Network in Range Connected" : nil
             )
         }
+        StatusPopoutSpeedCard(model: model)
         StatusPopoutSettingsButton(title: "Wi-Fi Settings…") { model.openSettings(for: .wifi) }
     }
 }
@@ -480,5 +481,42 @@ private struct StatusPopoutSoundView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+private struct StatusPopoutSpeedCard: View {
+    let model: StatusPopoutModel
+
+    var body: some View {
+        StatusPopoutCard {
+            switch model.speed {
+            case .idle, .failed:
+                HStack {
+                    Text(model.speed == .failed ? "Speed test failed" : "Speed Test")
+                        .foregroundStyle(model.speed == .failed ? .secondary : .primary)
+                    Spacer()
+                    Button(model.speed == .failed ? "Try Again" : "Run") { model.runSpeedTest() }
+                        .controlSize(.small)
+                }
+            case .running:
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Measuring…").foregroundStyle(.secondary)
+                    Spacer()
+                }
+            case .done(let r):
+                StatusPopoutValueRow(label: "Download", value: SpeedResult.mbit(r.down))
+                StatusPopoutValueRow(label: "Upload", value: SpeedResult.mbit(r.up))
+                if let resp = r.responsiveness {
+                    StatusPopoutValueRow(label: "Responsiveness", value: resp)
+                }
+                HStack {
+                    Spacer()
+                    Button("Run Again") { model.runSpeedTest() }
+                        .controlSize(.small)
+                }
+            }
+        }
+        .help("Measured with Apple's networkQuality against Apple's servers.")
     }
 }

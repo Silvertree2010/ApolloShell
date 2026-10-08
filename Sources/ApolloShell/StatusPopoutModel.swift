@@ -73,6 +73,28 @@ final class StatusPopoutModel {
     /// Popout dann ebenfalls ab).
     @ObservationIgnored var onOpenedSettings: () -> Void = {}
     private(set) var stack: DockStack?
+    enum Speed: Equatable { case idle, running, done(SpeedResult), failed }
+    private(set) var speed: Speed = .idle
+
+    func runSpeedTest() {
+        guard live, speed != .running else { return }
+        speed = .running
+        Task.detached {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/networkQuality")
+            p.arguments = ["-c", "-M", "25"]
+            let out = Pipe()
+            p.standardOutput = out
+            p.standardError = FileHandle.nullDevice
+            var r: SpeedResult?
+            if (try? p.run()) != nil {
+                let d = out.fileHandleForReading.readDataToEndOfFile()
+                p.waitUntilExit()
+                r = SpeedResult.parse(d)
+            }
+            await MainActor.run { [weak self] in self?.speed = r.map(Speed.done) ?? .failed }
+        }
+    }
     @ObservationIgnored var onStackHover: (DockStack, CGRect, Bool) -> Void = { _, _, _ in }
     @ObservationIgnored var onStackToggle: (DockStack, CGRect) -> Void = { _, _ in }
     @ObservationIgnored var onPanelHover: (Bool) -> Void = { _ in }
