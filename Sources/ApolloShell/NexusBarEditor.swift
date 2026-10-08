@@ -168,14 +168,15 @@ private struct NexusBarBackgroundSection: View {
                 }
             }
         } header: {
-            NexusTipHeader(title: "Background", tip: "Liquid Glass adapts to what is behind it and can change color when a window moves underneath. For a fixed color, pick Material or glass on a solid fill.")
+            NexusTipHeader(title: "Background", tip: "Adaptive Liquid Glass changes color when a window moves underneath it. Liquid Glass and Material keep their color.")
         }
     }
 
     private func title(_ background: BarBackground) -> Text {
         switch background {
         case .material: Text("Material")
-        case .glass: Text("Liquid Glass")
+        case .liquidGlass: Text("Liquid Glass")
+        case .glass: Text("Adaptive Liquid Glass")
         case .tintedGlass: Text("Liquid Glass, Tinted")
         case .fixedGlass: Text("Liquid Glass on a Solid Fill")
         }
@@ -183,7 +184,8 @@ private struct NexusBarBackgroundSection: View {
 
     private func subtitle(_ background: BarBackground) -> Text {
         switch background {
-        case .material: Text("System material with a fixed color that follows light and dark – how it looks today")
+        case .liquidGlass: Text("Clear glass with a light fill in the window color; the color holds still")
+        case .material: Text("System material with a fixed color that follows light and dark")
         case .glass: Text("Real glass; it takes on the color and brightness of whatever is behind it")
         case .tintedGlass: Text("Glass tinted with the window color; it shifts less, but it still shifts")
         case .fixedGlass: Text("Clear glass over an opaque fill in the window color: the sheen stays, the color holds still")

@@ -127,6 +127,10 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
                 content.glassEffect(.regular, in: shape)
             case .tintedGlass:
                 content.glassEffect(.regular.tint(Self.tint), in: shape)
+            case .liquidGlass:
+                content
+                    .background(Color(nsColor: .windowBackgroundColor).opacity(GlassLook.fill), in: shape)
+                    .glassEffect(.clear, in: shape)
             case .fixedGlass:
                 // Reihenfolge: erst das Glas hinter den Inhalt, dann die
                 // deckende Flaeche hinter das Glas. Das Glas hat damit

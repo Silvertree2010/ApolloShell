@@ -38,10 +38,10 @@ public enum BarBackground: String, Codable, CaseIterable, Sendable, Identifiable
     case tintedGlass
     /// Klares Liquid Glass ueber einer deckenden Flaeche in Fensterfarbe.
     case fixedGlass
+    case liquidGlass
 
     public var id: Self { self }
 
-    /// Ohne Einstellung: Material - der Stand vor dieser Wahl.
     public static let standard = material
 
     /// Nachsichtig wie der Rest von settings.json: ein unbekannter oder

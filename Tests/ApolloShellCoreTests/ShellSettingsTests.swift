@@ -8,7 +8,8 @@ struct ShellSettingsTests {
     func missingFile() {
         let settings = ShellSettings.load(from: nil)
         #expect(settings == ShellSettings.firstLaunch)
-        #expect(settings.bar == ShellSettings().bar)
+        #expect(settings.bar.layout == ShellSettings().bar.layout)
+        #expect(settings.bar.background == .liquidGlass)
         #expect(settings.toasts == ShellSettings().toasts)
         #expect(settings.utilities == ShellSettings().utilities)
         #expect(settings.dashboard == ShellSettings().dashboard)
@@ -91,7 +92,7 @@ struct ShellSettingsTests {
     @Test("Hintergrund: ohne Zutun bleibt es beim bisherigen Aussehen")
     func backgroundDefault() {
         #expect(ShellSettings().bar.background == .material)
-        #expect(ShellSettings.firstLaunch.bar.background == .material)
+        #expect(ShellSettings.firstLaunch.bar.background == .liquidGlass)
     }
 
     @Test("Akku-Ereignisse folgen ihrem Schalter", arguments: [

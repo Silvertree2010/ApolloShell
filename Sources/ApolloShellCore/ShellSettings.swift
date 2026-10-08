@@ -76,8 +76,10 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     /// ausdruecklich an - danach liest sich die Datei wieder als genau
     /// dieser Stand.
     public static var firstLaunch: ShellSettings {
-        ShellSettings(hotKeys: .firstLaunch, keepAwake: .firstLaunch, onboarding: .firstLaunch,
-                      appleDockHiding: .firstLaunch)
+        var s = ShellSettings(hotKeys: .firstLaunch, keepAwake: .firstLaunch, onboarding: .firstLaunch,
+                              appleDockHiding: .firstLaunch)
+        s.bar.background = .liquidGlass
+        return s
     }
 
     /// Utilities-Panel unten rechts (Caelestia: utilities.quickToggles):

@@ -28,7 +28,17 @@ enum ThemedGlass {
         content.wantsLayer = true
         previous?.removeFromSuperlayer()
         content.layer?.backgroundColor = nil
-        guard style.paintsPanel else { return nil }
+        guard style.paintsPanel else {
+            glass.style = GlassLook.liquid ? .clear : .regular
+            if GlassLook.liquid {
+                var c: CGColor?
+                glass.effectiveAppearance.performAsCurrentDrawingAppearance {
+                    c = NSColor.windowBackgroundColor.withAlphaComponent(GlassLook.fill).cgColor
+                }
+                content.layer?.backgroundColor = c
+            }
+            return nil
+        }
 
         guard let gradient = style.value(ThemeGradientToken.panel), !gradient.isEmpty else {
             if let color = style.value(ThemeColorToken.panel) {
@@ -48,4 +58,10 @@ enum ThemedGlass {
         content.layer?.insertSublayer(layer, at: 0)
         return layer
     }
+}
+
+@MainActor
+enum GlassLook {
+    static let fill: Double = 0.6
+    static var liquid = false
 }
