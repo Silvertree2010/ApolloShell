@@ -62,6 +62,7 @@ final class StatusPopout {
         model.onStackHover = { [weak self] st, fr, inside in self?.stackHover(st, fr, inside) }
         model.onStackToggle = { [weak self] st, fr in self?.stackToggle(st, fr) }
         model.onPanelHover = { [weak self] inside in self?.panelHover(inside) }
+        model.onIconHover = { [weak self] kind, inside in self?.iconHover(kind, inside) }
     }
 
     private func stackHover(_ st: DockStack, _ fr: CGRect, _ inside: Bool) {
@@ -83,17 +84,36 @@ final class StatusPopout {
         }
     }
 
+    private func iconHover(_ kind: StatusPopoutKind, _ inside: Bool) {
+        overIcon = inside
+        hoverOpen?.cancel()
+        guard inside else { scheduleHoverClose(); return }
+        hoverClose?.cancel()
+        if model.isOpen, model.shown == kind { return }
+        let fast = model.isOpen
+        let w = DispatchWorkItem { [weak self] in
+            guard let self, self.overIcon, let anchor = self.model.iconFrames[kind]?.midY else { return }
+            if self.model.isOpen {
+                withAnimation(StatusPopoutMotion.spatial) { self.model.show(kind, anchorY: anchor) }
+            } else {
+                self.open(kind, anchorY: anchor)
+            }
+            self.byHover = true
+        }
+        hoverOpen = w
+        DispatchQueue.main.asyncAfter(deadline: .now() + (fast ? 0.05 : 0.15), execute: w)
+    }
+
     private func panelHover(_ inside: Bool) {
-        guard model.shown == .stack else { return }
         overPanel = inside
         if inside { hoverClose?.cancel() } else { scheduleHoverClose() }
     }
 
     private func scheduleHoverClose() {
-        guard model.isOpen, model.shown == .stack, byHover else { return }
+        guard model.isOpen, byHover else { return }
         hoverClose?.cancel()
         let w = DispatchWorkItem { [weak self] in
-            guard let self, !self.overIcon, !self.overPanel, self.model.shown == .stack else { return }
+            guard let self, !self.overIcon, !self.overPanel else { return }
             self.close()
         }
         hoverClose = w
@@ -129,10 +149,12 @@ final class StatusPopout {
         // Symbol und Buehne liegen in derselben Ansicht, oben = 0: die Mitte
         // des Symbols ist direkt der Anker.
         guard let anchor = model.iconFrames[kind]?.midY else { return }
+        hoverOpen?.cancel()
         if model.isOpen {
             if model.shown == kind {
-                close()
+                if byHover { byHover = false } else { close() }
             } else {
+                byHover = false
                 withAnimation(StatusPopoutMotion.spatial) { model.show(kind, anchorY: anchor) }
             }
             return

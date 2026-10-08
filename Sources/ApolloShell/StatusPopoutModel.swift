@@ -76,6 +76,7 @@ final class StatusPopoutModel {
     @ObservationIgnored var onStackHover: (DockStack, CGRect, Bool) -> Void = { _, _, _ in }
     @ObservationIgnored var onStackToggle: (DockStack, CGRect) -> Void = { _, _ in }
     @ObservationIgnored var onPanelHover: (Bool) -> Void = { _ in }
+    @ObservationIgnored var onIconHover: (StatusPopoutKind, Bool) -> Void = { _, _ in }
     @ObservationIgnored var onStackClick: (DockStackItem, NSEvent.ModifierFlags) -> Void = { _, _ in }
     @ObservationIgnored var onStackMenu: (DockStackItem, NSView) -> Void = { _, _ in }
     @ObservationIgnored var onStackDrop: (DockStackItem, [URL]) -> Void = { _, _ in }

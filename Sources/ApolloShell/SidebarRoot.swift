@@ -76,6 +76,13 @@ struct SidebarRoot: View {
                     .accessibilityHidden(!active)
             }
         }
+        .background(alignment: .topLeading) {
+            if open {
+                HoverTracker { popout.onPanelHover($0) }
+                    .frame(width: bulge.width + 8, height: bulge.height)
+                    .offset(x: bulge.minX - 8, y: bulge.minY)
+            }
+        }
         .mask(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: StatusPopoutLayout.cornerRadius)
                 .frame(width: bulge.width, height: bulge.height)

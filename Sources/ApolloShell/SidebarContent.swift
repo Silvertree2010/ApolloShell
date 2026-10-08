@@ -213,7 +213,9 @@ private struct StatusCapsule: View {
         _ kind: StatusPopoutKind, help: String, @ViewBuilder glyph: @escaping () -> Glyph
     ) -> some View {
         let active = popout?.isOpen == true && popout?.shown == kind
-        return SidebarIcon(help: help, action: { popout?.onIconClick(kind) }, round: true, content: glyph)
+        var icon = SidebarIcon(help: help, action: { popout?.onIconClick(kind) }, round: true, content: glyph)
+        icon.onHover = { popout?.onIconHover(kind, $0) }
+        return icon
             .background(Color.primary.opacity(active ? 0.14 : 0), in: .circle)
             .animation(.easeOut(duration: 0.12), value: active)
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { popout?.iconFrames[kind] = $0 }
@@ -240,6 +242,7 @@ struct SidebarIcon<Content: View>: View {
     let help: String
     var action: (() -> Void)?
     var round = false
+    var onHover: ((Bool) -> Void)?
     @ViewBuilder let content: () -> Content
     @State private var hovering = false
     @Environment(\.barPreview) private var preview
@@ -265,7 +268,12 @@ struct SidebarIcon<Content: View>: View {
         // Nicht `onHover`: die Leiste gehoert einer nie aktiven App, dort blieb
         // der Hover-Effekt stehen, wenn die Maus wegging.
         .background {
-            if !preview { HoverTracker { hovering = $0 } }
+            if !preview {
+                HoverTracker { inside in
+                    hovering = inside
+                    onHover?(inside)
+                }
+            }
         }
         .animation(.easeOut(duration: 0.12), value: hovering)
         .help(help)
