@@ -24,6 +24,7 @@ struct StatusPopoutWifiInfo: Equatable {
     var channel: Int?
     /// Rohwert von `CWChannelBand`.
     var band: Int?
+    var ssid: String?
 
     var connected: Bool { powerOn && (rssi ?? 0) != 0 }
 }
@@ -73,6 +74,7 @@ final class StatusPopoutModel {
     /// Popout dann ebenfalls ab).
     @ObservationIgnored var onOpenedSettings: () -> Void = {}
     private(set) var stack: DockStack?
+    @ObservationIgnored private(set) lazy var nets = WifiNetworks()
     enum Speed: Equatable { case idle, running(SpeedResult?, Date), done(SpeedResult), failed }
     private(set) var speed: Speed = .idle
     nonisolated static let speedLimit: TimeInterval = 20
@@ -129,7 +131,7 @@ final class StatusPopoutModel {
 
     @ObservationIgnored private static let interval: TimeInterval = 2
     @ObservationIgnored private static let bluetoothEvery = 5
-    @ObservationIgnored private let live: Bool
+    @ObservationIgnored private(set) var live: Bool
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var ticks = 0
     @ObservationIgnored private let bluetoothReader = BluetoothState()
@@ -185,6 +187,7 @@ final class StatusPopoutModel {
     /// Oeffnen oder in-place wechseln: sofort lesen, dann alle 2 s.
     func show(_ kind: StatusPopoutKind, anchorY: CGFloat) {
         if live { StatusPopoutSound.use(kind == .sound) }
+        if live, kind == .wifi, nets.allowed { nets.scan() }
         shown = kind
         self.anchorY = anchorY
         isOpen = true
@@ -233,7 +236,8 @@ final class StatusPopoutModel {
                 transmitRate: on && rssi != 0 ? iface.transmitRate() : nil,
                 phyMode: on ? iface.activePHYMode().rawValue : 0,
                 channel: channel?.channelNumber,
-                band: channel?.channelBand.rawValue
+                band: channel?.channelBand.rawValue,
+                ssid: on ? iface.ssid() : nil
             )
         }
         if next != wifi { wifi = next }

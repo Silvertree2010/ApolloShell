@@ -97,40 +97,18 @@ private struct StatusPopoutWifiView: View {
             let glyph = StatusGlyphs.wifi(powerOn: true, rssi: wifi.rssi)
             StatusPopoutLeadRow(
                 symbol: glyph.symbol, variableValue: glyph.strength, active: true,
-                title: "Connected",
-                // macOS 14+: der Netzname braucht die Ortungsfreigabe; die
-                // holen wir nicht fuer eine Anzeige.
-                subtitle: "Network name needs Location Services"
+                title: LocalizedStringKey(wifi.ssid ?? String(localized: "Connected")),
+                subtitle: LocalizedStringKey(StatusPopoutSignal.quality(rssi: wifi.rssi))
             )
-            StatusPopoutCard {
-                StatusPopoutValueRow(
-                    label: "Signal",
-                    value: "\(wifi.rssi ?? 0) dBm · \(StatusPopoutSignal.quality(rssi: wifi.rssi))"
-                )
-                if let noise = wifi.noise, noise != 0 {
-                    let snr = StatusPopoutSignal.signalToNoise(rssi: wifi.rssi, noise: noise).map { " · SNR \($0) dB" } ?? ""
-                    StatusPopoutValueRow(label: "Noise", value: "\(noise) dBm\(snr)")
-                }
-                if let rate = wifi.transmitRate, rate > 0 {
-                    StatusPopoutValueRow(label: "Transmit Rate", value: "\(Int(rate.rounded())) Mbit/s")
-                }
-                if let phy = StatusPopoutSignal.phyModeName(rawValue: wifi.phyMode) {
-                    StatusPopoutValueRow(label: "Standard", value: phy)
-                }
-                if let channel = wifi.channel {
-                    let band = wifi.band.flatMap { StatusPopoutSignal.bandName(rawValue: $0) }.map { " · \($0)" } ?? ""
-                    StatusPopoutValueRow(label: "Channel", value: "\(channel)\(band)")
-                }
-                if let name = wifi.interfaceName {
-                    StatusPopoutValueRow(label: "Interface", value: name)
-                }
-            }
         } else {
             StatusPopoutLeadRow(
                 symbol: wifi?.powerOn == true ? "wifi" : "wifi.slash", variableValue: 0, active: false,
                 title: wifi == nil ? "No Wi-Fi Interface" : wifi?.powerOn == true ? "Not Connected" : "Wi-Fi Is Off",
                 subtitle: wifi?.powerOn == true ? "No Network in Range Connected" : nil
             )
+        }
+        if wifi?.powerOn == true, model.live {
+            StatusPopoutNetworkList(nets: model.nets)
         }
         StatusPopoutSpeedCard(model: model)
         StatusPopoutSettingsButton(title: "Wi-Fi Settings…") { model.openSettings(for: .wifi) }
@@ -520,5 +498,84 @@ private struct StatusPopoutSpeedCard: View {
             }
         }
         .help("Measured with Apple's networkQuality against Apple's servers.")
+    }
+}
+
+private struct StatusPopoutNetworkList: View {
+    let nets: WifiNetworks
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        StatusPopoutCard {
+            if !nets.allowed {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(nets.denied ? "Location access is off for ApolloShell" : "Other Networks")
+                        .font(style.font(size: 12, weight: .medium))
+                    Text("macOS only shows network names to apps with location access.")
+                        .font(style.font(size: 11))
+                        .foregroundStyle(.secondary)
+                    Button(nets.denied ? "Open Privacy Settings" : "Allow") {
+                        if nets.denied {
+                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices")!)
+                        } else {
+                            nets.requestAccess()
+                        }
+                    }
+                    .controlSize(.small)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack {
+                    Text("Other Networks").font(style.font(size: 12, weight: .medium)).foregroundStyle(.secondary)
+                    Spacer()
+                    if nets.scanning { ProgressView().controlSize(.mini) }
+                }
+                if nets.nets.isEmpty && !nets.scanning {
+                    Text("No networks found").font(style.font(size: 12)).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                ForEach(nets.nets.prefix(8)) { n in
+                    StatusPopoutNetworkRow(net: n, joining: nets.joining == n.ssid, failed: nets.failed == n.ssid) { nets.join(n) }
+                }
+            }
+        }
+    }
+}
+
+private struct StatusPopoutNetworkRow: View {
+    let net: WifiNet
+    let joining: Bool
+    let failed: Bool
+    let action: () -> Void
+    @State private var hov = false
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let g = StatusGlyphs.wifi(powerOn: true, rssi: net.rssi)
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: g.symbol, variableValue: g.strength)
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 16)
+                Text(net.ssid).lineLimit(1)
+                Spacer(minLength: 6)
+                if joining {
+                    ProgressView().controlSize(.mini)
+                } else if failed {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                } else if net.secure {
+                    Image(systemName: "lock.fill").font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+            }
+            .font(style.font(size: 12))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(Color.primary.opacity(hov ? 0.1 : 0), in: .rect(cornerRadius: 6))
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(joining)
+        .background { HoverTracker { hov = $0 } }
+        .help(failed ? String(localized: "Could not join") : net.known ? String(localized: "Known network") : net.ssid)
     }
 }
