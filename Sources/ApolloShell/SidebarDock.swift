@@ -710,7 +710,20 @@ struct SidebarDock: View {
             onMenu: { DockMenu.show(for: entry, model: model, at: $0) },
             onScroll: { model.scroll(entry) },
             onDropFiles: { model.openFiles($0, with: entry) },
-            onDropApp: { model.place($0, onto: entry.bundleID) }
+            onDropApp: { model.place($0, onto: entry.bundleID) },
+            onHover: { inside, frame in
+                guard options.windowPreviews, let popout else { return }
+                if inside {
+                    guard entry.running, let st = model.windowStack(entry) else { return }
+                    popout.onStackHover(st, frame, true)
+                    model.thumbnails(st) { s in
+                        DockStack.shots = s
+                        if popout.stack?.id == s.id { popout.setStack(s) }
+                    }
+                } else {
+                    popout.onStackHover(DockStack(id: "w:" + entry.bundleID, title: "", items: [], windows: true), frame, false)
+                }
+            }
         )
     }
 
@@ -748,7 +761,9 @@ private struct SidebarDockItem: View {
     let onScroll: () -> Void
     let onDropFiles: ([URL]) -> Void
     let onDropApp: (String) -> Void
+    var onHover: (Bool, CGRect) -> Void = { _, _ in }
     @State private var hovering = false
+    @State private var frame: CGRect = .zero
     @State private var pressed = false
     /// Dateien werden gerade darueber gezogen: wie im Apple-Dock hervorheben.
     @State private var dropTarget = false
@@ -801,8 +816,14 @@ private struct SidebarDockItem: View {
                 }
             }
             // Nicht `onHover`: die Leiste gehoert einer nie aktiven App.
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
             .background {
-                if interactive { HoverTracker { hovering = $0 } }
+                if interactive {
+                    HoverTracker { inside in
+                        hovering = inside
+                        onHover(inside, frame)
+                    }
+                }
             }
             .animation(.easeOut(duration: 0.12), value: hovering)
             .animation(.easeOut(duration: 0.15), value: active)

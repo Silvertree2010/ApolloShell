@@ -77,7 +77,7 @@ final class StatusPopout {
                 self.showStack(st, fr)
             }
             hoverOpen = w
-            DispatchQueue.main.asyncAfter(deadline: .now() + (fast ? 0.05 : 0.15), execute: w)
+            DispatchQueue.main.asyncAfter(deadline: .now() + (fast ? 0.05 : (st.windows ? 0.5 : 0.15)), execute: w)
         } else {
             scheduleHoverClose()
         }
@@ -111,7 +111,7 @@ final class StatusPopout {
     }
 
     private func showStack(_ st: DockStack, _ fr: CGRect) {
-        model.setStack(st)
+        model.setStack(DockStack.shots?.id == st.id && DockStack.shots?.items.map(\.id) == st.items.map(\.id) ? DockStack.shots : st)
         if model.isOpen {
             withAnimation(StatusPopoutMotion.spatial) { model.show(.stack, anchorY: fr.midY) }
         } else {

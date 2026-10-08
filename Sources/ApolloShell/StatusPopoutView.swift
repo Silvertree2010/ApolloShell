@@ -448,8 +448,18 @@ private struct StatusPopoutSwitchStyle: ToggleStyle {
 }
 
 @MainActor
+@Observable
+final class StatusPopoutSoundBox {
+    var model: UtilitiesModel?
+}
+
+@MainActor
 enum StatusPopoutSound {
-    static var model: UtilitiesModel?
+    static let box = StatusPopoutSoundBox()
+    static var model: UtilitiesModel? {
+        get { box.model }
+        set { box.model = newValue }
+    }
     private static var on = false
 
     static func use(_ v: Bool) {
@@ -463,8 +473,9 @@ private struct StatusPopoutSoundView: View {
     let model: StatusPopoutModel
 
     var body: some View {
-        if let m = StatusPopoutSound.model {
+        if let m = StatusPopoutSound.box.model {
             UtilitiesAudioCard(model: m)
+                .frame(width: StatusPopoutContent.width(.sound) - 32, height: UtilitiesMetrics.audioHeight)
             Button("Sound Settings…") { model.openSettings(for: .sound) }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)

@@ -139,11 +139,13 @@ public struct BarDockOptions: Codable, Equatable, Sendable {
     public var showRunning: Bool
     public var iconSize: IconSize
     public var smartGroups: Bool
+    public var windowPreviews: Bool
 
-    public init(showRunning: Bool = true, iconSize: IconSize = .medium, smartGroups: Bool = true) {
+    public init(showRunning: Bool = true, iconSize: IconSize = .medium, smartGroups: Bool = true, windowPreviews: Bool = true) {
         self.showRunning = showRunning
         self.iconSize = iconSize
         self.smartGroups = smartGroups
+        self.windowPreviews = windowPreviews
     }
 
     public init(from decoder: any Decoder) throws {
@@ -152,6 +154,7 @@ public struct BarDockOptions: Codable, Equatable, Sendable {
         c.lenient(.showRunning, into: &showRunning)
         c.lenient(.iconSize, into: &iconSize)
         c.lenient(.smartGroups, into: &smartGroups)
+        c.lenient(.windowPreviews, into: &windowPreviews)
     }
 }
 

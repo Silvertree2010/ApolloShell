@@ -1,5 +1,6 @@
 import AppKit
 import ApolloShellCore
+import ScreenCaptureKit
 import SwiftUI
 
 @MainActor
@@ -47,6 +48,7 @@ extension SidebarDockModel {
             switch item.kind {
             case .app(let e): self.click(e, modifiers: mods)
             case .file(let u): self.open(u)
+            case .window(let pid, let wid, let idx): self.raiseWindow(pid: pid, id: wid, index: idx)
             }
             p?.onOpenedSettings()
         }
@@ -55,6 +57,7 @@ extension SidebarDockModel {
             switch item.kind {
             case .app(let e): DockMenu.show(for: e, model: self, at: view)
             case .file(let u): DockSmartMenu.file(u, pinned: nil, model: self, at: view)
+            case .window: break
             }
         }
         p.onStackDrop = { [weak self] item, urls in
@@ -63,6 +66,7 @@ extension SidebarDockModel {
             case .app(let e): self.openFiles(urls, with: e)
             case .file(let u):
                 if (try? u.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true { self.move(urls, into: u) }
+            case .window: break
             }
         }
     }
@@ -245,5 +249,52 @@ struct DockDropZone: NSViewRepresentable {
             onDrop(urls)
             return true
         }
+    }
+}
+
+extension SidebarDockModel {
+    func windowStack(_ e: Entry) -> DockStack? {
+        guard let app = runningApp(e.bundleID) else { return nil }
+        let pid = app.processIdentifier
+        let list = DockWindows.list(pid: pid, allSpaces: true).filter { !$0.title.isEmpty || $0.windowID != nil }
+        guard !list.isEmpty else { return nil }
+        let items = list.enumerated().map { i, w in
+            DockStackItem(id: "w:\(pid):\(w.windowID.map(String.init) ?? "i\(i)")", name: w.title, icon: e.icon,
+                          running: false, kind: .window(pid, w.windowID, i))
+        }
+        return DockStack(id: "w:" + e.bundleID, title: e.name, items: items, windows: true)
+    }
+
+    func thumbnails(_ st: DockStack, done: @escaping @MainActor (DockStack) -> Void) {
+        guard CGPreflightScreenCaptureAccess() else { return }
+        let ids: [CGWindowID] = st.items.compactMap { if case .window(_, let w, _) = $0.kind { w } else { nil } }
+        guard !ids.isEmpty else { return }
+        Task { @MainActor in
+            guard let content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false) else { return }
+            var shots: [CGWindowID: NSImage] = [:]
+            for w in content.windows where ids.contains(w.windowID) {
+                let cfg = SCStreamConfiguration()
+                let scale = min(1, 400 / max(w.frame.width, 1))
+                cfg.width = Int(w.frame.width * scale * 2)
+                cfg.height = Int(w.frame.height * scale * 2)
+                cfg.showsCursor = false
+                if let img = try? await SCScreenshotManager.captureImage(contentFilter: SCContentFilter(desktopIndependentWindow: w), configuration: cfg) {
+                    shots[w.windowID] = NSImage(cgImage: img, size: NSSize(width: w.frame.width * scale, height: w.frame.height * scale))
+                }
+            }
+            guard !shots.isEmpty else { return }
+            let items = st.items.map { it -> DockStackItem in
+                guard case .window(_, let w?, _) = it.kind, let img = shots[w] else { return it }
+                return DockStackItem(id: it.id, name: it.name, icon: img, running: false, kind: it.kind)
+            }
+            done(DockStack(id: st.id, title: st.title, items: items, windows: true))
+        }
+    }
+
+    func raiseWindow(pid: pid_t, id: CGWindowID?, index: Int) {
+        guard let app = NSRunningApplication(processIdentifier: pid) else { return }
+        let list = DockWindows.list(pid: pid, allSpaces: true)
+        let w = id.flatMap { wid in list.first { $0.windowID == wid } } ?? (list.indices.contains(index) ? list[index] : nil)
+        if let w { DockWindows.raise(w, of: app) } else { app.activate() }
     }
 }

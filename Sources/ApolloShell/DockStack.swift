@@ -6,6 +6,7 @@ struct DockStackItem: Identifiable, Equatable {
     enum Kind: Equatable {
         case app(SidebarDockModel.Entry)
         case file(URL)
+        case window(pid_t, CGWindowID?, Int)
     }
 
     let id: String
@@ -19,8 +20,10 @@ struct DockStack: Equatable {
     let id: String
     let title: String
     let items: [DockStackItem]
+    var windows = false
 
     static let cell: CGFloat = 40
+    @MainActor static var shots: DockStack?
 
     var rows: Int { max(11, Int((Double(items.count) / 7).rounded(.up))) }
     var columns: Int { max(1, Int((Double(items.count) / Double(rows)).rounded(.up))) }
@@ -106,11 +109,19 @@ struct DockStackView: View {
     let model: StatusPopoutModel
 
     var body: some View {
+        if model.stack?.windows == true {
+            DockWindowList(model: model)
+        } else {
+            grid
+        }
+    }
+
+    private var grid: some View {
         let stack = model.stack
         let items = stack?.items ?? []
         let cols = stack?.columns ?? 1
         let rows = stack?.rows ?? 11
-        HStack(alignment: .top, spacing: 0) {
+        return HStack(alignment: .top, spacing: 0) {
             ForEach(0..<cols, id: \.self) { c in
                 VStack(spacing: 4) {
                     ForEach(items.dropFirst(c * rows).prefix(rows)) { item in
@@ -163,5 +174,57 @@ private struct DockStackCell: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(item.name)
             .accessibilityAddTraits(.isButton)
+    }
+}
+
+struct DockWindowList: View {
+    let model: StatusPopoutModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(model.stack?.items ?? []) { item in
+                DockWindowCell(item: item, model: model)
+            }
+        }
+        .padding(8)
+        .frame(width: 216)
+        .background { HoverTracker { model.onPanelHover($0) } }
+    }
+}
+
+private struct DockWindowCell: View {
+    let item: DockStackItem
+    let model: StatusPopoutModel
+    @State private var hov = false
+
+    var body: some View {
+        let thumb = item.icon.size.width > 64
+        VStack(alignment: .leading, spacing: 4) {
+            if thumb {
+                Image(nsImage: item.icon)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: 200, maxHeight: 120)
+                    .clipShape(.rect(cornerRadius: 6))
+            }
+            HStack(spacing: 6) {
+                if !thumb {
+                    Image(nsImage: item.icon).resizable().frame(width: 18, height: 18)
+                }
+                Text(item.name.isEmpty ? String(localized: "Untitled") : item.name)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+        .padding(6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(hov ? 0.14 : 0), in: .rect(cornerRadius: 9))
+        .contentShape(.rect)
+        .onTapGesture { model.onStackClick(item, []) }
+        .background { HoverTracker { hov = $0 } }
+        .animation(.easeOut(duration: 0.12), value: hov)
+        .help(item.name)
     }
 }

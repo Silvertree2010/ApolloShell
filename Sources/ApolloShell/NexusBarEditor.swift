@@ -294,6 +294,8 @@ private struct NexusBarOptions: View {
                         isOn: options.showRunning)
             NexusToggle(title: "Smart Groups", tip: "Above 9 apps, related apps share a group that opens on hover. Your most used apps stay single.",
                         isOn: options.smartGroups)
+            NexusToggle(title: "Window Previews", tip: "Hovering a running app shows its windows. Thumbnails need Screen Recording permission, otherwise only titles.",
+                        isOn: options.windowPreviews)
             Picker("Icon Size", selection: options.iconSize) {
                 ForEach(BarDockOptions.IconSize.allCases, id: \.self) { size in
                     Text(NexusBarText.size(size)).tag(size)

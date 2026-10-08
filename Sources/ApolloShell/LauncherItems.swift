@@ -90,9 +90,11 @@ final class LauncherFileSearch: NSObject {
         stop()
         guard q.count >= 2 else { onResults([]); return }
         let m = NSMetadataQuery()
-        m.searchScopes = [NSMetadataQueryUserHomeScope]
-        m.predicate = NSPredicate(format: "%K CONTAINS[cd] %@ AND NOT (%K == 'com.apple.application-bundle')",
-                                  NSMetadataItemFSNameKey, q, NSMetadataItemContentTypeKey)
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let dirs = ["Desktop", "Documents", "Downloads", "Pictures", "Music", "Movies", "projects", "Library/Mobile Documents/com~apple~CloudDocs"]
+        m.searchScopes = dirs.map { home.appendingPathComponent($0) }.filter { FileManager.default.fileExists(atPath: $0.path) }
+        m.predicate = NSPredicate(format: "%K LIKE[cd] %@ AND %K != 'com.apple.application-bundle'",
+                                  NSMetadataItemFSNameKey, "*\(q)*", NSMetadataItemContentTypeKey)
         m.sortDescriptors = [NSSortDescriptor(key: NSMetadataItemFSContentChangeDateKey, ascending: false)]
         NotificationCenter.default.addObserver(self, selector: #selector(done), name: .NSMetadataQueryDidFinishGathering, object: m)
         query = m
@@ -103,9 +105,9 @@ final class LauncherFileSearch: NSObject {
         guard let m = n.object as? NSMetadataQuery, m === query else { return }
         m.disableUpdates()
         var r: [URL] = []
-        for i in 0..<min(m.resultCount, 60) {
+        for i in 0..<min(m.resultCount, 400) {
             guard let it = m.result(at: i) as? NSMetadataItem, let p = it.value(forAttribute: NSMetadataItemPathKey) as? String else { continue }
-            if p.contains("/Library/") || p.contains("/.") { continue }
+            if p.contains("/.") || p.contains("/node_modules/") || p.contains("/.build/") { continue }
             r.append(URL(fileURLWithPath: p))
             if r.count == 8 { break }
         }
