@@ -21,22 +21,22 @@ enum ThemedGlass {
     static func apply(to glass: NSGlassEffectView?, fallbackRadius: CGFloat,
                       previous: CAGradientLayer? = nil) -> CAGradientLayer? {
         guard let glass, let content = glass.contentView else { return nil }
-        let dark = NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        let look = glass.effectiveAppearance
+        let dark = look.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         let style = ThemeStore.shared?.style(dark: dark) ?? .standard
-        glass.cornerRadius = style.panelRadius(fallbackRadius)
+        let r = style.panelRadius(fallbackRadius)
+        if glass.cornerRadius != r { glass.cornerRadius = r }
+        if glass.style != .clear { glass.style = .clear }
 
         content.wantsLayer = true
         previous?.removeFromSuperlayer()
         content.layer?.backgroundColor = nil
         guard style.paintsPanel else {
-            glass.style = GlassLook.liquid ? .clear : .regular
-            if GlassLook.liquid {
-                var c: CGColor?
-                glass.effectiveAppearance.performAsCurrentDrawingAppearance {
-                    c = NSColor.windowBackgroundColor.withAlphaComponent(GlassLook.panelFill).cgColor
-                }
-                content.layer?.backgroundColor = c
+            var c: CGColor?
+            look.performAsCurrentDrawingAppearance {
+                c = NSColor.windowBackgroundColor.withAlphaComponent(GlassLook.fill).cgColor
             }
+            content.layer?.backgroundColor = c
             return nil
         }
 
@@ -60,9 +60,15 @@ enum ThemedGlass {
     }
 }
 
-@MainActor
 enum GlassLook {
-    static let fill: Double = 0.6
-    static let panelFill: Double = 0.85
-    static var liquid = false
+    static let fill: Double = 0.85
+}
+
+final class GlassContentView: NSView {
+    var onAppearance: () -> Void = {}
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        onAppearance()
+    }
 }

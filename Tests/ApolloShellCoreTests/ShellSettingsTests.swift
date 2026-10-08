@@ -9,7 +9,6 @@ struct ShellSettingsTests {
         let settings = ShellSettings.load(from: nil)
         #expect(settings == ShellSettings.firstLaunch)
         #expect(settings.bar.layout == ShellSettings().bar.layout)
-        #expect(settings.bar.background == .liquidGlass)
         #expect(settings.toasts == ShellSettings().toasts)
         #expect(settings.utilities == ShellSettings().utilities)
         #expect(settings.dashboard == ShellSettings().dashboard)
@@ -61,38 +60,34 @@ struct ShellSettingsTests {
         #expect(text.contains(key))
     }
 
-    // MARK: - Hintergrund der Leiste
-
-    @Test("Hintergrund: schreiben und wieder lesen ergibt dasselbe", arguments: BarBackground.allCases)
-    func backgroundRoundTrip(background: BarBackground) {
-        // In einer Liste statt einzeln: ein einzelner Wert waere ein
-        // JSON-Fragment, in settings.json steht er ohnehin in einem Objekt.
-        let data = try! JSONEncoder().encode([background])
-        #expect(try! JSONDecoder().decode([BarBackground].self, from: data) == [background])
-        let settings = ShellSettings(bar: .init(background: background))
-        #expect(ShellSettings.load(from: settings.encoded()).bar.background == background)
-    }
-
-    @Test("Hintergrund: unbekannter Wert faellt auf die Vorgabe zurueck")
-    func backgroundUnknown() {
-        let json = #"["glass","hologramm","","fixedGlass"]"#
-        let decoded = try! JSONDecoder().decode([BarBackground].self, from: Data(json.utf8))
-        #expect(decoded == [.glass, .material, .material, .fixedGlass])
-        #expect(BarBackground.standard == .material)
-    }
-
-    @Test("Hintergrund: fehlender oder kaputter Schluessel ergibt Material", arguments: [
-        #"{"bar":{"layout":[]}}"#, #"{"bar":{"background":"hologramm"}}"#, #"{"bar":{"background":5}}"#,
-        #"{"bar":{"background":null}}"#, #"{"bar":{"background":{"art":"glas"}}}"#,
+    @Test("alter Hintergrund-Schluessel: liest sich ohne ihn, der Rest bleibt", arguments: [
+        "material", "glass", "tintedGlass", "fixedGlass", "liquidGlass", "hologramm",
     ])
-    func backgroundLenient(json: String) {
-        #expect(ShellSettings.load(from: Data(json.utf8)).bar.background == .material)
+    func legacyBackground(value: String) {
+        let json = #"{"bar":{"layout":[],"screens":{"mode":"primary"},"background":"\#(value)"},"toasts":{"batteryWarnings":false}}"#
+        let expected = ShellSettings(bar: .init(layout: BarLayout(), screens: .primary), toasts: .init(batteryWarnings: false))
+        #expect(ShellSettings.load(from: Data(json.utf8)) == expected)
     }
 
-    @Test("Hintergrund: ohne Zutun bleibt es beim bisherigen Aussehen")
-    func backgroundDefault() {
-        #expect(ShellSettings().bar.background == .material)
-        #expect(ShellSettings.firstLaunch.bar.background == .liquidGlass)
+    @Test("alter Hintergrund-Schluessel mit falschem Typ stoert nicht", arguments: [
+        #"{"bar":{"background":5}}"#, #"{"bar":{"background":null}}"#, #"{"bar":{"background":{"art":"glas"}}}"#,
+    ])
+    func legacyBackgroundBroken(json: String) {
+        #expect(ShellSettings.load(from: Data(json.utf8)) == ShellSettings())
+    }
+
+    @Test("der Hintergrund-Schluessel der Leiste wird nicht mehr geschrieben", arguments: [
+        ShellSettings(), ShellSettings.firstLaunch,
+    ])
+    func legacyBackgroundDropped(settings: ShellSettings) throws {
+        let old = #"{"bar":{"background":"material"}}"#
+        let written = ShellSettings.load(from: Data(old.utf8)).encoded()
+        for data in [written, settings.encoded()] {
+            let root = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let bar = try #require(root["bar"] as? [String: Any])
+            #expect(bar["background"] == nil)
+            #expect(bar["layout"] != nil)
+        }
     }
 
     @Test("Akku-Ereignisse folgen ihrem Schalter", arguments: [

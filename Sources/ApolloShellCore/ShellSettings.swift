@@ -76,10 +76,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     /// ausdruecklich an - danach liest sich die Datei wieder als genau
     /// dieser Stand.
     public static var firstLaunch: ShellSettings {
-        var s = ShellSettings(hotKeys: .firstLaunch, keepAwake: .firstLaunch, onboarding: .firstLaunch,
-                              appleDockHiding: .firstLaunch)
-        s.bar.background = .liquidGlass
-        return s
+        ShellSettings(hotKeys: .firstLaunch, keepAwake: .firstLaunch, onboarding: .firstLaunch,
+                      appleDockHiding: .firstLaunch)
     }
 
     /// Utilities-Panel unten rechts (Caelestia: utilities.quickToggles):
@@ -113,19 +111,14 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         /// Auf welchen Bildschirmen die Leiste steht (Nexus > Leiste).
         /// Vorgabe fuer alle - auch fuer vorhandene Installationen: alle.
         public var screens: ScreenChoice
-        /// Womit die Leiste hinterlegt ist (Nexus > Leiste), siehe
-        /// `BarBackground`. Vorgabe: Material, der Stand vor dieser Wahl.
-        public var background: BarBackground
 
-        public init(layout: BarLayout = BarPreset.caelestia.layout, screens: ScreenChoice = .all,
-                    background: BarBackground = .standard) {
+        public init(layout: BarLayout = BarPreset.caelestia.layout, screens: ScreenChoice = .all) {
             self.layout = layout
             self.screens = screens
-            self.background = background
         }
 
         private enum CodingKeys: String, CodingKey {
-            case layout, screens, background
+            case layout, screens
             // Nur noch gelesen, fuer die Migration.
             case showWorkspaces, showDock, showClock, showStatusIcons, clock
         }
@@ -134,9 +127,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
             self.init()
             let c = try decoder.container(keyedBy: CodingKeys.self)
             // Vor diesen Einstellungen gab es die Schluessel nicht; dann die
-            // Vorgaben (alle Bildschirme, Hintergrund von damals: Material).
+            // Vorgaben (alle Bildschirme).
             c.lenient(.screens, into: &screens)
-            c.lenient(.background, into: &background)
             // Auch eine leere Liste ist eine Leiste (alles entfernt) - nur
             // eine fehlende oder unlesbare faellt auf die alten Schalter zurueck.
             if let layout: BarLayout = c.lenient(.layout) {
@@ -156,7 +148,6 @@ public struct ShellSettings: Codable, Equatable, Sendable {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(layout, forKey: .layout)
             try c.encode(screens, forKey: .screens)
-            try c.encode(background, forKey: .background)
         }
     }
 

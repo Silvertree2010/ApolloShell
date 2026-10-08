@@ -150,7 +150,8 @@ struct ToastCard: View {
         }
         .toastGlass(tint: ToastPalette.tint(entry.kind, style),
                     cornerRadius: radius,
-                    enabled: style.glass)
+                    enabled: style.glass,
+                    filled: !style.paintsToast)
         .overlay {
             RoundedRectangle(cornerRadius: radius)
                 .strokeBorder(ToastPalette.border(entry.kind, style), lineWidth: 1)

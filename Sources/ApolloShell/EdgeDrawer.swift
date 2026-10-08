@@ -38,12 +38,12 @@ enum DrawerMotion {
         switch self {
         case .slide:
             switch edge {
-            case .top: CATransform3DMakeTranslation(0, size.height + topInset + 5, 0)
-            case .right: CATransform3DMakeTranslation(size.width + 5, 0, 0)
-            case .bottomRight, .bottom: CATransform3DMakeTranslation(0, -(size.height + 5), 0)
+            case .top: return CATransform3DMakeTranslation(0, size.height + topInset + 5, 0)
+            case .right: return CATransform3DMakeTranslation(size.width + 5, 0, 0)
+            case .bottomRight, .bottom: return CATransform3DMakeTranslation(0, -(size.height + 5), 0)
             }
         case .grow:
-            Grow.closedTransform(for: container)
+            return Grow.closedTransform(for: container)
         }
     }
 
@@ -596,7 +596,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         glass.autoresizingMask = [.width, .height]
         glass.cornerRadius = cornerRadius
 
-        let content = NSView(frame: container.bounds)
+        let content = GlassContentView(frame: container.bounds)
         let hosting = FirstMouseHostingView(rootView: rootView.shellTheme())
         hosting.sizingOptions = []
         hosting.frame = visibleRectInWindow
@@ -604,6 +604,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         glass.contentView = content
         self.glass = glass
         applyTheme()
+        content.onAppearance = { [weak self] in self?.applyTheme() }
         self.hosting = hosting
 
         container.wantsLayer = true

@@ -15,15 +15,18 @@ extension View {
     /// kann - Glas zeichnet offscreen nur weiss.
     /// `enabled` falsch: gar kein Glas - ein Theme, das `--apollo-glass`
     /// abschaltet, bekommt eine ruhige Flaeche statt Material.
-    func toastGlass(tint: Color?, cornerRadius: CGFloat, enabled: Bool = true) -> some View {
-        Group {
-            if enabled, GlassLook.liquid {
-                background(Color(nsColor: .windowBackgroundColor).opacity(GlassLook.panelFill), in: .rect(cornerRadius: cornerRadius))
-                    .glassEffect(.clear.tint(tint), in: .rect(cornerRadius: cornerRadius))
-            } else if enabled {
-                glassEffect(.regular.tint(tint), in: .rect(cornerRadius: cornerRadius))
+    func toastGlass(tint: Color?, cornerRadius: CGFloat, enabled: Bool = true, filled: Bool = true) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius)
+        let base = background {
+            if filled {
+                shape.fill(Color(nsColor: .windowBackgroundColor).opacity(GlassLook.fill))
+            }
+        }
+        return Group {
+            if enabled {
+                base.glassEffect(.clear.tint(tint), in: shape)
             } else {
-                self
+                base
             }
         }
     }

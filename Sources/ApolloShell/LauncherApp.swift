@@ -51,7 +51,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Einstellungsfenster (Caelestia: Nexus).
     private var nexus: Nexus?
     private var commandCenter: CommandCenter?
-    private var glassObservation: Task<Void, Never>?
     private var updates: UpdateController?
     private var crashReporter: CrashReporter?
     private var themes: ThemeStore?
@@ -78,10 +77,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // dort. Geschrieben wird erst, wenn sich etwas aendert.
         let settings = ShellSettingsStore(url: NexusPaths.live.settings)
         self.settings = settings
-        GlassLook.liquid = settings.settings.bar.background == .liquidGlass
-        glassObservation = Task { [settings] in
-            for await b in Observations({ settings.settings.bar.background }) { GlassLook.liquid = b == .liquidGlass }
-        }
         // Themes: auch im Nur-Launcher-Modus, damit der Launcher mitfaerbt.
         themes = ThemeStore(settings: settings)
         let hotKeys = HotKeyCenter(store: settings)

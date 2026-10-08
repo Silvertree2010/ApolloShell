@@ -39,8 +39,7 @@ struct SidebarRoot: View {
             )
             ZStack(alignment: .topLeading) {
                 Color.clear
-                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge),
-                                           background: settings.settings.bar.background))
+                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge)))
                 SidebarContent(settings: settings, context: context)
                     .frame(width: Sidebar.width)
                     .frame(maxHeight: .infinity)
@@ -93,62 +92,24 @@ struct SidebarRoot: View {
 
 /// Hintergrund der Leiste in ihrer Form, in Bildproben durch eine feste
 /// Flaeche ersetzt (Glas zeichnet ausserhalb des Bildschirms nur weiss).
-///
-/// Welcher Hintergrund, sagt Nexus > Leiste > Hintergrund; warum es die Wahl
-/// gibt und was die einzelnen Eintraege sollen, steht bei `BarBackground`.
 private struct SidebarGlass<S: Shape>: ViewModifier {
     let shape: S
-    let background: BarBackground
     @Environment(\.statusPopoutGlassStandIn) private var standIn
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.shellStyle) private var style
 
-    /// Fensterfarbe, halb deckend: zieht das Glas in Richtung Fensterfarbe,
-    /// laesst es aber noch Glas sein. Ganz aufhalten kann eine Toenung das
-    /// Umfaerben ohnehin nicht (siehe `BarBackground`) - dafuer ist
-    /// `fixedGlass` da.
-    private static var tint: Color { Color(nsColor: .windowBackgroundColor).opacity(0.7) }
-
-    /// Mit Theme faerbt das Theme die Leiste: die Farbe (oder der Verlauf)
-    /// aus `--apollo-bar-color` beziehungsweise `--apollo-bar-gradient`, mit
-    /// `--apollo-bar-opacity`. Die Wahl in Nexus > Leiste bleibt darunter
-    /// sichtbar, solange das Theme durchscheinen laesst und Glas erlaubt -
-    /// sonst waere eine halb deckende Leiste eine Leiste vor dem Schreibtisch.
     func body(content: Content) -> some View {
         if standIn {
             content.background(colorScheme == .dark ? Color(white: 0.17) : Color(white: 0.95), in: shape)
-        } else if style.paintsBar {
-            let opaque = style.barIsOpaque
-            content
-                .background(style.barFill, in: shape)
-                .background {
-                    if !opaque, style.glass {
-                        Color.clear.glassEffect(.regular, in: shape)
-                    }
-                }
         } else {
-            switch background {
-            case .material:
-                content.background(.regularMaterial, in: shape)
-            case .glass:
-                content.glassEffect(.regular, in: shape)
-            case .tintedGlass:
-                content.glassEffect(.regular.tint(Self.tint), in: shape)
-            case .liquidGlass:
-                content
-                    .background(Color(nsColor: .windowBackgroundColor).opacity(GlassLook.fill), in: shape)
-                    .glassEffect(.clear, in: shape)
-            case .fixedGlass:
-                // Reihenfolge: erst das Glas hinter den Inhalt, dann die
-                // deckende Flaeche hinter das Glas. Das Glas hat damit
-                // ueberall dieselbe Flaeche vor sich statt des Schreibtischs
-                // und der Fenster, seine Anpassung hat also nichts mehr zum
-                // Anpassen. `clear` statt `regular`, weil nur diese Fassung
-                // laut Apple gar nicht anpasst; die deckende Flaeche ist die
-                // Schicht, die `clear` dafuer braucht.
-                content
-                    .glassEffect(.clear, in: shape)
-                    .background(Color(nsColor: .windowBackgroundColor), in: shape)
+            let fill = style.paintsBar
+                ? style.barFill
+                : AnyShapeStyle(Color(nsColor: .windowBackgroundColor).opacity(GlassLook.fill))
+            let base = content.background(fill, in: shape)
+            if style.glass, !(style.paintsBar && style.barIsOpaque) {
+                base.glassEffect(.clear, in: shape)
+            } else {
+                base
             }
         }
     }
