@@ -38,6 +38,9 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public var theme = ThemeSettings()
     /// Absturzberichte (Nexus > Updates).
     public var crashReports = CrashReportSettings()
+    public var version = ShellSettings.currentVersion
+
+    public static let currentVersion = 1
 
     /// Die Vorgaben der vier Abschnitte fuer die Veroeffentlichung
     /// (hotKeys, keepAwake, onboarding, appleDockHiding) sind hier die fuer
@@ -265,6 +268,27 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         theme = c.lenient(.theme) ?? ThemeSettings()
         // Erst ab 0.1.4.1; fehlt er, wird gefragt.
         crashReports = c.lenient(.crashReports) ?? CrashReportSettings()
+        let v: Int = c.lenient(.version) ?? 0
+        version = v
+        Self.migrate(&self, from: v)
+    }
+
+    public static func migrate(_ s: inout ShellSettings, from v: Int) {
+        guard v < currentVersion else { return }
+        s.version = currentVersion
+    }
+
+    public static func importing(_ data: Data) -> ShellSettings? {
+        guard let o = try? JSONSerialization.jsonObject(with: data) as? [String: Any], !o.isEmpty,
+              let s = try? JSONDecoder().decode(ShellSettings.self, from: data) else { return nil }
+        return s
+    }
+
+    public var restored: ShellSettings {
+        var r = ShellSettings.firstLaunch
+        r.onboarding = onboarding
+        r.crashReports = crashReports
+        return r
     }
 
     /// Inhalt von settings.json.

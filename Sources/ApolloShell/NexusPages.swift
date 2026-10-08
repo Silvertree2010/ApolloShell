@@ -18,11 +18,12 @@ struct NexusDesktopPage: View {
                 NexusToggle(title: "Desktop Clock", subtitle: "Bottom right, behind all windows",
                             isOn: $store.settings.background.desktopClock)
             }
-            Section("Background") {
-                NexusSystemLink(title: "Wallpaper", subtitle: "System Settings",
-                                symbol: "photo.fill", tint: .cyan, pane: .wallpaper)
-            }
             NexusToastsPage(store: store)
+            NexusRestoreSection(title: "Restore Desktop Defaults",
+                                message: "The desktop clock and all toast events go back to their defaults.") {
+                store.settings.background = .init()
+                store.settings.toasts = .init()
+            }
         }
     }
 }
@@ -50,10 +51,6 @@ struct NexusToastsPage: View {
             } footer: {
                 Text("Toasts appear at the bottom right, disappear after 5 seconds, and stay off in full screen.")
             }
-            Section {
-                NexusSystemLink(title: "Notifications from Apps", subtitle: "System Settings",
-                                symbol: "bell.fill", tint: .red, pane: .notifications)
-            }
             NexusSaveWarning(failed: store.saveFailed)
         }
     }
@@ -78,6 +75,8 @@ struct NexusSystemPage: View {
                                 symbol: "dot.radiowaves.left.and.right", tint: .blue, pane: .bluetooth)
                 NexusSystemLink(title: "Sound", subtitle: "Output, input, volume",
                                 symbol: "speaker.wave.2.fill", tint: .pink, pane: .sound)
+                NexusSystemLink(title: "Notifications", subtitle: "Notifications from apps",
+                                symbol: "bell.fill", tint: .red, pane: .notifications)
                 NexusSystemLink(title: "Language & Region", subtitle: "Language, units, time format",
                                 symbol: "globe", tint: .blue, pane: .language)
                 NexusSystemLink(title: "Software Update", symbol: "arrow.clockwise", tint: .gray, pane: .softwareUpdate)
@@ -202,6 +201,7 @@ struct NexusAboutPage: View {
                 NexusSystemLink(title: "About This Mac", subtitle: "System Settings",
                                 symbol: "laptopcomputer", tint: .gray, pane: .about)
             }
+            if let store { NexusAdvancedSections(store: store) }
         }
     }
 }

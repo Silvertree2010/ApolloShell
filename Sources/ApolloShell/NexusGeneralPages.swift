@@ -100,6 +100,10 @@ struct NexusHotKeysPage: View {
             } footer: {
                 Text("“Hyper Key” fits keyboard tools like Karabiner-Elements that turn a free key into F20, or held into ⌃⌥⇧⌘.")
             }
+            NexusRestoreSection(title: "Restore Default Shortcuts",
+                                message: "All shortcuts go back to their defaults.") {
+                store.settings.hotKeys = .firstLaunch
+            }
             NexusSaveWarning(failed: store.saveFailed)
         }
         .onDisappear { center.cancelRecording() }
