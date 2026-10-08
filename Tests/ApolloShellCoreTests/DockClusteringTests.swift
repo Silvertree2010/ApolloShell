@@ -78,3 +78,15 @@ struct DockClusteringTests {
         #expect(DockCategory.kind(bundleID: "com.apple.Notes", category: nil).key == DockCategory.kind(bundleID: "md.obsidian", category: nil).key)
     }
 }
+
+@Suite("Neustart")
+struct AppRestartArgumentsTests {
+    @Test("Pfad geht als eigenes Argument an die Shell, nicht in den Befehl")
+    func quoted() {
+        let p = "/tmp/a\"; touch /tmp/pwn; \".app"
+        let a = AppRestart.relaunchArguments(bundlePath: p)
+        #expect(a[0] == "-c")
+        #expect(!a[1].contains(p))
+        #expect(a[2] == p)
+    }
+}

@@ -64,7 +64,7 @@ final class AppRestartModel {
         case .launchd(let label):
             Subprocess.launch("/usr/bin/launchctl", AppRestart.launchctlArguments(label: label, uid: Int32(getuid())))
         case .relaunch(let bundlePath):
-            Subprocess.launch("/bin/sh", ["-c", AppRestart.relaunchCommand(bundlePath: bundlePath)])
+            Subprocess.launch("/bin/sh", AppRestart.relaunchArguments(bundlePath: bundlePath))
             NSApp.terminate(nil)
         }
     }

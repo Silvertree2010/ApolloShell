@@ -27,7 +27,7 @@ public enum AppRestart {
     /// Befehl fuer `/bin/sh -c`: kurz warten, dann das Bundle neu oeffnen.
     /// `--relaunch` laesst die neue Instanz auf das Ende der alten warten,
     /// statt ihr als zweite Instanz Platz zu machen (`SingleInstance`).
-    public static func relaunchCommand(bundlePath: String) -> String {
-        "sleep 1; open -n \"\(bundlePath)\" --args \(SingleInstance.relaunchArgument)"
+    public static func relaunchArguments(bundlePath: String) -> [String] {
+        ["-c", "sleep 1; open -n \"$0\" --args \"$1\"", bundlePath, SingleInstance.relaunchArgument]
     }
 }
