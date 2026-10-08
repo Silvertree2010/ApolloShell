@@ -24,20 +24,16 @@ struct NexusUpdatesPage: View {
             if updates.canUpdateItself {
                 Section {
                     NexusToggle(title: "Check for updates automatically",
-                                subtitle: "Once a day in the background",
                                 isOn: $store.settings.updates.checkAutomatically)
                     NexusToggle(title: "Install updates automatically",
-                                subtitle: "When you quit, so at the latest when you next log out",
+                                tip: "When you quit, at the latest when you next log out. The bar and windows disappear for a moment during the update.",
                                 isOn: $store.settings.updates.installAutomatically)
                 } header: {
                     Text("Automatic")
-                } footer: {
-                    Text("Both are on by default. An update replaces the whole shell: the bar, the dock and the windows disappear for a moment and come back.")
                 }
             } else {
                 Section {
                     NexusToggle(title: "Check for updates automatically",
-                                subtitle: "Once a day in the background",
                                 isOn: $store.settings.updates.checkAutomatically)
                     LabeledContent("Upgrade") {
                         HStack(spacing: 8) {
@@ -52,9 +48,7 @@ struct NexusUpdatesPage: View {
                         }
                     }
                 } header: {
-                    Text("Homebrew")
-                } footer: {
-                    Text("This copy belongs to Homebrew, so ApolloShell does not replace itself. It only says when there is something new.")
+                    NexusTipHeader(title: "Homebrew", tip: "This copy belongs to Homebrew, so it does not replace itself. It only tells you about new versions.")
                 }
             }
 
@@ -65,9 +59,7 @@ struct NexusUpdatesPage: View {
                     Text("Never").tag(CrashReportSettings.Mode.never)
                 }
             } header: {
-                Text("Crash reports")
-            } footer: {
-                Text("After a crash, ApolloShell can send the report to its developer: the ApolloShell and macOS versions, the Mac model and where in the code it crashed. No files, names or device IDs.")
+                NexusTipHeader(title: "Crash reports", tip: "Sends the ApolloShell and macOS versions, the Mac model and where in the code it crashed. No files, names or device IDs.")
             }
 
             Section {
@@ -75,8 +67,6 @@ struct NexusUpdatesPage: View {
                 if updates.isReadyToInstall {
                     Button("Restart now") { updates.installNowIfReady() }
                 }
-            } footer: {
-                Text("Every version is on the releases page.")
             }
 
             Section {

@@ -138,9 +138,7 @@ struct NexusProvidersPage: View {
                 .help(chosen.attribution.url.absoluteString)
             }
         } header: {
-            Text("Weather")
-        } footer: {
-            Text("All without an account or key. The Dashboard only asks the provider while it's open, and picks up a new choice the next time it opens. The place search stays with Open-Meteo.")
+            NexusTipHeader(title: "Weather", tip: "No account or key needed. The place search always uses Open-Meteo.")
         }
     }
 
@@ -174,9 +172,7 @@ struct NexusProvidersPage: View {
             }
             otherApps
         } header: {
-            Text("File Manager")
-        } footer: {
-            Text("Sits at the top of the bar in Finder's place, always with a dot. Finder only disappears there when another app replaces it. “Show in …” in the Dock menu uses this app; the macOS default for other apps stays as it is.")
+            NexusTipHeader(title: "File Manager", tip: "Sits at the top of the Dock in Finder's place and is used for “Show in …”. The macOS default for other apps stays as it is.")
         }
     }
 

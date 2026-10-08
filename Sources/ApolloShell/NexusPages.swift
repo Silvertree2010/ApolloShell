@@ -15,7 +15,7 @@ struct NexusDesktopPage: View {
     var body: some View {
         NexusPageForm(page: .desktop) {
             Section("Clock") {
-                NexusToggle(title: "Desktop Clock", subtitle: "Bottom right, behind all windows",
+                NexusToggle(title: "Desktop Clock",
                             isOn: $store.settings.background.desktopClock)
             }
             NexusToastsPage(store: store)
@@ -38,18 +38,16 @@ struct NexusToastsPage: View {
     var body: some View {
         Group {
             Section {
-                NexusToggle(title: "Charger", subtitle: "Connected or unplugged",
+                NexusToggle(title: "Charger",
                             isOn: $store.settings.toasts.chargingChanged)
-                NexusToggle(title: "Battery Warnings", subtitle: "On battery, at 20, 10 and 5%",
+                NexusToggle(title: "Battery Warnings", tip: "On battery, at 20, 10 and 5 %.",
                             isOn: $store.settings.toasts.batteryWarnings)
-                NexusToggle(title: "Audio Output", subtitle: "A different output device is chosen",
+                NexusToggle(title: "Audio Output",
                             isOn: $store.settings.toasts.audioOutputChanged)
-                NexusToggle(title: "Audio Input", subtitle: "A different microphone is chosen",
+                NexusToggle(title: "Audio Input",
                             isOn: $store.settings.toasts.audioInputChanged)
             } header: {
                 Text("Toasts")
-            } footer: {
-                Text("Toasts appear at the bottom right, disappear after 5 seconds, and stay off in full screen.")
             }
             NexusSaveWarning(failed: store.saveFailed)
         }
@@ -66,26 +64,24 @@ struct NexusSystemPage: View {
     var body: some View {
         Section {
             DisclosureGroup(isExpanded: $open) {
-                NexusSystemLink(title: "Appearance", subtitle: "Light, dark, accent color",
+                NexusSystemLink(title: "Appearance",
                                 symbol: "circle.lefthalf.filled", tint: .gray, pane: .appearance)
                 NexusSystemLink(title: "Wallpaper", symbol: "photo.fill", tint: .cyan, pane: .wallpaper)
-                NexusSystemLink(title: "Network", subtitle: "Wi-Fi, Ethernet, VPN",
+                NexusSystemLink(title: "Network",
                                 symbol: "network", tint: .blue, pane: .network)
-                NexusSystemLink(title: "Connected Devices", subtitle: "Bluetooth, pairing",
+                NexusSystemLink(title: "Bluetooth",
                                 symbol: "dot.radiowaves.left.and.right", tint: .blue, pane: .bluetooth)
-                NexusSystemLink(title: "Sound", subtitle: "Output, input, volume",
+                NexusSystemLink(title: "Sound",
                                 symbol: "speaker.wave.2.fill", tint: .pink, pane: .sound)
-                NexusSystemLink(title: "Notifications", subtitle: "Notifications from apps",
+                NexusSystemLink(title: "Notifications",
                                 symbol: "bell.fill", tint: .red, pane: .notifications)
-                NexusSystemLink(title: "Language & Region", subtitle: "Language, units, time format",
+                NexusSystemLink(title: "Language & Region",
                                 symbol: "globe", tint: .blue, pane: .language)
                 NexusSystemLink(title: "Software Update", symbol: "arrow.clockwise", tint: .gray, pane: .softwareUpdate)
                 NexusSystemLink(title: "Open System Settings", symbol: "gearshape.fill", tint: .gray, pane: nil)
             } label: {
                 Text("macOS Settings")
             }
-        } footer: {
-            Text("Network, Bluetooth, sound, wallpaper and language stay with macOS.")
         }
     }
 }
@@ -194,11 +190,9 @@ struct NexusAboutPage: View {
             }
             Section {
                 Button("Show Introduction…") { showOnboarding() }
-            } footer: {
-                Text("The steps from the first launch: permissions, launcher shortcut, start at login.")
             }
             Section {
-                NexusSystemLink(title: "About This Mac", subtitle: "System Settings",
+                NexusSystemLink(title: "About This Mac",
                                 symbol: "laptopcomputer", tint: .gray, pane: .about)
             }
             if let store { NexusAdvancedSections(store: store) }

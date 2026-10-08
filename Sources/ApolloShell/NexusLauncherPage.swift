@@ -157,8 +157,6 @@ struct NexusLauncherPage: View {
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
-            } footer: {
-                Text("Appear at the top of the launcher without a search text, in this order. Drag to reorder, or use the context menu.")
             }
 
             Section {

@@ -226,9 +226,7 @@ struct NexusDashboardPage: View {
                 }
                 .onMove { model.moveFavorites(fromOffsets: $0, toOffset: $1) }
             } header: {
-                Text("Favorites")
-            } footer: {
-                Text("The selected favorite applies to the weather. Drag to reorder. The Dashboard shows a change the next time it opens.")
+                NexusTipHeader(title: "Favorites", tip: "The selected favorite is used for the weather. The Dashboard shows a change the next time it opens.")
             }
 
             Section {
@@ -248,8 +246,6 @@ struct NexusDashboardPage: View {
                 }
             } header: {
                 Text("Search for a Place")
-            } footer: {
-                Text("The search only asks Open-Meteo once you type.")
             }
     }
 }

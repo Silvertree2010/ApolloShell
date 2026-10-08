@@ -63,8 +63,6 @@ struct UtilitiesEditorPage: View {
             .onMove { store.settings.utilities.layout.moveCards(fromOffsets: $0, toOffset: $1) }
         } header: {
             Text("Cards")
-        } footer: {
-            Text("Top to bottom as in the panel. Drag to reorder. Turned-off cards disappear, and the panel gets shorter accordingly.")
         }
     }
 
@@ -75,7 +73,7 @@ struct UtilitiesEditorPage: View {
     private var keepAwakeSection: some View {
         Section {
             NexusToggle(title: "Also With the Lid Closed",
-                        subtitle: "While “Keep Awake” is on, the Mac won't sleep even with the lid closed",
+                        tip: "Needs your password once to add a rule that only allows switching this sleep setting. Declining keeps it working with the lid open only. On battery it ends at \(LidAwake.batteryFloor) %.",
                         isOn: $store.settings.keepAwake.lidClosed)
             if lidRuleInstalled {
                 LabeledContent {
@@ -88,8 +86,6 @@ struct UtilitiesEditorPage: View {
             }
         } header: {
             Text("Keep Awake")
-        } footer: {
-            Text("Needs administrator rights once: the first time you turn it on, macOS asks for your password and ApolloShell adds a rule that allows only switching this sleep setting without a password. After that, nothing asks again. Declining leaves “Keep Awake” working only with the lid open. On battery it ends on its own at \(LidAwake.batteryFloor)%.")
         }
         // Die Regel entsteht im Hintergrund, sobald die Frage beantwortet
         // ist; solange die Seite offen ist, alle 2 s nachsehen (ein stat).
@@ -125,8 +121,6 @@ struct UtilitiesEditorPage: View {
             }
         } header: {
             Text("Quick Toggles")
-        } footer: {
-            Text("Five per row as in the panel, each row makes it 56 pt taller. To reorder, drag one button onto another; a click selects it for editing, the context menu moves or removes it.")
         }
     }
 
@@ -139,8 +133,6 @@ struct UtilitiesEditorPage: View {
             }
         } header: {
             Text("Presets")
-        } footer: {
-            Text("A preset replaces cards and quick toggles. “Default” is the panel as it was at the start.")
         }
     }
 

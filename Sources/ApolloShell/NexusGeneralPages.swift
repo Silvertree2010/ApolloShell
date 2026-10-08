@@ -17,7 +17,7 @@ struct NexusGeneralPage: View {
     var body: some View {
         NexusPageForm(page: .general) {
             Section {
-                OnboardingAutostartToggle(model: autostart)
+                OnboardingAutostartToggle(model: autostart, caption: false)
             } header: {
                 Text("Start")
             } footer: {
@@ -25,17 +25,14 @@ struct NexusGeneralPage: View {
             }
             Section {
                 NexusToggle(title: "Hide Apple's Dock while ApolloShell is running",
+                            tip: "If ApolloShell is force-quit, Apple's Dock stays hidden until ApolloShell starts and quits normally again.",
                             isOn: $store.settings.appleDockHiding.hideWhileRunning)
-            } footer: {
-                Text("The bar's own Dock is unaffected. A SIGKILL leaves Apple's Dock hidden until ApolloShell starts and ends normally again.")
             }
             Section {
                 OnboardingAccessibilityRow(permissions: permissions)
                 OnboardingSystemEventsRow()
             } header: {
                 Text("Permissions")
-            } footer: {
-                Text("Both can be revoked at any time under Privacy & Security.")
             }
             if let providers { NexusFileManagerSection(store: store, model: providers) }
             NexusSystemPage()
@@ -82,9 +79,7 @@ struct NexusHotKeysPage: View {
                     HotKeyRow(center: center, store: store, action: action, tint: NexusPage.hotKeys.tint)
                 }
             } header: {
-                Text("Global")
-            } footer: {
-                Text("Apply in any app, immediately. To change, click the field and press the new combination – ⎋ cancels, ⌫ removes the shortcut. Spotlight stays on ⌘Space.")
+                NexusTipHeader(title: "Global", tip: "Click a field and press the new combination. ⎋ cancels, ⌫ removes the shortcut.")
             }
             Section {
                 HStack(spacing: 8) {
@@ -96,9 +91,7 @@ struct NexusHotKeysPage: View {
                     Spacer(minLength: 8)
                 }
             } header: {
-                Text("Presets")
-            } footer: {
-                Text("“Hyper Key” fits keyboard tools like Karabiner-Elements that turn a free key into F20, or held into ⌃⌥⇧⌘.")
+                NexusTipHeader(title: "Presets", tip: "“Hyper Key” suits tools like Karabiner-Elements that turn a free key into F20 or ⌃⌥⇧⌘.")
             }
             NexusRestoreSection(title: "Restore Default Shortcuts",
                                 message: "All shortcuts go back to their defaults.") {

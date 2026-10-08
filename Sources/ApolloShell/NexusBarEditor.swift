@@ -68,8 +68,6 @@ struct NexusBarPage: View {
             }
         } header: {
             Text("Building Blocks")
-        } footer: {
-            Text("Top to bottom as in the bar. Drag to reorder, or use the context menu. The Dock and flexible spacers share the free space.")
         }
     }
 
@@ -121,9 +119,7 @@ private struct NexusBarScreensSection: View {
                 }
             }
         } header: {
-            Text("Screens")
-        } footer: {
-            Text("Which screens the bar stands on – and with it the desktop clock and the strip the window guard keeps clear. A single screen is remembered by name and resolution; when it is not connected, the bar stands on the main display.")
+            NexusTipHeader(title: "Screens", tip: "Also moves the desktop clock and the strip kept free of windows. A single screen is remembered by name and resolution; if it is not connected, the bar uses the main display.")
         }
         .task { reload() }
     }
@@ -172,9 +168,7 @@ private struct NexusBarBackgroundSection: View {
                 }
             }
         } header: {
-            Text("Background")
-        } footer: {
-            Text("Liquid Glass follows the brightness of whatever is behind it, and it also flips between a light and a dark appearance – so the bar changes color as soon as a window moves underneath it. That cannot be switched off; for a fixed color, pick Material or glass on a solid fill.")
+            NexusTipHeader(title: "Background", tip: "Liquid Glass adapts to what is behind it and can change color when a window moves underneath. For a fixed color, pick Material or glass on a solid fill.")
         }
     }
 
@@ -244,10 +238,13 @@ private struct NexusBarRow: View {
             NexusTile(symbol: entry.kind.symbol, tint: entry.kind.tint, size: 24)
             VStack(alignment: .leading, spacing: 1) {
                 Text(entry.kind.title)
-                Text(NexusBarText.detail(entry.module))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                let d = NexusBarText.detail(entry.module)
+                if !d.isEmpty {
+                    Text(d)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
             Spacer(minLength: 8)
             Button(action: remove) {
@@ -291,9 +288,9 @@ private struct NexusBarOptions: View {
             .pickerStyle(.segmented)
         case .dock:
             let options = binding(\.dock, BarModule.dock, fallback: BarDockOptions())
-            NexusToggle(title: "Show Running Apps", subtitle: "Also unpinned ones, below a divider",
+            NexusToggle(title: "Show Running Apps",
                         isOn: options.showRunning)
-            NexusToggle(title: "Smart Groups", subtitle: "Above 9 apps, related ones share a group; your most used stay single",
+            NexusToggle(title: "Smart Groups", tip: "Above 9 apps, related apps share a group that opens on hover. Your most used apps stay single.",
                         isOn: options.smartGroups)
             Picker("Icon Size", selection: options.iconSize) {
                 ForEach(BarDockOptions.IconSize.allCases, id: \.self) { size in
@@ -303,13 +300,13 @@ private struct NexusBarOptions: View {
             .pickerStyle(.segmented)
         case .clock:
             let options = binding(\.clock, BarModule.clock, fallback: BarClockOptions())
-            NexusToggle(title: "Show Icon", subtitle: "Calendar icon above the time", isOn: options.showIcon)
-            NexusToggle(title: "Show Date", subtitle: "Weekday and day above the time", isOn: options.showDate)
+            NexusToggle(title: "Show Icon", isOn: options.showIcon)
+            NexusToggle(title: "Show Date", isOn: options.showDate)
         case .statusIcons:
             let options = binding(\.statusIcons, BarModule.statusIcons, fallback: BarStatusIconsOptions())
             NexusToggle(title: "Wi-Fi", isOn: options.showWifi)
             NexusToggle(title: "Bluetooth", isOn: options.showBluetooth)
-            NexusToggle(title: "Battery", subtitle: "Only on Macs with a battery", isOn: options.showBattery)
+            NexusToggle(title: "Battery", isOn: options.showBattery)
         case .gap:
             let options = binding(\.gap, BarModule.gap, fallback: BarGapOptions())
             // Stepper statt Schieber: jeder Schritt schreibt settings.json,
@@ -323,7 +320,7 @@ private struct NexusBarOptions: View {
             }
         case .battery:
             let options = binding(\.battery, BarModule.battery, fallback: BarBatteryOptions())
-            NexusToggle(title: "Show Icon", subtitle: "Battery icon above the percentage", isOn: options.showIcon)
+            NexusToggle(title: "Show Icon", isOn: options.showIcon)
         case .cpu:
             let options = binding(\.cpu, BarModule.cpu, fallback: BarCPUOptions())
             Picker("Style", selection: options.style) {
@@ -333,7 +330,7 @@ private struct NexusBarOptions: View {
             .pickerStyle(.segmented)
         case .weather:
             let options = binding(\.weather, BarModule.weather, fallback: BarWeatherOptions())
-            NexusToggle(title: "Show Temperature", subtitle: "The location is set on the Dashboard page",
+            NexusToggle(title: "Show Temperature", tip: "The location is set on the Dashboard page.",
                         isOn: options.showTemperature)
         case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton:
             EmptyView()
@@ -400,7 +397,7 @@ enum NexusBarText {
         case .weather(let o):
             o.showTemperature ? String(localized: "Icon and Temperature") : String(localized: "Icon Only")
         case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton:
-            module.kind.summary
+            ""
         }
     }
 

@@ -75,8 +75,6 @@ struct NexusThemesPage: View {
                 }
             } header: {
                 Text("Notes about the theme")
-            } footer: {
-                Text("Notes are not errors: whatever could not be read stays at its built-in value.")
             }
         }
 
@@ -84,8 +82,6 @@ struct NexusThemesPage: View {
             Button("Open Marketplace…") { MarketplaceWindow.shared.show(themes: themes) }
         } header: {
             Text("Marketplace")
-        } footer: {
-            Text("Themes made by others, ready to use. Share your own there too.")
         }
 
         Section {

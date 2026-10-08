@@ -32,7 +32,7 @@ struct NexusAdvancedSections: View {
 
     var body: some View {
         Section {
-            NexusToggle(title: "Launcher Only", subtitle: "Only the launcher runs: no bar, Dashboard, Quick Actions or toasts",
+            NexusToggle(title: "Launcher Only", tip: "Only the launcher runs: no bar, Dashboard, Quick Actions or toasts.",
                         isOn: Binding(get: { lo }, set: { v in
                             lo = v
                             UserDefaults.standard.set(v, forKey: LauncherOnlyFlag.key)
@@ -53,14 +53,10 @@ struct NexusAdvancedSections: View {
             Button("Export Settings…") { export() }
             Button("Import Settings…") { pick() }
         } header: {
-            Text("Backup")
-        } footer: {
-            Text("A JSON file with every setting, for a backup or another Mac. Themes and pinned launcher apps are not included.")
+            NexusTipHeader(title: "Backup", tip: "Every setting as one JSON file, for a backup or another Mac. Themes and pinned launcher apps are not included.")
         }
         Section {
             Button("Reset All Settings…", role: .destructive) { askReset = true }
-        } footer: {
-            Text("Bar, Dashboard, Quick Actions, shortcuts, toasts and everything else go back to their defaults. The introduction is not shown again.")
         }
         .alert("Reset all settings?", isPresented: $askReset) {
             Button("Reset All", role: .destructive) { store.settings = store.settings.restored }

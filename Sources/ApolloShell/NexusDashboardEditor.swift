@@ -28,8 +28,6 @@ struct NexusDashboardTabsSection: View {
             .onMove { store.settings.dashboard.tabs.move(fromOffsets: $0, toOffset: $1) }
         } header: {
             Text("Tabs")
-        } footer: {
-            Text("Top to bottom as in the Dashboard from left to right; drag to reorder. One always stays visible. If the bar tries to open a hidden tab, the Dashboard shows the first visible one instead.")
         }
     }
 }
@@ -50,10 +48,12 @@ private struct NexusDashboardTabRow: View {
                 .opacity(visible ? 1 : 0.4)
             VStack(alignment: .leading, spacing: 1) {
                 Text(tab.title)
-                Text(locked ? "Der letzte sichtbare Reiter bleibt" : NexusDashboardText.detail(tab))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if locked {
+                    Text("The last visible tab stays")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
             Spacer(minLength: 8)
             Toggle("Show \(tab.title)", isOn: Binding(
@@ -117,8 +117,6 @@ struct NexusDashboardCardSections: View {
                 .onMove { store.settings.dashboard.cards.move(in: zone, fromOffsets: $0, toOffset: $1) }
             } header: {
                 Text(zone.title)
-            } footer: {
-                Text(NexusDashboardText.footer(zone))
             }
         }
         Section {
@@ -130,8 +128,6 @@ struct NexusDashboardCardSections: View {
                 NexusPresetMenu<DashboardPreset> { onReplace(.preset($0)) }
                 NexusPresetResetButton<DashboardPreset>(layout: layout) { onReplace(.reset) }
             }
-        } footer: {
-            Text("The Dashboard always stays the same size. If a card is missing, its neighbours take up the space; an empty row leaves its full height to the other.")
         }
     }
 
@@ -235,12 +231,12 @@ private struct NexusDashboardCardOptions: View {
         switch card {
         case .weather:
             let o = binding(\.weather, DashboardCard.weather, fallback: DashboardWeatherOptions())
-            NexusToggle(title: "Condition", subtitle: "For example “Partly cloudy”", isOn: o.showCondition)
-            NexusToggle(title: "High and Low", subtitle: "For today", isOn: o.showRange)
+            NexusToggle(title: "Condition", isOn: o.showCondition)
+            NexusToggle(title: "High and Low", isOn: o.showRange)
         case .user:
             let o = binding(\.user, DashboardCard.user, fallback: DashboardUserOptions())
             NexusToggle(title: "macOS Version", isOn: o.showSystem)
-            NexusToggle(title: "Uptime", subtitle: "How long the Mac has been running since starting up", isOn: o.showUptime)
+            NexusToggle(title: "Uptime", isOn: o.showUptime)
         case .clock:
             let o = binding(\.clock, DashboardCard.clock, fallback: DashboardClockOptions())
             Picker("Style", selection: o.style) {
@@ -248,7 +244,7 @@ private struct NexusDashboardCardOptions: View {
                 Text("In One Row").tag(DashboardClockOptions.Style.inline)
             }
             .pickerStyle(.segmented)
-            NexusToggle(title: "Date", subtitle: "Weekday and day below the time", isOn: o.showDate)
+            NexusToggle(title: "Date", isOn: o.showDate)
         case .calendar:
             let o = binding(\.calendar, DashboardCard.calendar, fallback: DashboardCalendarOptions())
             Picker("Week Starts On", selection: o.firstWeekday) {
@@ -256,7 +252,7 @@ private struct NexusDashboardCardOptions: View {
                 Text("Sunday").tag(DashboardCalendarOptions.FirstWeekday.sunday)
             }
             .pickerStyle(.segmented)
-            NexusToggle(title: "Week Numbers", subtitle: "To the left of each row", isOn: o.showWeekNumbers)
+            NexusToggle(title: "Week Numbers", isOn: o.showWeekNumbers)
         case .resources(let current):
             let o = binding(\.resources, DashboardCard.resources, fallback: DashboardResourcesOptions())
             // Der letzte Ring bleibt: eine leere Karte ergaebe keinen Sinn.
@@ -265,12 +261,12 @@ private struct NexusDashboardCardOptions: View {
                 .disabled(last && current.showCPU)
             NexusToggle(title: "Memory", isOn: o.showMemory)
                 .disabled(last && current.showMemory)
-            NexusToggle(title: "Storage", subtitle: "Space used on the startup volume", isOn: o.showStorage)
+            NexusToggle(title: "Storage", isOn: o.showStorage)
                 .disabled(last && current.showStorage)
         case .media:
             let o = binding(\.media, DashboardCard.media, fallback: DashboardMediaOptions())
-            NexusToggle(title: "Album", subtitle: "Not in the small card in the bottom row", isOn: o.showAlbum)
-            NexusToggle(title: "Source", subtitle: "Which app is playing; side column only", isOn: o.showSource)
+            NexusToggle(title: "Album", tip: "Not shown in the small card in the bottom row.", isOn: o.showAlbum)
+            NexusToggle(title: "Source", tip: "Which app is playing. Side column only.", isOn: o.showSource)
         }
         place
     }

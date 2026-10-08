@@ -83,7 +83,7 @@ struct UtilitiesEditorOptions: View {
                 update(.runShortcut(with(shortcut) { $0.symbol = symbol }))
             }
         case .hideApps(let options):
-            NexusToggle(title: "Leave Frontmost App", subtitle: "Like ⌥⌘H: only hide the others",
+            NexusToggle(title: "Leave Frontmost App", tip: "Like ⌥⌘H: only the other apps are hidden.",
                         isOn: Binding(get: { options.keepFrontmost },
                                       set: { on in update(.hideApps(.init(keepFrontmost: on))) }))
         default:

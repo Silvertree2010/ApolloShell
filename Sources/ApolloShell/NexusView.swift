@@ -294,14 +294,42 @@ struct NexusPageForm<Content: View>: View {
 struct NexusToggle: View {
     let title: LocalizedStringKey
     var subtitle: LocalizedStringKey?
+    var tip: LocalizedStringKey?
     @Binding var isOn: Bool
 
     var body: some View {
         Toggle(isOn: $isOn) {
-            Text(title)
+            HStack(spacing: 4) {
+                Text(title)
+                if let tip { NexusTip(text: tip) }
+            }
             if let subtitle { Text(subtitle) }
         }
         .toggleStyle(.switch)
+    }
+}
+
+struct NexusTip: View {
+    let text: LocalizedStringKey
+
+    var body: some View {
+        Image(systemName: "info.circle")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .help(text)
+            .accessibilityLabel(text)
+    }
+}
+
+struct NexusTipHeader: View {
+    let title: LocalizedStringKey
+    let tip: LocalizedStringKey
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(title)
+            NexusTip(text: tip)
+        }
     }
 }
 

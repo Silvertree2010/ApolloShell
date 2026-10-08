@@ -149,6 +149,7 @@ final class OnboardingAutostartModel {
 /// Schalter "Start at Login" samt Hinweisen.
 struct OnboardingAutostartToggle: View {
     let model: OnboardingAutostartModel
+    var caption = true
 
     var body: some View {
         let state = model.state
@@ -157,9 +158,11 @@ struct OnboardingAutostartToggle: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Start at Login")
-                Text("ApolloShell starts on its own after login")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if caption {
+                    Text("ApolloShell starts on its own after login")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer(minLength: 12)
             Toggle("Start at Login", isOn: Binding(get: { state.isOn }, set: { model.setEnabled($0) }))
