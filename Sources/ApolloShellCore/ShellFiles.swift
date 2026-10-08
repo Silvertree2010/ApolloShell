@@ -31,6 +31,7 @@ public struct ShellFiles: Sendable {
     public var pinned: URL { file("pinned.json") }
     /// Nutzungsstatistik fuer die Reihenfolge im Launcher.
     public var usage: URL { file("usage.json") }
+    public var dockUsage: URL { file("dock-usage.json") }
     /// Wetterorte und Favoriten.
     public var weather: URL { file("weather.json") }
     /// Gesicherte Werte von Apples Dock, solange es versteckt ist.

@@ -72,6 +72,13 @@ final class StatusPopoutModel {
     /// Nach "...-Einstellungen": das Fenster schliesst (Caelestia loest das
     /// Popout dann ebenfalls ab).
     @ObservationIgnored var onOpenedSettings: () -> Void = {}
+    private(set) var stack: DockStack?
+    @ObservationIgnored var onStackHover: (DockStack, CGRect, Bool) -> Void = { _, _, _ in }
+    @ObservationIgnored var onStackToggle: (DockStack, CGRect) -> Void = { _, _ in }
+    @ObservationIgnored var onPanelHover: (Bool) -> Void = { _ in }
+    @ObservationIgnored var onStackClick: (DockStackItem, NSEvent.ModifierFlags) -> Void = { _, _ in }
+    @ObservationIgnored var onStackMenu: (DockStackItem, NSView) -> Void = { _, _ in }
+    @ObservationIgnored var onStackDrop: (DockStackItem, [URL]) -> Void = { _, _ in }
 
     @ObservationIgnored private static let interval: TimeInterval = 2
     @ObservationIgnored private static let bluetoothEvery = 5
@@ -119,6 +126,10 @@ final class StatusPopoutModel {
     /// Inhalt und Lage setzen, ohne zu oeffnen - vor dem Oeffnen aus dem
     /// geschlossenen Zustand, damit die Lage springt statt zu gleiten
     /// (Caelestia: y animiert nur, solange das Popout offen ist).
+    func setStack(_ next: DockStack?) {
+        if next != stack { stack = next }
+    }
+
     func prepare(_ kind: StatusPopoutKind, anchorY: CGFloat) {
         shown = kind
         self.anchorY = anchorY
@@ -154,6 +165,7 @@ final class StatusPopoutModel {
         case .battery: readBattery()
         case .bluetooth where includingBluetooth: readBluetooth()
         case .bluetooth: break
+        case .stack: break
         }
     }
 
@@ -246,7 +258,9 @@ final class StatusPopoutModel {
         case .wifi: "com.apple.wifi-settings-extension"
         case .bluetooth: "com.apple.BluetoothSettings"
         case .battery: "com.apple.Battery-Settings.extension"
+        case .stack: ""
         }
+        guard !pane.isEmpty else { return }
         guard let url = URL(string: "x-apple.systempreferences:\(pane)") else { return }
         NSWorkspace.shared.open(url)
         onOpenedSettings()

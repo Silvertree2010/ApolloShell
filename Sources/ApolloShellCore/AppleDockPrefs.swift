@@ -83,3 +83,37 @@ public enum AppleDockPrefs {
         return rest
     }
 }
+
+extension AppleDockPrefs {
+    public static func otherURLs(_ tiles: [Any]) -> [URL] {
+        tiles.compactMap { item in
+            guard let d = (item as? [String: Any])?["tile-data"] as? [String: Any],
+                  let f = d["file-data"] as? [String: Any], let s = f["_CFURLString"] as? String else { return nil }
+            if let u = URL(string: s), u.isFileURL { return u }
+            return s.hasPrefix("/") ? URL(fileURLWithPath: s) : nil
+        }
+    }
+
+    public static func otherTile(url: URL, label: String, folder: Bool, guid: Int) -> [String: Any] {
+        let u = URL(fileURLWithPath: url.path, isDirectory: folder)
+        var data: [String: Any] = [
+            "file-label": label,
+            "file-type": folder ? 2 : 32,
+            "file-data": ["_CFURLString": u.absoluteString, "_CFURLStringType": 15],
+        ]
+        if folder {
+            data["arrangement"] = 2
+            data["displayas"] = 0
+            data["showas"] = 0
+            data["preferreditemsize"] = -1
+        }
+        return ["GUID": guid, "tile-type": folder ? "directory-tile" : "file-tile", "tile-data": data]
+    }
+
+    public static func removingOther(_ url: URL, from tiles: [Any]) -> [Any] {
+        let p = url.standardizedFileURL.path
+        return tiles.filter { item in
+            otherURLs([item]).first.map { $0.standardizedFileURL.path != p } ?? true
+        }
+    }
+}

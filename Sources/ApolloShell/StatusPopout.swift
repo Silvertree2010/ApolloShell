@@ -50,9 +50,73 @@ final class StatusPopout {
     private var localMonitor: Any?
     private var generation = 0
 
+    private var hoverOpen: DispatchWorkItem?
+    private var hoverClose: DispatchWorkItem?
+    private var overIcon = false
+    private var overPanel = false
+    private var byHover = false
+
     init() {
         model.onIconClick = { [weak self] kind in self?.iconClicked(kind) }
         model.onOpenedSettings = { [weak self] in self?.close() }
+        model.onStackHover = { [weak self] st, fr, inside in self?.stackHover(st, fr, inside) }
+        model.onStackToggle = { [weak self] st, fr in self?.stackToggle(st, fr) }
+        model.onPanelHover = { [weak self] inside in self?.panelHover(inside) }
+    }
+
+    private func stackHover(_ st: DockStack, _ fr: CGRect, _ inside: Bool) {
+        overIcon = inside
+        hoverOpen?.cancel()
+        if inside {
+            hoverClose?.cancel()
+            if model.isOpen, model.shown == .stack, model.stack?.id == st.id { return }
+            let fast = model.isOpen && model.shown == .stack
+            let w = DispatchWorkItem { [weak self] in
+                guard let self, self.overIcon else { return }
+                self.byHover = true
+                self.showStack(st, fr)
+            }
+            hoverOpen = w
+            DispatchQueue.main.asyncAfter(deadline: .now() + (fast ? 0.05 : 0.15), execute: w)
+        } else {
+            scheduleHoverClose()
+        }
+    }
+
+    private func panelHover(_ inside: Bool) {
+        guard model.shown == .stack else { return }
+        overPanel = inside
+        if inside { hoverClose?.cancel() } else { scheduleHoverClose() }
+    }
+
+    private func scheduleHoverClose() {
+        guard model.isOpen, model.shown == .stack, byHover else { return }
+        hoverClose?.cancel()
+        let w = DispatchWorkItem { [weak self] in
+            guard let self, !self.overIcon, !self.overPanel, self.model.shown == .stack else { return }
+            self.close()
+        }
+        hoverClose = w
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: w)
+    }
+
+    private func stackToggle(_ st: DockStack, _ fr: CGRect) {
+        hoverOpen?.cancel()
+        if model.isOpen, model.shown == .stack, model.stack?.id == st.id {
+            if byHover { byHover = false } else { close() }
+            return
+        }
+        byHover = false
+        showStack(st, fr)
+    }
+
+    private func showStack(_ st: DockStack, _ fr: CGRect) {
+        model.setStack(st)
+        if model.isOpen {
+            withAnimation(StatusPopoutMotion.spatial) { model.show(.stack, anchorY: fr.midY) }
+        } else {
+            open(.stack, anchorY: fr.midY)
+        }
     }
 
     var isOpen: Bool { model.isOpen }
@@ -93,6 +157,10 @@ final class StatusPopout {
 
     func close() {
         guard model.isOpen else { return }
+        hoverOpen?.cancel()
+        hoverClose?.cancel()
+        overPanel = false
+        byHover = false
         generation += 1
         let current = generation
         withAnimation(StatusPopoutMotion.spatial) { model.hide() }
@@ -151,6 +219,6 @@ final class StatusPopout {
         // Auf ein Statussymbol: das erledigt dessen Knopf (zu oder wechseln).
         // Sonst, auch im durchsichtigen Teil des breiten Fensters: zu.
         let onIcon = model.iconFrames.values.contains { screenRect($0)?.contains(point) == true }
-        if !onIcon { close() }
+        if !onIcon, !(model.shown == .stack && overIcon) { close() }
     }
 }

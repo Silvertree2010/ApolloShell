@@ -138,10 +138,12 @@ public struct BarDockOptions: Codable, Equatable, Sendable {
     /// Auch Apps, die laufen, aber nicht angeheftet sind (unter dem Strich).
     public var showRunning: Bool
     public var iconSize: IconSize
+    public var smartGroups: Bool
 
-    public init(showRunning: Bool = true, iconSize: IconSize = .medium) {
+    public init(showRunning: Bool = true, iconSize: IconSize = .medium, smartGroups: Bool = true) {
         self.showRunning = showRunning
         self.iconSize = iconSize
+        self.smartGroups = smartGroups
     }
 
     public init(from decoder: any Decoder) throws {
@@ -149,6 +151,7 @@ public struct BarDockOptions: Codable, Equatable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         c.lenient(.showRunning, into: &showRunning)
         c.lenient(.iconSize, into: &iconSize)
+        c.lenient(.smartGroups, into: &smartGroups)
     }
 }
 

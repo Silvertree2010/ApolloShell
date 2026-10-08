@@ -34,6 +34,11 @@ final class SidebarDockModel {
     private(set) var launching: Set<String> = []
     /// Zaehler je Bundle-ID aus Apples Dock (`DockBadges`).
     private(set) var badges: [String: String] = [:]
+    private(set) var files: [DockFile] = []
+    private(set) var trashFull = false
+    @ObservationIgnored private(set) var usage = DockUsage()
+    @ObservationIgnored private var cats: [String: String?] = [:]
+    @ObservationIgnored private var usageSaved = Date.distantPast
 
     @ObservationIgnored private let live: Bool
     /// Welcher Dateimanager oben steht (Nexus > Anbieter); `nil` in Bildproben.
@@ -66,6 +71,9 @@ final class SidebarDockModel {
         live = true
         self.settings = settings
         frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        if let d = try? Data(contentsOf: ShellFiles.live.dockUsage), let u = try? JSONDecoder().decode(DockUsage.self, from: d) {
+            usage = u
+        }
         refresh()
         // Anderer Dateimanager in Nexus: gilt sofort. Liefert zuerst den
         // aktuellen Wert (ein Durchgang mehr, schadet nicht), danach jede
@@ -121,6 +129,7 @@ final class SidebarDockModel {
             guard let self else { return }
             self.badgeReading = false
             if next != self.badges { self.badges = next }
+            self.readTrash()
         }
     }
 
@@ -173,6 +182,9 @@ final class SidebarDockModel {
             )
         }
         if next != entries { entries = next }
+        let others = CFPreferencesCopyAppValue("persistent-others" as CFString, Self.dockDomain) as? [Any] ?? []
+        let nf = AppleDockPrefs.otherURLs(others).compactMap(DockFile.make)
+        if nf != files { files = nf }
         // Fertig gestartet: nicht mehr huepfen.
         let started = launching.intersection(running.keys)
         if !started.isEmpty { launching.subtract(started) }
@@ -454,6 +466,109 @@ final class SidebarDockModel {
         // Nexus holt den Launcher selbst nach vorne; dann gilt weiter die App davor.
         guard let id, id != ownBundleID, id != frontmost else { return }
         frontmost = id
+        usage.record(id)
+        if Date().timeIntervalSince(usageSaved) > 60 { saveUsage() }
+    }
+
+    private func saveUsage() {
+        usageSaved = Date()
+        if let d = try? JSONEncoder().encode(usage) { try? ShellFiles.write(d, to: ShellFiles.live.dockUsage) }
+    }
+
+    func readTrash() {
+        guard live else { return }
+        let f = DockTrash.full()
+        if f != trashFull { trashFull = f }
+    }
+
+    private func category(_ id: String) -> String? {
+        if let c = cats[id] { return c }
+        let c = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id)
+            .flatMap { Bundle(url: $0)?.infoDictionary?["LSApplicationCategoryType"] as? String }
+        cats[id] = c
+        return c
+    }
+
+    func items(_ list: [Entry], smart: Bool) -> [DockItem] {
+        let slots = list.map { DockSlot(bundleID: $0.bundleID, pinned: $0.pinned, running: $0.running) }
+        guard smart else { return slots.map(DockItem.app) }
+        let ids = Set(list.map(\.bundleID))
+        let now = Date()
+        return DockClustering.items(
+            slots, fixed: [fileManagerID],
+            weight: { [usage] in usage.weight($0, at: now) },
+            kind: { [unowned self] in DockCategory.kind(bundleID: $0, category: self.category($0)) },
+            partner: { [usage] in usage.partner($0, among: ids) }
+        )
+    }
+
+    func entry(_ id: String) -> Entry? { entries.first { $0.bundleID == id } }
+
+    func stack(_ g: DockGroup) -> DockStack {
+        DockStack(id: g.id, title: g.title, items: g.members.compactMap { m in
+            entry(m.bundleID).map { DockStackItem(id: $0.bundleID, name: $0.name, icon: $0.icon, running: $0.running, kind: .app($0)) }
+        })
+    }
+
+    func stack(_ f: DockFile) -> DockStack {
+        DockStack(id: f.id, title: f.name, items: f.contents())
+    }
+
+    func open(_ url: URL) {
+        guard live else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    func pinFiles(_ urls: [URL]) {
+        guard live else { return }
+        CFPreferencesAppSynchronize(Self.dockDomain)
+        var tiles = CFPreferencesCopyAppValue("persistent-others" as CFString, Self.dockDomain) as? [Any] ?? []
+        let have = Set(AppleDockPrefs.otherURLs(tiles).map(\.standardizedFileURL.path))
+        for u in urls where u.isFileURL && !have.contains(u.standardizedFileURL.path) {
+            var dir: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: u.path, isDirectory: &dir) else { continue }
+            let folder = dir.boolValue && u.pathExtension != "app"
+            if u.pathExtension == "app", let id = Bundle(url: u)?.bundleIdentifier {
+                place(id, onto: nil)
+                continue
+            }
+            tiles.append(AppleDockPrefs.otherTile(url: u, label: FileManager.default.displayName(atPath: u.path), folder: folder, guid: Int.random(in: 1...Int(Int32.max))))
+        }
+        CFPreferencesSetAppValue("persistent-others" as CFString, tiles as NSArray as CFArray, Self.dockDomain)
+        CFPreferencesAppSynchronize(Self.dockDomain)
+        refresh()
+    }
+
+    func unpin(_ f: DockFile) {
+        guard live else { return }
+        CFPreferencesAppSynchronize(Self.dockDomain)
+        let tiles = CFPreferencesCopyAppValue("persistent-others" as CFString, Self.dockDomain) as? [Any] ?? []
+        CFPreferencesSetAppValue("persistent-others" as CFString, AppleDockPrefs.removingOther(f.url, from: tiles) as NSArray as CFArray, Self.dockDomain)
+        CFPreferencesAppSynchronize(Self.dockDomain)
+        refresh()
+    }
+
+    func move(_ urls: [URL], into folder: URL) {
+        guard live else { return }
+        for u in urls where u.isFileURL {
+            let dest = folder.appendingPathComponent(u.lastPathComponent)
+            guard u.standardizedFileURL != dest.standardizedFileURL, !FileManager.default.fileExists(atPath: dest.path) else { continue }
+            do { try FileManager.default.moveItem(at: u, to: dest) } catch { log.error("Dock: verschieben fehlgeschlagen") }
+        }
+    }
+
+    func trash(_ urls: [URL]) {
+        guard live else { return }
+        DockTrash.recycle(urls.filter(\.isFileURL)) { [weak self] in self?.readTrash() }
+    }
+
+    func dropOnTrash(_ id: String) {
+        guard live else { return }
+        if id.hasPrefix("f:"), let f = files.first(where: { $0.id == id }) {
+            unpin(f)
+        } else if let e = entry(id), isPinnedInDock(e) {
+            togglePin(e)
+        }
     }
 
     private func icon(for id: String, app: NSRunningApplication?, url: URL) -> NSImage {
@@ -545,37 +660,73 @@ struct SidebarDock: View {
 
     private var column: some View {
         let entries = entries
-        let split = entries.firstIndex { !$0.pinned }
-        // Mit Theme: `--apollo-dock-spacing` zwischen den Symbolen,
-        // `--apollo-dock-icon-size` fuer ihre Groesse.
-        return VStack(spacing: dockStyle.dockSpacing(4)) {
-            ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                // Strich zwischen angehefteten und nur laufenden, wie im Apple-Dock.
-                if index == split, index > 0 {
-                    Capsule()
-                        .fill(Color.primary.opacity(0.18))
-                        .frame(width: 20, height: 2)
-                        .padding(.vertical, 3)
-                }
-                SidebarDockItem(
-                    entry: entry,
-                    iconSize: dockStyle.dockIconSize(CGFloat(options.iconSize.points)),
-                    interactive: !preview,
-                    active: entry.bundleID == model.frontmost,
-                    launching: model.launching.contains(entry.bundleID),
-                    badge: model.badges[entry.bundleID],
-                    onClick: { model.click(entry, modifiers: $0) },
-                    onMenu: { DockMenu.show(for: entry, model: model, at: $0) },
-                    onScroll: { model.scroll(entry) },
-                    onDropFiles: { model.openFiles($0, with: entry) },
-                    onDropApp: { model.place($0, onto: entry.bundleID) }
-                )
+        let items = model.items(entries, smart: options.smartGroups)
+        let split = items.firstIndex { item in
+            switch item {
+            case .app(let s): !s.pinned
+            case .group(let g): !g.members.contains(where: \.pinned)
             }
         }
-        // Volle Leistenbreite: sonst liegt die Spalte in der ScrollView am
-        // linken Rand, und die Laufend-Punkte (links ausserhalb des Symbols)
-        // werden abgeschnitten - Bildprobe 14.09.
+        let size = dockStyle.dockIconSize(CGFloat(options.iconSize.points))
+        return VStack(spacing: dockStyle.dockSpacing(4)) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                if index == split, index > 0 { divider }
+                switch item {
+                case .app(let s):
+                    if let entry = model.entry(s.bundleID) { appItem(entry, size: size) }
+                case .group(let g):
+                    groupItem(g, size: size)
+                }
+            }
+            if !preview {
+                divider
+                ForEach(model.files) { f in DockFileItem(file: f, model: model, size: size) }
+                DockTrashItem(model: model, size: size)
+            }
+        }
+        .background { if !preview { DockDropZone { model.pinFiles($0) } } }
+        .onAppear { if let popout { model.wire(popout) } }
         .frame(maxWidth: .infinity)
+    }
+
+    @Environment(StatusPopoutModel.self) private var popout: StatusPopoutModel?
+
+    private var divider: some View {
+        Capsule()
+            .fill(Color.primary.opacity(0.18))
+            .frame(width: 20, height: 2)
+            .padding(.vertical, 3)
+    }
+
+    private func appItem(_ entry: SidebarDockModel.Entry, size: CGFloat) -> some View {
+        SidebarDockItem(
+            entry: entry,
+            iconSize: size,
+            interactive: !preview,
+            active: entry.bundleID == model.frontmost,
+            launching: model.launching.contains(entry.bundleID),
+            badge: model.badges[entry.bundleID],
+            onClick: { model.click(entry, modifiers: $0) },
+            onMenu: { DockMenu.show(for: entry, model: model, at: $0) },
+            onScroll: { model.scroll(entry) },
+            onDropFiles: { model.openFiles($0, with: entry) },
+            onDropApp: { model.place($0, onto: entry.bundleID) }
+        )
+    }
+
+    private func groupItem(_ g: DockGroup, size: CGFloat) -> some View {
+        let icons = g.members.prefix(4).compactMap { model.entry($0.bundleID)?.icon }
+        let running = g.members.contains(where: \.running)
+        return DockStackButton(id: g.id, help: "\(g.title) (\(g.members.count))", image: icons.first ?? NSImage(),
+                               make: { model.stack(g) }) {
+            DockGroupFace(icons: icons, size: size)
+        }
+        .overlay(alignment: .leading) {
+            if running {
+                Circle().fill(dockStyle.paint(.dockIndicator, or: Color.primary.opacity(0.65))).frame(width: 4, height: 4).offset(x: -5)
+            }
+        }
+        .allowsHitTesting(!preview)
     }
 }
 

@@ -293,6 +293,8 @@ private struct NexusBarOptions: View {
             let options = binding(\.dock, BarModule.dock, fallback: BarDockOptions())
             NexusToggle(title: "Show Running Apps", subtitle: "Also unpinned ones, below a divider",
                         isOn: options.showRunning)
+            NexusToggle(title: "Smart Groups", subtitle: "Above 9 apps, related ones share a group; your most used stay single",
+                        isOn: options.smartGroups)
             Picker("Icon Size", selection: options.iconSize) {
                 ForEach(BarDockOptions.IconSize.allCases, id: \.self) { size in
                     Text(NexusBarText.size(size)).tag(size)

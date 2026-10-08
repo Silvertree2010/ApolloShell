@@ -56,19 +56,25 @@ struct StatusPopoutContent: View {
         case .wifi: 300
         case .bluetooth: 300
         case .battery: 270
+        case .stack: 300
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            switch kind {
-            case .wifi: StatusPopoutWifiView(model: model)
-            case .bluetooth: StatusPopoutBluetoothView(model: model)
-            case .battery: StatusPopoutBatteryView(model: model)
+        if kind == .stack {
+            DockStackView(model: model)
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                switch kind {
+                case .wifi: StatusPopoutWifiView(model: model)
+                case .bluetooth: StatusPopoutBluetoothView(model: model)
+                case .battery: StatusPopoutBatteryView(model: model)
+                case .stack: EmptyView()
+                }
             }
+            .padding(16)
+            .frame(width: Self.width(kind), alignment: .leading)
         }
-        .padding(16)
-        .frame(width: Self.width(kind), alignment: .leading)
     }
 }
 
