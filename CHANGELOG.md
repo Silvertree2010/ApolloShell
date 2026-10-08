@@ -4,6 +4,66 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.5] - 2026-10-09
+
+A feature release: a Dock that stays tidy with any number of apps, a launcher
+that does more than open apps, and a calmer Nexus.
+
+### Added
+
+- **Smart groups in the Dock.** With more than nine apps, related ones share
+  a group (notes and writing, developer tools, design, media, chat, web …),
+  so the Dock never shows more than nine places. Your most used apps stay
+  single. Hovering a group opens a second bar next to it with its apps.
+  ApolloShell also learns which apps you use together, on your Mac only.
+  Nexus > Bar > Dock turns it off.
+- **Files, folders and the Trash in the Dock.** Drop files or folders on an
+  empty spot to pin them; folders open as a stack in the second bar. Drop a
+  file on a folder to move it there, or on the Trash to delete it. Right-click
+  the Trash to empty it.
+- **Window previews.** Hovering a running app in the Dock lists its windows;
+  a click brings one to the front. With Screen Recording permission the list
+  shows thumbnails.
+- **A busier launcher.** `=` is a calculator (simple sums work without it),
+  `>` runs actions like Lock Screen, Sleep, Dark Mode or Screenshot, and `:`
+  lists the last 40 copied texts, kept in memory only. Searching also finds
+  files from your Desktop, Documents, Downloads and iCloud Drive.
+- **Sound in the status icons.** A new speaker icon opens volume, output and
+  input, like the Quick Actions card.
+- **Status popouts open on hover** and close when the pointer leaves; a
+  click keeps them open.
+- **Wi-Fi: speed test and saved networks.** The Wi-Fi popout measures
+  download, upload and responsiveness with Apple's networkQuality and shows
+  the numbers live. It lists your saved networks to join with one click,
+  all of them in a menu. No Location Services needed.
+- **More on-screen displays:** brightness, keyboard layout and Caps Lock.
+- **Timer card** for the Dashboard: countdown with presets, Pomodoro and a
+  stopwatch, with a toast and a sound at the end.
+- **Liquid Glass background** that keeps its color: clear glass with a light
+  fill, for the bar, popouts, panels and toasts. The default for new
+  installs; Nexus > Bar > Background switches.
+- **Menu bar icon** with Settings, Edit Bar, Themes, Marketplace, updates,
+  Start at Login, Restart and Quit. Opening ApolloShell a second time shows
+  this menu too.
+- **Nexus: backup and reset.** Export and import all settings as JSON,
+  restore defaults per page, and a Launcher Only switch, under About >
+  Advanced.
+
+### Changed
+
+- **Nexus is tidier.** Nine pages instead of thirteen: Providers, Updates,
+  System Settings and Toasts moved into General, Dashboard, About and
+  Desktop. Smaller page headers, a wider sidebar, and explanations only
+  where they help, as info tooltips.
+- Nexus no longer links into macOS System Settings.
+
+### Fixed
+
+- The restart helper passes the app path as an argument instead of building
+  a shell command from it.
+- The calendar card was still called "Kalender" in the card gallery, and the
+  System Events permission prompt was German.
+
 ## [0.1.4.3] - 2026-10-06
 
 A patch on 0.1.4: leftover German text, and weather in the units set in macOS.
