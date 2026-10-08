@@ -213,8 +213,8 @@ private struct StatusCapsule: View {
         _ kind: StatusPopoutKind, help: String, @ViewBuilder glyph: @escaping () -> Glyph
     ) -> some View {
         let active = popout?.isOpen == true && popout?.shown == kind
-        return SidebarIcon(help: help, action: { popout?.onIconClick(kind) }, content: glyph)
-            .background(Color.primary.opacity(active ? 0.14 : 0), in: .rect(cornerRadius: 9))
+        return SidebarIcon(help: help, action: { popout?.onIconClick(kind) }, round: true, content: glyph)
+            .background(Color.primary.opacity(active ? 0.14 : 0), in: .circle)
             .animation(.easeOut(duration: 0.12), value: active)
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { popout?.iconFrames[kind] = $0 }
     }
@@ -239,12 +239,14 @@ private struct StatusCapsule: View {
 struct SidebarIcon<Content: View>: View {
     let help: String
     var action: (() -> Void)?
+    var round = false
     @ViewBuilder let content: () -> Content
     @State private var hovering = false
     @Environment(\.barPreview) private var preview
     @Environment(\.shellStyle) private var style
 
-    init(help: String, action: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) {
+    init(help: String, action: (() -> Void)? = nil, round: Bool = false, @ViewBuilder content: @escaping () -> Content) {
+        self.round = round
         self.help = help
         self.action = action
         self.content = content
@@ -254,8 +256,8 @@ struct SidebarIcon<Content: View>: View {
         Button(action: { action?() }) {
             content()
                 .frame(width: 32, height: 32)
-                .background(Color.primary.opacity(hovering ? 0.14 : 0), in: .rect(cornerRadius: 9))
-                .contentShape(.rect(cornerRadius: 9))
+                .background(Color.primary.opacity(hovering ? 0.14 : 0), in: round ? AnyShape(Circle()) : AnyShape(.rect(cornerRadius: 9)))
+                .contentShape(round ? AnyShape(Circle()) : AnyShape(.rect(cornerRadius: 9)))
         }
         .buttonStyle(.plain)
         // Mit Theme faerbt `--apollo-bar-icon-color` die Zeichen der Leiste.
