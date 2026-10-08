@@ -33,7 +33,7 @@ enum ThemedGlass {
             if GlassLook.liquid {
                 var c: CGColor?
                 glass.effectiveAppearance.performAsCurrentDrawingAppearance {
-                    c = NSColor.windowBackgroundColor.withAlphaComponent(GlassLook.fill).cgColor
+                    c = NSColor.windowBackgroundColor.withAlphaComponent(GlassLook.panelFill).cgColor
                 }
                 content.layer?.backgroundColor = c
             }
@@ -63,5 +63,6 @@ enum ThemedGlass {
 @MainActor
 enum GlassLook {
     static let fill: Double = 0.6
+    static let panelFill: Double = 0.85
     static var liquid = false
 }
