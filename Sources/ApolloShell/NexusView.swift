@@ -49,7 +49,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
 
     var subtitle: String {
         switch self {
-        case .general: String(localized: "Start at login, permissions, file manager and macOS settings.")
+        case .general: String(localized: "Start at login, permissions and file manager.")
         case .hotKeys: String(localized: "Global shortcuts for Launcher, Dashboard, Quick Actions and Nexus.")
         case .bar: String(localized: "The building blocks of the bar on the left: arrange, add, configure.")
         case .utilities: String(localized: "Cards and quick toggles in the Quick Actions panel, bottom right.")
@@ -102,8 +102,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
     var keywords: [String] {
         switch self {
         case .general: ["autostart", "anmeldung", "anmeldeobjekte", "login", "bedienungshilfen", "freigabe",
-                        "berechtigung", "system events", "datenschutz", "dateimanager", "finder", "forklift",
-                        "netzwerk", "bluetooth", "ton", "sprache", "systemeinstellungen"]
+                        "berechtigung", "system events", "datenschutz", "dateimanager", "finder", "forklift"]
         case .hotKeys: ["hotkey", "shortcut", "keyboard", "keys", "launcher", "f20", "hyper", "spotlight", "karabiner"]
         case .bar: ["taskbar", "spaces", "dock", "uhr", "datum", "status", "wlan", "akku", "cpu", "wetter",
                     "medien", "abstand", "vorlage", "baustein", "app", "bildschirm", "monitor", "anzeige"]
@@ -330,40 +329,6 @@ struct NexusTipHeader: View {
             Text(title)
             NexusTip(text: tip)
         }
-    }
-}
-
-/// Zeile, die einen Bereich der Systemeinstellungen oeffnet.
-struct NexusSystemLink: View {
-    let title: LocalizedStringKey
-    var subtitle: LocalizedStringKey?
-    let symbol: String
-    let tint: Color
-    /// `nil`: die Systemeinstellungen ohne Bereich.
-    let pane: NexusSystemSettings.Pane?
-
-    var body: some View {
-        Button {
-            NexusSystemSettings.open(pane)
-        } label: {
-            HStack(spacing: 10) {
-                NexusTile(symbol: symbol, tint: tint, size: 24)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "arrow.up.forward.app")
-                    .foregroundStyle(.secondary)
-            }
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .help("Open in System Settings")
     }
 }
 

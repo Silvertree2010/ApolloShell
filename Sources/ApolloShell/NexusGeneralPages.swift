@@ -35,7 +35,6 @@ struct NexusGeneralPage: View {
                 Text("Permissions")
             }
             if let providers { NexusFileManagerSection(store: store, model: providers) }
-            NexusSystemPage()
         }
         .animation(.snappy, value: permissions.accessibility)
         .onAppear {

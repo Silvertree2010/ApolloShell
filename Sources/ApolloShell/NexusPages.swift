@@ -58,34 +58,6 @@ struct NexusToastsPage: View {
 
 /// Caelestias Seiten, die auf macOS das System uebernimmt, als Spruenge -
 /// gruppiert wie dort (appearance, connectivity, system).
-struct NexusSystemPage: View {
-    @State private var open = false
-
-    var body: some View {
-        Section {
-            DisclosureGroup(isExpanded: $open) {
-                NexusSystemLink(title: "Appearance",
-                                symbol: "circle.lefthalf.filled", tint: .gray, pane: .appearance)
-                NexusSystemLink(title: "Wallpaper", symbol: "photo.fill", tint: .cyan, pane: .wallpaper)
-                NexusSystemLink(title: "Network",
-                                symbol: "network", tint: .blue, pane: .network)
-                NexusSystemLink(title: "Bluetooth",
-                                symbol: "dot.radiowaves.left.and.right", tint: .blue, pane: .bluetooth)
-                NexusSystemLink(title: "Sound",
-                                symbol: "speaker.wave.2.fill", tint: .pink, pane: .sound)
-                NexusSystemLink(title: "Notifications",
-                                symbol: "bell.fill", tint: .red, pane: .notifications)
-                NexusSystemLink(title: "Language & Region",
-                                symbol: "globe", tint: .blue, pane: .language)
-                NexusSystemLink(title: "Software Update", symbol: "arrow.clockwise", tint: .gray, pane: .softwareUpdate)
-                NexusSystemLink(title: "Open System Settings", symbol: "gearshape.fill", tint: .gray, pane: nil)
-            } label: {
-                Text("macOS Settings")
-            }
-        }
-    }
-}
-
 // MARK: - Ueber
 
 /// Was Nexus ueber das System weiss. Einmal beim Oeffnen gelesen (sysctl,
@@ -190,10 +162,6 @@ struct NexusAboutPage: View {
             }
             Section {
                 Button("Show Introduction…") { showOnboarding() }
-            }
-            Section {
-                NexusSystemLink(title: "About This Mac",
-                                symbol: "laptopcomputer", tint: .gray, pane: .about)
             }
             if let store { NexusAdvancedSections(store: store) }
         }
