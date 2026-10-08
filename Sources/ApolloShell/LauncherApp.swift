@@ -49,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKeys: HotKeyCenter?
     /// Einstellungsfenster (Caelestia: Nexus).
     private var nexus: Nexus?
+    private var commandCenter: CommandCenter?
     private var updates: UpdateController?
     private var crashReporter: CrashReporter?
     private var themes: ThemeStore?
@@ -110,6 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           updates: updates, themes: themes)
         self.nexus = nexus
         hotKeys.setHandler(.nexus) { [weak nexus] in nexus?.show() }
+        commandCenter = CommandCenter(nexus: nexus, updates: updates, autostart: autostart, themes: themes)
         let sidebar = Sidebar(settings: settings)
         self.sidebar = sidebar
         let sessionMenu = SessionMenu()
@@ -192,7 +194,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// ApolloShell ein zweites Mal geoeffnet: Nexus zeigen, im
     /// Nur-Launcher-Modus (kein Nexus) den Launcher.
     private func showAfterSecondLaunch() {
-        if let nexus {
+        if let commandCenter {
+            commandCenter.popUpUnderPointer()
+        } else if let nexus {
             nexus.show()
         } else {
             controller?.toggle()
