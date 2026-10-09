@@ -26,10 +26,11 @@ struct SidebarRoot: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let size = sizes[popout.shown] ?? CGSize(width: StatusPopoutContent.width(popout.shown), height: 200)
+            let full = sizes[popout.shown] ?? CGSize(width: StatusPopoutContent.width(popout.shown), height: 200)
             let open = popout.isOpen
             let lead = edges.left
             let h = max(0, geometry.size.height - edges.bottom)
+            let size = CGSize(width: full.width, height: h > 0 ? min(full.height, h) : full.height)
             let top = StatusPopoutPlacement.top(
                 anchorY: popout.anchorY, height: size.height, containerHeight: h
             )
@@ -67,15 +68,20 @@ struct SidebarRoot: View {
         ZStack(alignment: .topLeading) {
             ForEach(StatusPopoutKind.allCases, id: \.self) { kind in
                 let active = open && popout.shown == kind
-                StatusPopoutContent(model: popout, kind: kind)
-                    .fixedSize()
-                    .onGeometryChange(for: CGSize.self) { $0.size } action: { sizes[kind] = $0 }
-                    .frame(width: size.width, height: size.height, alignment: .topLeading)
-                    .offset(x: bulge.minX, y: top)
-                    .opacity(active ? 1 : 0)
-                    .animation(active ? StatusPopoutMotion.fadeIn : StatusPopoutMotion.fadeOut, value: active)
-                    .allowsHitTesting(active)
-                    .accessibilityHidden(!active)
+                ScrollView(.vertical) {
+                    StatusPopoutContent(model: popout, kind: kind)
+                        .fixedSize()
+                        .onGeometryChange(for: CGSize.self) { $0.size } action: { sizes[kind] = $0 }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                .scrollDisabled((sizes[kind]?.height ?? 0) <= size.height)
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(width: size.width, height: size.height, alignment: .topLeading)
+                .offset(x: bulge.minX, y: top)
+                .opacity(active ? 1 : 0)
+                .animation(active ? StatusPopoutMotion.fadeIn : StatusPopoutMotion.fadeOut, value: active)
+                .allowsHitTesting(active)
+                .accessibilityHidden(!active)
             }
         }
         .background(alignment: .topLeading) {
