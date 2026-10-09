@@ -37,7 +37,7 @@ private struct PanelGlass: ViewModifier {
                 : AnyShapeStyle(Color(nsColor: .windowBackgroundColor).opacity(GlassLook.fill))
             let b = content.background(f, in: sh)
             if st.glass {
-                b.glassEffect(.clear, in: sh)
+                b.glassEffect(.regular, in: sh)
             } else {
                 b
             }
