@@ -39,9 +39,12 @@ that does more than open apps, and a calmer Nexus.
 - **More on-screen displays:** brightness, keyboard layout and Caps Lock.
 - **Timer card** for the Dashboard: countdown with presets, Pomodoro and a
   stopwatch, with a toast and a sound at the end.
-- **Liquid Glass background** that keeps its color: clear glass with a light
-  fill, for the bar, popouts, panels and toasts. The default for new
-  installs; Nexus > Bar > Background switches.
+- **Liquid Glass everywhere.** One native look for the bar, popouts, panels
+  and toasts: clear glass with a light fill on the bar, so it keeps its
+  color when a popout opens, and blurring glass behind the Dashboard,
+  Utilities, launcher and session menu, so text behind them stays out of
+  sight. The old bar background choices are gone; existing settings move
+  to the new look on their own.
 - **Menu bar icon** with Settings, Edit Bar, Themes, Marketplace, updates,
   Start at Login, Restart and Quit. Opening ApolloShell a second time shows
   this menu too.
@@ -56,6 +59,9 @@ that does more than open apps, and a calmer Nexus.
   Desktop. Smaller page headers, a wider sidebar, and explanations only
   where they help, as info tooltips.
 - Nexus no longer links into macOS System Settings.
+- A status popout opened with a click stays put while the pointer passes
+  other status icons; clicking another icon still switches.
+- Status popouts taller than the screen scroll instead of being cut off.
 
 ### Fixed
 
