@@ -198,11 +198,8 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     }
     private let container: NSView
     private var builtScrim: ScrimWindow?
-    /// Glas und SwiftUI-Inhalt darin; `resize(to:)` setzt ihre Rahmen neu.
-    private var glass: NSGlassEffectView?
     private var hosting: NSView?
-    /// Die eingefaerbte Flaeche unter dem Glas, wenn ein Theme gilt.
-    private var panelLayer: CAGradientLayer?
+    private let ins = PanelInset()
     private(set) var isOpen = false
     private var generation = 0
 
@@ -236,13 +233,12 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         observeScreenChanges()
     }
 
-    /// Faerbt das Glas des Kantenfensters nach dem Theme: Panelfarbe als
-    /// Toenung, Panelradius als Ecke. Ohne Theme bleibt alles, wie es war.
-    /// Wird beim Bauen und bei jedem Oeffnen gesetzt, damit ein Wechsel im
-    /// Theme spaetestens beim naechsten Oeffnen ankommt.
-    /// Faerbt das Kantenfenster nach dem Theme (siehe `ThemedGlass`).
-    private func applyTheme() {
-        panelLayer = ThemedGlass.apply(to: glass, fallbackRadius: cornerRadius, previous: panelLayer)
+    private func layoutHosting() {
+        let b = container.bounds
+        let v = visibleRectInWindow
+        hosting?.frame = b
+        ins.e = EdgeInsets(top: b.maxY - v.maxY, leading: v.minX - b.minX,
+                           bottom: v.minY - b.minY, trailing: b.maxX - v.maxX)
     }
 
     /// Hoehe der Menueleiste bzw. der Notch, je nachdem was groesser ist
@@ -267,7 +263,6 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     private func open(byHover: Bool) {
         // Dort, wo der Zeiger steht.
         guard !isOpen, let screen = ShellScreens.underPointer() else { return }
-        applyTheme()
         isOpen = true
         generation += 1
         afterClose = nil
@@ -391,13 +386,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         guard inset != topInset || container.frame.size != wanted else { return }
         topInset = inset
         container.setFrameSize(wanted)
-        // Wie in `resize(to:)`: die Inhaltsflaeche ausdruecklich setzen, nicht
-        // per autoresizing.
-        if let glass {
-            glass.frame = container.bounds
-            glass.contentView?.frame = glass.bounds
-        }
-        hosting?.frame = visibleRectInWindow
+        layoutHosting()
     }
 
     /// Neue sichtbare Groesse, sofort und ohne Animation.
@@ -418,24 +407,14 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         if let screen = currentScreen ?? ShellScreens.underPointer() {
             builtPanel.setFrame(windowFrame(on: screen), display: builtPanel.isVisible)
         }
-        // Das Glas waechst per autoresizing mit dem Container. Seine
-        // Inhaltsflaeche NICHT: mit autoresizing kam sie in der Bildprobe
-        // (14.09.) verzerrt heraus (451 -> 162 ergab 10, danach 852) - also
-        // ausdruecklich auf die Glasgroesse. Der SwiftUI-Inhalt liegt nur im
-        // sichtbaren Teil.
-        if let glass {
-            glass.frame = container.bounds
-            glass.contentView?.frame = glass.bounds
-        }
-        hosting?.frame = visibleRectInWindow
+        layoutHosting()
     }
 
     /// Fuer Bildproben und Pruefungen: wo Fenster, Glas und Inhalt gerade
     /// liegen. Baut das Fenster, zeigt es aber nicht.
-    func probeGeometry() -> (window: NSRect, container: NSRect, glass: NSRect, content: NSRect, hosting: NSRect) {
+    func probeGeometry() -> (window: NSRect, container: NSRect, hosting: NSRect, inset: EdgeInsets) {
         _ = panel
-        return (panel.frame, container.frame, glass?.frame ?? .zero, glass?.contentView?.frame ?? .zero,
-                hosting?.frame ?? .zero)
+        return (panel.frame, container.frame, hosting?.frame ?? .zero, ins.e)
     }
 
     // MARK: - Maus an der Kante
@@ -593,23 +572,13 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         panel.delegate = self
         panel.onEscape = { [weak self] in self?.close() }
 
-        let glass = NSGlassEffectView(frame: container.bounds)
-        glass.autoresizingMask = [.width, .height]
-        glass.cornerRadius = cornerRadius
-
-        let content = GlassContentView(frame: container.bounds)
-        let hosting = FirstMouseHostingView(rootView: rootView.shellTheme())
+        let hosting = FirstMouseHostingView(rootView: PanelRoot(r: cornerRadius, ins: ins, c: rootView).shellTheme())
         hosting.sizingOptions = []
-        hosting.frame = visibleRectInWindow
-        content.addSubview(hosting)
-        glass.contentView = content
-        self.glass = glass
-        applyTheme()
-        content.onAppearance = { [weak self] in self?.applyTheme() }
         self.hosting = hosting
+        layoutHosting()
 
         container.wantsLayer = true
-        container.addSubview(glass)
+        container.addSubview(hosting)
         panel.contentView = container
         return panel
     }
