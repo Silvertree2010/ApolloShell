@@ -29,6 +29,7 @@ final class StatusPopout {
     var screenRect: (CGRect) -> NSRect? = { _ in nil }
     /// Fenster der Leiste, in dem das Popout liegt.
     weak var hostWindow: NSWindow?
+    var lead: () -> CGFloat = { 0 }
     /// Leistenfenster verbreitern (`true`) oder wieder schmal machen.
     var setExpanded: (Bool) -> Void = { _ in }
     /// Dieses Popout geht gerade auf. Der Verwalter der Leisten schliesst
@@ -253,7 +254,7 @@ final class StatusPopout {
             // Im Glas des Popouts: bleibt offen. `panelFrame` zaehlt ab der
             // rechten Leistenkante, oben = 0.
             let frame = window.frame
-            let inStage = CGPoint(x: point.x - frame.minX - Sidebar.width, y: frame.maxY - point.y)
+            let inStage = CGPoint(x: point.x - frame.minX - lead() - Sidebar.width, y: frame.maxY - point.y)
             if model.panelFrame.contains(inStage) { return }
         }
         // Auf ein Statussymbol: das erledigt dessen Knopf (zu oder wechseln).

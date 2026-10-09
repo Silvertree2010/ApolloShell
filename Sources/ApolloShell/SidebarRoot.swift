@@ -18,6 +18,7 @@ struct SidebarRoot: View {
     let settings: ShellSettingsStore
     let context: BarModuleContext
     let popout: StatusPopoutModel
+    let edges: SidebarEdges
     /// Gemessene Groesse jedes Inhalts: so steht die Zielgroesse schon fest,
     /// bevor die Beule losgeht, und ein spaeter geladener Inhalt (Bluetooth
     /// liest erst nach dem Oeffnen) gleitet auf seine neue Hoehe.
@@ -27,22 +28,24 @@ struct SidebarRoot: View {
         GeometryReader { geometry in
             let size = sizes[popout.shown] ?? CGSize(width: StatusPopoutContent.width(popout.shown), height: 200)
             let open = popout.isOpen
+            let lead = edges.left
+            let h = max(0, geometry.size.height - edges.bottom)
             let top = StatusPopoutPlacement.top(
-                anchorY: popout.anchorY, height: size.height, containerHeight: geometry.size.height
+                anchorY: popout.anchorY, height: size.height, containerHeight: h
             )
             // Geschlossen: Breite 0 auf Hoehe des Symbols, also nur Leiste.
             let bulge = CGRect(
-                x: Sidebar.width,
+                x: lead + Sidebar.width,
                 y: open ? top : popout.anchorY - StatusPopoutLayout.seedHeight / 2,
                 width: open ? size.width : 0,
                 height: open ? size.height : StatusPopoutLayout.seedHeight
             )
             ZStack(alignment: .topLeading) {
                 Color.clear
-                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: Sidebar.width, bulge: bulge)))
+                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: lead + Sidebar.width, bulge: bulge)))
                 SidebarContent(settings: settings, context: context)
-                    .frame(width: Sidebar.width)
-                    .frame(maxHeight: .infinity)
+                    .frame(width: Sidebar.width, height: h)
+                    .padding(.leading, lead)
                 popoutContent(size: size, top: top, bulge: bulge, open: open)
             }
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
@@ -68,7 +71,7 @@ struct SidebarRoot: View {
                     .fixedSize()
                     .onGeometryChange(for: CGSize.self) { $0.size } action: { sizes[kind] = $0 }
                     .frame(width: size.width, height: size.height, alignment: .topLeading)
-                    .offset(x: Sidebar.width, y: top)
+                    .offset(x: bulge.minX, y: top)
                     .opacity(active ? 1 : 0)
                     .animation(active ? StatusPopoutMotion.fadeIn : StatusPopoutMotion.fadeOut, value: active)
                     .allowsHitTesting(active)

@@ -12,6 +12,7 @@ final class SidebarScreen {
     /// Detailfenster der Statuskapsel (WLAN, Bluetooth, Akku). Liegt im
     /// Fenster dieser Leiste und macht es breiter, solange es offen ist.
     private let popout = StatusPopout()
+    private let edges = SidebarEdges()
     /// Welcher Bildschirm das ist - wird bei jedem Umbau aufgefrischt.
     private(set) var info: ScreenInfo
     private var frame: NSRect
@@ -33,7 +34,7 @@ final class SidebarScreen {
         // nur im selben GlassEffectContainer verschmilzt das Popout mit der
         // Leiste.
         let hosting = FirstMouseHostingView(
-            rootView: SidebarRoot(settings: settings, context: context, popout: popout.model).shellTheme()
+            rootView: SidebarRoot(settings: settings, context: context, popout: popout.model, edges: edges).shellTheme()
         )
         // Ohne das bestimmt die Ansicht die Fenstergroesse mit und kaempft mit
         // `layout()`, sobald das Fenster fuer ein Popout breiter wird.
@@ -45,6 +46,7 @@ final class SidebarScreen {
         hosting.layer?.isOpaque = false
         panel.contentView = hosting
         popout.hostWindow = panel
+        popout.lead = { [edges] in edges.left }
         popout.setExpanded = { [weak self] in self?.setExpanded($0) }
         popout.onOpen = { [weak self] in
             guard let self else { return }
@@ -128,14 +130,25 @@ final class SidebarScreen {
     /// Unterkante der Menueleiste. Bildschirme ohne Menueleiste haben dort
     /// keinen Abzug, dann reicht die Leiste bis ganz nach oben.
     private func layout() {
-        let width = expanded ? StatusPopout.expandedWidth : Sidebar.width
-        let rect = NSRect(x: frame.minX, y: frame.minY, width: width, height: visibleTop - frame.minY)
+        let e = SidebarBleed.edges(screen: frame, others: NSScreen.screens.map(\.frame))
+        if edges.left != e.left { edges.left = e.left }
+        if edges.bottom != e.bottom { edges.bottom = e.bottom }
+        let width = (expanded ? StatusPopout.expandedWidth : Sidebar.width) + e.left
+        let rect = NSRect(x: frame.minX - e.left, y: frame.minY - e.bottom, width: width,
+                          height: visibleTop - frame.minY + e.bottom)
         lastFrame = rect
         // Mit dem echten Panelrahmen vergleichen, nicht mit `lastFrame`: beim
         // Umstecken verschiebt macOS Fenster auch selbst.
         guard panel.frame != rect else { return }
         panel.setFrame(rect, display: true)
     }
+}
+
+@MainActor
+@Observable
+final class SidebarEdges {
+    var left: CGFloat = 0
+    var bottom: CGFloat = 0
 }
 
 /// Randloses Panel, das nie Fokus nimmt.
@@ -155,7 +168,8 @@ final class SidebarScreen {
 /// - `canHide = false`: "Andere ausblenden" soll sie nicht verschwinden lassen.
 final class SidebarPanel: ShellPanel {
     init() {
-        super.init(level: .floating, behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle], deferred: false)
+        super.init(level: .floating, behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle], mayLeaveScreen: true,
+                   deferred: false)
         canHide = false
         becomesKeyOnlyIfNeeded = true
     }
