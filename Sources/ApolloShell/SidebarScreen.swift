@@ -111,6 +111,29 @@ final class SidebarScreen {
     /// kann waehrend Mission Control flackern. (Die erste Fassung tat das,
     /// weil Overlay-Panels nach Space-Wechseln gelegentlich verloren gingen;
     /// geht sie trotz `isVisible` verloren, ist hier die Stelle dafuer.)
+    func arrive(after d: Double) {
+        guard let v = panel.contentView, let l = v.layer else { return }
+        panel.alphaValue = 0
+        DispatchQueue.main.asyncAfter(deadline: .now() + d) { [weak self] in
+            guard let self else { return }
+            let rm = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            if !rm {
+                let a = CASpringAnimation(keyPath: "transform.translation.x")
+                a.fromValue = -60
+                a.toValue = 0
+                a.damping = 22
+                a.stiffness = 170
+                a.mass = 1
+                a.duration = a.settlingDuration
+                l.add(a, forKey: "arrive")
+            }
+            NSAnimationContext.runAnimationGroup { c in
+                c.duration = rm ? 0.2 : 0.35
+                self.panel.animator().alphaValue = self.isHiddenForFullscreen ? 0 : 1
+            }
+        }
+    }
+
     private func showIfNeeded() {
         guard lastFrame != nil, !panel.isVisible else { return }
         panel.orderFrontRegardless()

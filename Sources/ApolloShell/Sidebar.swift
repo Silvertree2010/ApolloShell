@@ -157,6 +157,10 @@ final class Sidebar {
     /// bleibt alles stehen, statt alles abzureissen und gleich wieder
     /// aufzubauen. Kommen sie zurueck, meldet sich
     /// didChangeScreenParametersNotification und es geht hier weiter.
+    func arrive() {
+        for (i, b) in bars.values.enumerated() { b.arrive(after: 0.25 + Double(i) * 0.08) }
+    }
+
     private func rebuild() {
         let settings = settings
         let context = context!

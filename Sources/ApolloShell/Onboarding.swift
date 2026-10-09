@@ -20,7 +20,7 @@ import SwiftUI
 /// und nicht `windowWillClose` (kommt auch beim Beenden).
 @MainActor
 final class Onboarding: NSObject, NSWindowDelegate {
-    static let size = NSSize(width: 620, height: 560)
+    static let size = NSSize(width: 680, height: 600)
     private static let watcher = "onboarding"
 
     private let state = OnboardingState()
@@ -30,6 +30,7 @@ final class Onboarding: NSObject, NSWindowDelegate {
     private let permissions: OnboardingPermissions
     private var window: NSWindow?
     private var previousApp: NSRunningApplication?
+    var onComplete: () -> Void = {}
 
     init(settings: ShellSettingsStore, hotKeys: HotKeyCenter, autostart: OnboardingAutostartModel,
          permissions: OnboardingPermissions) {
@@ -43,7 +44,9 @@ final class Onboarding: NSObject, NSWindowDelegate {
     func show() {
         let window = self.window ?? makeWindow()
         if !window.isVisible {
+            state.fwd = true
             state.step = .welcome
+            state.first = !settings.settings.onboarding.completed
             autostart.refresh()
             let front = NSWorkspace.shared.frontmostApplication
             previousApp = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front
@@ -52,6 +55,7 @@ final class Onboarding: NSObject, NSWindowDelegate {
         permissions.watch(true, by: Self.watcher)
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
     }
 
     private func makeWindow() -> NSWindow {
@@ -97,7 +101,9 @@ final class Onboarding: NSObject, NSWindowDelegate {
     }
 
     private func markCompleted() {
-        if !settings.settings.onboarding.completed { settings.settings.onboarding.completed = true }
+        guard !settings.settings.onboarding.completed else { return }
+        settings.settings.onboarding.completed = true
+        onComplete()
     }
 }
 
@@ -105,6 +111,13 @@ final class Onboarding: NSObject, NSWindowDelegate {
 @Observable
 final class OnboardingState {
     var step: OnboardingStep = .welcome
+    var fwd = true
+    var first = false
+
+    func go(_ s: OnboardingStep) {
+        fwd = s.rawValue > step.rawValue
+        step = s
+    }
 }
 
 /// Die Einfuehrung selbst: ein Schritt pro Seite, unten Überspringen, Punkte,
@@ -122,15 +135,19 @@ struct OnboardingView: View {
             ZStack(alignment: .top) {
                 page(state.step)
                     .id(state.step)
-                    .transition(.opacity)
+                    .padding(.horizontal, 44)
+                    .transition(.asymmetric(
+                        insertion: .offset(x: state.fwd ? 40 : -40).combined(with: .opacity),
+                        removal: .offset(x: state.fwd ? -40 : 40).combined(with: .opacity)
+                    ))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(.horizontal, 44)
             .padding(.top, 40)
+            .clipped()
             footer
         }
         .frame(width: Onboarding.size.width, height: Onboarding.size.height)
-        .animation(.easeInOut(duration: 0.2), value: state.step)
+        .animation(.smooth(duration: 0.32), value: state.step)
     }
 
     @ViewBuilder private func page(_ step: OnboardingStep) -> some View {
@@ -138,7 +155,7 @@ struct OnboardingView: View {
         case .welcome: OnboardingWelcomePage()
         case .permissions: OnboardingPermissionsPage(permissions: permissions)
         case .hotKeys: OnboardingHotKeysPage(store: store, hotKeys: hotKeys)
-        case .finish: OnboardingFinishPage(store: store, autostart: autostart)
+        case .finish: OnboardingFinishPage(store: store, autostart: autostart, first: state.first)
         }
     }
 
@@ -151,13 +168,14 @@ struct OnboardingView: View {
             }
             Spacer()
             if let previous = state.step.previous {
-                Button("Back") { state.step = previous }
+                Button("Back") { state.go(previous) }
                     .controlSize(.large)
+                    .keyboardShortcut(.leftArrow, modifiers: .command)
             }
             Button {
-                if let next = state.step.next { state.step = next } else { onFinish() }
+                if let next = state.step.next { state.go(next) } else { onFinish() }
             } label: {
-                Text(state.step.primaryButton)
+                Text(state.step.isLast && state.first ? String(localized: "Start ApolloShell") : state.step.primaryButton)
                     .frame(minWidth: 72)
             }
             .controlSize(.large)
@@ -261,38 +279,50 @@ struct OnboardingFootnote: View {
 // MARK: - Seiten
 
 struct OnboardingWelcomePage: View {
-    private let features: [(symbol: String, tint: Color, title: String, text: String)] = [
-        ("sidebar.left", .blue, String(localized: "Bar"), String(localized: "Spaces, Dock, clock and status on the left edge")),
-        ("magnifyingglass", .purple, "Launcher", String(localized: "Search and open apps – with a keyboard shortcut")),
-        ("square.grid.2x2.fill", .indigo, "Dashboard", String(localized: "Weather, calendar, media and performance")),
-        ("slider.horizontal.3", .green, String(localized: "Quick Actions"), String(localized: "Keep Awake, sound and quick toggles, bottom right")),
+    private let fs: [(sym: String, tint: Color, title: String, text: String)] = [
+        ("sidebar.left", .blue, String(localized: "Bar"), String(localized: "Spaces, clock and status icons on the left edge. Hover an icon for Wi-Fi, sound or Bluetooth.")),
+        ("dock.rectangle", .orange, "Dock", String(localized: "Your apps in the bar. With many apps, related ones share a group.")),
+        ("magnifyingglass", .purple, "Launcher", String(localized: "Apps and files, = for sums, > for actions, : for the clipboard.")),
+        ("square.grid.2x2.fill", .indigo, "Dashboard", String(localized: "Weather, calendar, media and performance from the top edge.")),
+        ("slider.horizontal.3", .green, String(localized: "Quick Actions"), String(localized: "Keep Awake, sound and toggles from the bottom right corner.")),
+        ("gearshape.fill", .gray, "Nexus", String(localized: "Every setting, theme and shortcut in one window.")),
     ]
 
+    @State private var on = false
+
     var body: some View {
-        VStack(spacing: 26) {
+        VStack(spacing: 24) {
             OnboardingHeader(
                 symbol: "sidebar.left", tint: .indigo, title: OnboardingStep.welcome.title,
-                text: String(localized: "A desktop shell for macOS modelled on Caelestia. It complements the Mac instead of replacing it – everything can be set up in Nexus.")
+                text: String(localized: "A desktop shell for macOS modelled on Caelestia. It sits on top of the Mac instead of replacing it. The next steps set it up; the shell starts when you are done.")
             )
-            VStack(alignment: .leading, spacing: 16) {
-                ForEach(features, id: \.title) { feature in
-                    HStack(spacing: 14) {
-                        Image(systemName: feature.symbol)
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundStyle(feature.tint)
-                            .frame(width: 34)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(feature.title)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                ForEach(Array(fs.enumerated()), id: \.offset) { i, f in
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: f.sym)
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(f.tint)
+                            .frame(width: 26, height: 22)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(f.title)
                                 .fontWeight(.semibold)
-                            Text(feature.text)
-                                .font(.callout)
+                            Text(f.text)
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
+                        Spacer(minLength: 0)
                     }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, minHeight: 84, alignment: .topLeading)
+                    .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .opacity(on ? 1 : 0)
+                    .offset(y: on ? 0 : 8)
+                    .animation(.smooth(duration: 0.4).delay(0.15 + Double(i) * 0.05), value: on)
                 }
             }
-            .frame(maxWidth: 400, alignment: .leading)
         }
+        .onAppear { on = true }
     }
 }
 
@@ -350,8 +380,9 @@ struct OnboardingHotKeysPage: View {
 }
 
 struct OnboardingFinishPage: View {
-    let store: ShellSettingsStore
+    @Bindable var store: ShellSettingsStore
     let autostart: OnboardingAutostartModel
+    let first: Bool
 
     var body: some View {
         VStack(spacing: 22) {
@@ -362,6 +393,19 @@ struct OnboardingFinishPage: View {
             VStack(spacing: 8) {
                 OnboardingCard {
                     OnboardingAutostartToggle(model: autostart)
+                    Divider()
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Hide Apple's Dock")
+                            Text("While ApolloShell runs; it comes back when you quit")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 12)
+                        Toggle("Hide Apple's Dock", isOn: $store.settings.appleDockHiding.hideWhileRunning)
+                            .toggleStyle(.switch)
+                            .labelsHidden()
+                    }
                 }
                 if let note = autostart.state.note {
                     OnboardingFootnote(text: note)
@@ -372,6 +416,11 @@ struct OnboardingFinishPage: View {
     }
 
     private var settingsHint: String {
+        let lead = first ? String(localized: "The bar appears on the left once you start. ") : ""
+        return lead + nexusHint
+    }
+
+    private var nexusHint: String {
         guard let key = store.settings.hotKeys.nexus else {
             return String(localized: "Settings live in Nexus – via the gear icon in the Quick Actions panel.")
         }

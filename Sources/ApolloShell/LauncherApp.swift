@@ -81,7 +81,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         themes = ThemeStore(settings: settings)
         let hotKeys = HotKeyCenter(store: settings)
         self.hotKeys = hotKeys
-        appleDockHiding = AppleDockHidingController(settings: settings)
 
         let controller = LauncherController()
         self.controller = controller
@@ -100,6 +99,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let autostart = OnboardingAutostartModel()
         let permissions = OnboardingPermissions()
+        let fresh = OnboardingRule.shouldShow(settings.settings, launcherOnly: false)
+        let onboarding = Onboarding(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions)
+        self.onboarding = onboarding
+        if fresh {
+            onboarding.onComplete = { [weak self] in
+                self?.startShell(autostart: autostart, permissions: permissions, fresh: true)
+            }
+            onboarding.show()
+        } else {
+            startShell(autostart: autostart, permissions: permissions, fresh: false)
+        }
+    }
+
+    private func startShell(autostart: OnboardingAutostartModel, permissions: OnboardingPermissions, fresh: Bool) {
+        guard sidebar == nil, let settings, let hotKeys, let onboarding else { return }
+        appleDockHiding = AppleDockHidingController(settings: settings)
         // Selbstaktualisierung: startet Sparkle nur, wenn diese Installation
         // sich selbst erneuern darf (DMG, nicht Homebrew).
         let updates = UpdateController(settings: settings)
@@ -161,12 +176,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         powerToasts = ToastPowerMonitor(toaster: toaster, settings: settings)
         audioToasts = ToastAudioMonitor(toaster: toaster, settings: settings)
 
-        // Frische Installation: die Einfuehrung erklaert die Freigaben und
-        // fragt dann selbst - die Fensterwache fragt deshalb nicht zusaetzlich.
-        let showOnboarding = OnboardingRule.shouldShow(settings.settings, launcherOnly: false)
         // Haelt Fenster aus dem Streifen der Leiste. Ohne
         // Bedienungshilfen-Freigabe tut sie nichts.
-        let windowGuard = WindowGuard(askForAccess: !showOnboarding)
+        let windowGuard = WindowGuard(askForAccess: !fresh)
         // Blendet die Leiste auf Bildschirmen mit Vollbild-App aus.
         fullscreenMonitor = FullscreenMonitor {
             [weak sidebar, weak toaster, weak dashboard, weak utilities] fullscreenScreens in
@@ -189,16 +201,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             windowGuard?.setBarScreens(Set(screens.map(\.key)), barWidth: Sidebar.width)
         }
 
-        let onboarding = Onboarding(settings: settings, hotKeys: hotKeys, autostart: autostart, permissions: permissions)
-        self.onboarding = onboarding
         nexus.onShowOnboarding = { [weak onboarding] in onboarding?.show() }
-        if showOnboarding { onboarding.show() }
+        if fresh { sidebar.arrive() }
 
         // Abgestuerzt seit dem letzten Mal? Nicht zusammen mit der
         // Einfuehrung - zwei Fenster auf einmal waeren zu viel.
         let crashReporter = CrashReporter(settings: settings)
         self.crashReporter = crashReporter
-        if !showOnboarding { crashReporter.checkAfterLaunch() }
+        if !fresh { crashReporter.checkAfterLaunch() }
     }
 
     /// ApolloShell ein zweites Mal geoeffnet: Nexus zeigen, im
