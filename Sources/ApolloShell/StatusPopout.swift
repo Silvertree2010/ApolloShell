@@ -54,7 +54,6 @@ final class StatusPopout {
     private var hoverOpen: DispatchWorkItem?
     private var hoverClose: DispatchWorkItem?
     private var over: String?
-    private var overPanel = 0
     private var byHover = false
     private var closing = false
 
@@ -84,7 +83,7 @@ final class StatusPopout {
         guard hovered(key, inside) else { return }
         if inside {
             hoverClose?.cancel()
-            if model.isOpen, model.shown == .stack, model.stack?.id == st.id { return }
+            if model.isOpen, !byHover || (model.shown == .stack && model.stack?.id == st.id) { return }
             let fast = model.isOpen && model.shown == .stack
             let w = DispatchWorkItem { [weak self] in
                 guard let self, self.over == key else { return }
@@ -103,7 +102,7 @@ final class StatusPopout {
         guard hovered(key, inside) else { return }
         guard inside else { scheduleHoverClose(); return }
         hoverClose?.cancel()
-        if model.isOpen, model.shown == kind { return }
+        if model.isOpen, !byHover || model.shown == kind { return }
         let fast = model.isOpen
         let w = DispatchWorkItem { [weak self] in
             guard let self, self.over == key, let anchor = self.model.iconFrames[kind]?.midY else { return }
@@ -119,15 +118,25 @@ final class StatusPopout {
     }
 
     private func panelHover(_ inside: Bool) {
-        overPanel = max(0, overPanel + (inside ? 1 : -1))
-        if overPanel > 0 { hoverClose?.cancel() } else { scheduleHoverClose() }
+        if inside { hoverClose?.cancel() } else { scheduleHoverClose() }
+    }
+
+    private func stagePoint(_ p: NSPoint) -> CGPoint? {
+        guard let f = hostWindow?.frame else { return nil }
+        return CGPoint(x: p.x - f.minX - lead() - Sidebar.width, y: f.maxY - p.y)
+    }
+
+    private var pointerOnPanel: Bool {
+        guard let p = stagePoint(NSEvent.mouseLocation) else { return false }
+        let r = model.panelFrame
+        return CGRect(x: r.minX - 8, y: r.minY, width: r.width + 8, height: r.height).contains(p)
     }
 
     private func scheduleHoverClose() {
         guard model.isOpen, byHover else { return }
         hoverClose?.cancel()
         let w = DispatchWorkItem { [weak self] in
-            guard let self, self.over == nil, self.overPanel == 0 else { return }
+            guard let self, self.over == nil, !self.pointerOnPanel else { return }
             self.close()
         }
         hoverClose = w
@@ -195,10 +204,9 @@ final class StatusPopout {
     }
 
     func close() {
-        guard model.isOpen else { return }
         hoverOpen?.cancel()
+        guard model.isOpen else { return }
         hoverClose?.cancel()
-        overPanel = 0
         byHover = false
         generation += 1
         let current = generation
@@ -250,11 +258,9 @@ final class StatusPopout {
 
     private func localClick(_ event: NSEvent) {
         let point = NSEvent.mouseLocation
-        if let window = hostWindow, event.window === window {
+        if let window = hostWindow, event.window === window, let inStage = stagePoint(point) {
             // Im Glas des Popouts: bleibt offen. `panelFrame` zaehlt ab der
             // rechten Leistenkante, oben = 0.
-            let frame = window.frame
-            let inStage = CGPoint(x: point.x - frame.minX - lead() - Sidebar.width, y: frame.maxY - point.y)
             if model.panelFrame.contains(inStage) { return }
         }
         // Auf ein Statussymbol: das erledigt dessen Knopf (zu oder wechseln).
