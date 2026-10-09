@@ -22,6 +22,7 @@ struct HoverTracker: NSViewRepresentable {
 
     final class TrackingView: NSView {
         var onChange: (Bool) -> Void
+        private var inside = false
 
         init(onChange: @escaping (Bool) -> Void) {
             self.onChange = onChange
@@ -38,6 +39,8 @@ struct HoverTracker: NSViewRepresentable {
                 options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
                 owner: self
             ))
+            guard inside, let w = window else { return }
+            if !visibleRect.contains(convert(w.mouseLocationOutsideOfEventStream, from: nil)) { report(false) }
         }
 
         override func mouseEntered(with event: NSEvent) { report(true) }
@@ -48,6 +51,7 @@ struct HoverTracker: NSViewRepresentable {
         /// Enter/Exit-Ereignisse noch verteilt - das stuerzte auf einer
         /// freigegebenen Ansicht ab.
         private func report(_ hovering: Bool) {
+            inside = hovering
             DispatchQueue.main.async { [weak self] in self?.onChange(hovering) }
         }
 
