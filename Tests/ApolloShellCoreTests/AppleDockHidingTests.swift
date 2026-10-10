@@ -7,38 +7,71 @@ struct AppleDockHidingTests {
     @Test("Versteckte Werte")
     func hiddenValues() {
         #expect(AppleDockHiding.hidden == AppleDockPreferenceValues(
-            autohide: true, autohideDelay: 1000, autohideTimeModifier: 0
+            autohide: true, autohideDelay: 1000, autohideTimeModifier: 0,
+            orientation: "left", tilesize: 16, placed: true
         ))
     }
 
     @Test("Original sichern: normaler Ist-Zustand bleibt Original")
     func originalKeepsNormalState() {
         let current = AppleDockPreferenceValues(autohide: false, autohideDelay: 0.5, autohideTimeModifier: 0.5)
-        #expect(AppleDockHiding.originalToSave(current: current) == current)
+        var want = current
+        want.placed = true
+        #expect(AppleDockHiding.originalToSave(current: current) == want)
     }
 
     @Test("Original sichern: teilweise fehlende Schlüssel bleiben Original")
     func originalKeepsPartialState() {
         let current = AppleDockPreferenceValues(autohide: nil, autohideDelay: 0.5, autohideTimeModifier: nil)
-        #expect(AppleDockHiding.originalToSave(current: current) == current)
+        var want = current
+        want.placed = true
+        #expect(AppleDockHiding.originalToSave(current: current) == want)
     }
 
     @Test("Migration: schon versteckt aussehender Ist-Zustand gilt nicht als Original", arguments: [100.0, 1000.0])
     func originalRejectsAlreadyHidden(delay: Double) {
         let current = AppleDockPreferenceValues(autohide: true, autohideDelay: delay, autohideTimeModifier: 0)
-        #expect(AppleDockHiding.originalToSave(current: current) == AppleDockPreferenceValues())
+        #expect(AppleDockHiding.originalToSave(current: current) == AppleDockPreferenceValues(placed: true))
+    }
+
+    @Test("Schon versteckt mit unserer Lage: Lage gilt nicht als Original")
+    func originalDropsOwnPlacement() {
+        let current = AppleDockPreferenceValues(autohide: true, autohideDelay: 1000, autohideTimeModifier: 0,
+                                                orientation: "left", tilesize: 16)
+        #expect(AppleDockHiding.originalToSave(current: current) == AppleDockPreferenceValues(placed: true))
+    }
+
+    @Test("Schon versteckt, eigene Lage: Lage bleibt Original")
+    func originalKeepsUserPlacement() {
+        let current = AppleDockPreferenceValues(autohide: true, autohideDelay: 1000, autohideTimeModifier: 0,
+                                                orientation: "right", tilesize: 48)
+        #expect(AppleDockHiding.originalToSave(current: current)
+            == AppleDockPreferenceValues(orientation: "right", tilesize: 48, placed: true))
+    }
+
+    @Test("Wiederherstellen mit Lage: Position und Grösse zurück")
+    func actionsRestorePlacement() {
+        let target = AppleDockPreferenceValues(autohide: false, orientation: "bottom", tilesize: nil, placed: true)
+        #expect(AppleDockHiding.actions(toReach: target).suffix(2) == [
+            .setString(key: AppleDockHiding.orientationKey, value: "bottom"),
+            .remove(key: AppleDockHiding.tilesizeKey),
+        ])
     }
 
     @Test("Knapp unter der Schwelle gilt noch als Original")
     func originalAcceptsJustBelowThreshold() {
         let current = AppleDockPreferenceValues(autohide: true, autohideDelay: 99.9, autohideTimeModifier: 0)
-        #expect(AppleDockHiding.originalToSave(current: current) == current)
+        var want = current
+        want.placed = true
+        #expect(AppleDockHiding.originalToSave(current: current) == want)
     }
 
     @Test("Fehlende Verzögerung ist kein Hinweis auf schon versteckt")
     func originalKeepsMissingDelay() {
         let current = AppleDockPreferenceValues(autohide: nil, autohideDelay: nil, autohideTimeModifier: nil)
-        #expect(AppleDockHiding.originalToSave(current: current) == current)
+        var want = current
+        want.placed = true
+        #expect(AppleDockHiding.originalToSave(current: current) == want)
     }
 
     @Test("Wiederherstellen: vorhandene Werte setzen, fehlende löschen")
@@ -57,6 +90,8 @@ struct AppleDockHidingTests {
             .setBool(key: AppleDockHiding.autohideKey, value: true),
             .setDouble(key: AppleDockHiding.autohideDelayKey, value: 1000),
             .setDouble(key: AppleDockHiding.autohideTimeModifierKey, value: 0),
+            .setString(key: AppleDockHiding.orientationKey, value: "left"),
+            .setDouble(key: AppleDockHiding.tilesizeKey, value: 16),
         ])
     }
 

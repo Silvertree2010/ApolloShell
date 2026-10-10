@@ -176,9 +176,9 @@ final class SidebarEdges {
 
 /// Randloses Panel, das nie Fokus nimmt.
 ///
-/// - Ebene `.floating`: ueber normalen Fenstern, unter Dock (20) und
-///   Menueleiste (24). Weil die Leiste unter der Menueleiste endet, kommen
-///   sich die beiden nicht in die Quere.
+/// - Ebene knapp ueber dem Dock (21): ueber normalen Fenstern und ueber
+///   Apples Dock, das links und klein in Mission Control sonst neben der
+///   Leiste stuende; unter der Menueleiste (24).
 /// - Auf allen Spaces, bleibt beim Wischen zwischen Spaces stehen, nicht in
 ///   Cmd+Tab. Ohne `.fullScreenAuxiliary` - das allein haelt sie auf macOS 26
 ///   aber NICHT aus Vollbild-Spaces heraus (ein Vollbild-Space ist auch ein
@@ -191,7 +191,7 @@ final class SidebarEdges {
 /// - `canHide = false`: "Andere ausblenden" soll sie nicht verschwinden lassen.
 final class SidebarPanel: ShellPanel {
     init() {
-        super.init(level: .floating, behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle], mayLeaveScreen: true,
+        super.init(level: NSWindow.Level(rawValue: NSWindow.Level.dock.rawValue + 1), behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle], mayLeaveScreen: true,
                    deferred: false)
         canHide = false
         becomesKeyOnlyIfNeeded = true

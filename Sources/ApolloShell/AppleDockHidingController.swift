@@ -62,7 +62,15 @@ final class AppleDockHidingController {
     /// Original sichern. Danach in jedem Fall die versteckten Werte
     /// schreiben.
     private func hide(fileURL: URL) {
-        if AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL)) == nil {
+        if var saved = AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL)) {
+            if saved.placed != true {
+                let cur = readCurrent()
+                saved.orientation = cur.orientation
+                saved.tilesize = cur.tilesize
+                saved.placed = true
+                guard write(saved.encoded(), to: fileURL) else { return }
+            }
+        } else {
             let original = AppleDockHiding.originalToSave(current: readCurrent())
             // Ohne Sicherung kein Verstecken: sonst fände das Wiederherstellen
             // nichts, und das Dock bliebe fuer immer weg.
@@ -80,7 +88,7 @@ final class AppleDockHidingController {
         // Sicherung da, aber unlesbar: auf die Vorgaben von macOS zurueck,
         // statt das Dock versteckt zu lassen.
         let original = AppleDockPreferenceValues.load(from: try? Data(contentsOf: fileURL))
-            ?? AppleDockPreferenceValues(autohide: nil, autohideDelay: nil, autohideTimeModifier: nil)
+            ?? AppleDockPreferenceValues(placed: true)
         writeAndApply(original)
         try? FileManager.default.removeItem(at: fileURL)
         log.notice("Apple-Dock wieder eingeblendet")
@@ -93,9 +101,11 @@ final class AppleDockHidingController {
         let modifier = CFPreferencesCopyAppValue(
             AppleDockHiding.autohideTimeModifierKey as CFString, Self.domain
         ) as? NSNumber
+        let o = CFPreferencesCopyAppValue(AppleDockHiding.orientationKey as CFString, Self.domain) as? String
+        let t = CFPreferencesCopyAppValue(AppleDockHiding.tilesizeKey as CFString, Self.domain) as? NSNumber
         return AppleDockPreferenceValues(
             autohide: autohide?.boolValue, autohideDelay: delay?.doubleValue,
-            autohideTimeModifier: modifier?.doubleValue
+            autohideTimeModifier: modifier?.doubleValue, orientation: o, tilesize: t?.doubleValue, placed: true
         )
     }
 
@@ -110,6 +120,8 @@ final class AppleDockHidingController {
                 CFPreferencesSetAppValue(key as CFString, NSNumber(value: value), Self.domain)
             case .setDouble(let key, let value):
                 CFPreferencesSetAppValue(key as CFString, NSNumber(value: value), Self.domain)
+            case .setString(let key, let value):
+                CFPreferencesSetAppValue(key as CFString, value as CFString, Self.domain)
             case .remove(let key):
                 CFPreferencesSetAppValue(key as CFString, nil, Self.domain)
             }
