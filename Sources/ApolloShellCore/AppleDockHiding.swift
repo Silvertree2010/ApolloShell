@@ -13,10 +13,6 @@ public enum AppleDockHiding {
     public static let autohideKey = "autohide"
     public static let autohideDelayKey = "autohide-delay"
     public static let autohideTimeModifierKey = "autohide-time-modifier"
-    public static let orientationKey = "orientation"
-    public static let tilesizeKey = "tilesize"
-    public static let hiddenOrientation = "left"
-    public static let hiddenTilesize: Double = 16
 
     /// Ab dieser Verzoegerung (Sekunden) sieht ein gelesener Ist-Zustand
     /// schon versteckt aus - macOS' eigene Werte liegen weit darunter
@@ -27,8 +23,7 @@ public enum AppleDockHiding {
     public static let alreadyHiddenDelayThreshold: Double = 100
 
     public static let hidden = AppleDockPreferenceValues(
-        autohide: true, autohideDelay: 1000, autohideTimeModifier: 0,
-        orientation: hiddenOrientation, tilesize: hiddenTilesize, placed: true
+        autohide: true, autohideDelay: 1000, autohideTimeModifier: 0
     )
 
     /// Was aus dem gelesenen Ist-Zustand als Original gesichert wird.
@@ -37,20 +32,16 @@ public enum AppleDockHiding {
     /// Schluessel fehlen.
     public static func originalToSave(current: AppleDockPreferenceValues) -> AppleDockPreferenceValues {
         if let delay = current.autohideDelay, delay >= alreadyHiddenDelayThreshold {
-            let ours = current.orientation == hiddenOrientation && current.tilesize == hiddenTilesize
-            return AppleDockPreferenceValues(orientation: ours ? nil : current.orientation,
-                                             tilesize: ours ? nil : current.tilesize, placed: true)
+            return AppleDockPreferenceValues()
         }
-        var v = current
-        v.placed = true
-        return v
+        return current
     }
 
     /// Was am Ende in `com.apple.dock` fuer `target` zu tun ist: Werte
     /// setzen, fehlende Schluessel loeschen (nicht auf einen macOS-Default
     /// zurueckschreiben, der sich einmal aendern koennte).
     public static func actions(toReach target: AppleDockPreferenceValues) -> [AppleDockPreferenceAction] {
-        var a: [AppleDockPreferenceAction] = [
+        [
             target.autohide.map { AppleDockPreferenceAction.setBool(key: autohideKey, value: $0) }
                 ?? .remove(key: autohideKey),
             target.autohideDelay.map { AppleDockPreferenceAction.setDouble(key: autohideDelayKey, value: $0) }
@@ -58,10 +49,6 @@ public enum AppleDockHiding {
             target.autohideTimeModifier.map { AppleDockPreferenceAction.setDouble(key: autohideTimeModifierKey, value: $0) }
                 ?? .remove(key: autohideTimeModifierKey),
         ]
-        guard target.placed == true else { return a }
-        a.append(target.orientation.map { .setString(key: orientationKey, value: $0) } ?? .remove(key: orientationKey))
-        a.append(target.tilesize.map { .setDouble(key: tilesizeKey, value: $0) } ?? .remove(key: tilesizeKey))
-        return a
     }
 }
 
@@ -69,7 +56,6 @@ public enum AppleDockHiding {
 public enum AppleDockPreferenceAction: Equatable, Sendable {
     case setBool(key: String, value: Bool)
     case setDouble(key: String, value: Double)
-    case setString(key: String, value: String)
     case remove(key: String)
 }
 
@@ -79,18 +65,11 @@ public struct AppleDockPreferenceValues: Codable, Equatable, Sendable {
     public var autohide: Bool?
     public var autohideDelay: Double?
     public var autohideTimeModifier: Double?
-    public var orientation: String?
-    public var tilesize: Double?
-    public var placed: Bool?
 
-    public init(autohide: Bool? = nil, autohideDelay: Double? = nil, autohideTimeModifier: Double? = nil,
-                orientation: String? = nil, tilesize: Double? = nil, placed: Bool? = nil) {
+    public init(autohide: Bool? = nil, autohideDelay: Double? = nil, autohideTimeModifier: Double? = nil) {
         self.autohide = autohide
         self.autohideDelay = autohideDelay
         self.autohideTimeModifier = autohideTimeModifier
-        self.orientation = orientation
-        self.tilesize = tilesize
-        self.placed = placed
     }
 
     /// Inhalt von apple-dock.json (das gesicherte Original). Fehlt die
