@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [0.1.5] - 2026-10-09
+## [0.1.5] - 2026-10-10
 
 A feature release: a Dock that stays tidy with any number of apps, a launcher
 that does more than open apps, and a calmer Nexus.
@@ -62,6 +62,10 @@ that does more than open apps, and a calmer Nexus.
 - A status popout opened with a click stays put while the pointer passes
   other status icons; clicking another icon still switches.
 - Status popouts taller than the screen scroll instead of being cut off.
+- **A new introduction.** On a fresh install the bar, Dock hiding and
+  shortcuts wait until the introduction is done, then the bar slides in. The
+  welcome page shows what the shell does, and the last step asks whether to
+  start at login and hide Apple's Dock.
 
 ### Fixed
 
