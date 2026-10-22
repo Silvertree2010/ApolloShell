@@ -297,7 +297,6 @@ struct MediaTab: View {
         .padding(.trailing, 20)
         .padding(.vertical, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background { MediaAmbient(image: model.ambient, id: model.artworkID) }
         .animation(MediaMotion.slowFade, value: model.nowPlaying == nil)
     }
 }
@@ -483,34 +482,6 @@ private struct MediaArtwork<S: Shape>: View {
             .clipShape(shape)
             .animation(MediaMotion.slowFade, value: id)
             .accessibilityHidden(true)
-    }
-}
-
-/// Weichgezeichnetes Cover hinter dem Reiter - ruhiger Ersatz fuer
-/// Caelestias treibende Formen. Das Bild ist schon im Modell
-/// weichgezeichnet (`MediaBlur`), einmal pro Cover; hier wird es nur
-/// gestreckt. Im Hellen schwaecher, sonst leidet die graue Schrift.
-private struct MediaAmbient: View {
-    let image: NSImage?
-    let id: Int
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.shellStyle) private var style
-
-    var body: some View {
-        Color.primary.opacity(0.06)
-            .overlay {
-                if let image {
-                    Image(nsImage: image)
-                        .resizable()
-                        .interpolation(.high)
-                        .scaledToFill()
-                        .opacity(colorScheme == .dark ? 0.45 : 0.35)
-                        .id(id)
-                        .transition(.opacity)
-                }
-            }
-            .clipShape(.rect(cornerRadius: style.cardRadius(28), style: .continuous))
-            .animation(MediaMotion.slowFade, value: id)
     }
 }
 

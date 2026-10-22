@@ -1,5 +1,4 @@
 import AppKit
-import CoreImage
 import ApolloShellCore
 import Observation
 import os
@@ -28,8 +27,6 @@ struct MediaSource: Equatable {
 final class MediaModel {
     private(set) var nowPlaying: MediaNowPlaying?
     private(set) var artwork: NSImage?
-    /// Das Cover klein und weichgezeichnet, als Hintergrund des Reiters.
-    private(set) var ambient: NSImage?
     /// Zaehlt Coverwechsel - die Ansicht blendet damit ueber.
     private(set) var artworkID = 0
     private(set) var source: MediaSource?
@@ -44,6 +41,7 @@ final class MediaModel {
 
     @ObservationIgnored private var state = MediaStreamState()
     @ObservationIgnored private var shownArtworkRevision = 0
+    @ObservationIgnored private var shownArtworkData: Data?
     @ObservationIgnored private var stream: Process?
     @ObservationIgnored private var streamStartedAt = Date()
     /// Jeder Stream-Prozess bekommt eine Nummer; spaete Zeilen oder ein
@@ -78,7 +76,6 @@ final class MediaModel {
         let model = MediaModel(fixedNow: now)
         model.nowPlaying = nowPlaying
         model.artwork = artwork
-        model.ambient = artwork.flatMap(MediaBlur.ambient(from:))
         model.source = source
         model.isUnavailable = isUnavailable
         return model
@@ -145,6 +142,7 @@ final class MediaModel {
         let generation = generation
         // Diffs gelten nur innerhalb eines Prozesses.
         state = MediaStreamState()
+        shownArtworkRevision = -1
 
         // stderr sind laut README nicht-fatale Meldungen; `Subprocess` wirft
         // sie weg, ungelesen liefe die Pipe voll.
@@ -200,9 +198,11 @@ final class MediaModel {
         if next != nowPlaying { nowPlaying = next }
         if state.artworkRevision != shownArtworkRevision {
             shownArtworkRevision = state.artworkRevision
-            artwork = state.artwork.flatMap(NSImage.init(data:))
-            ambient = artwork.flatMap(MediaBlur.ambient(from:))
-            artworkID += 1
+            if state.artwork != shownArtworkData {
+                shownArtworkData = state.artwork
+                artwork = state.artwork.flatMap(NSImage.init(data:))
+                artworkID += 1
+            }
         }
         let nextSource = next?.sourceBundleIdentifier.map(source(for:))
         if nextSource != source { source = nextSource }
@@ -260,28 +260,6 @@ final class MediaModel {
         }
         sources[bundleIdentifier] = source
         return source
-    }
-}
-
-/// Hintergrund aus dem Cover, einmal pro Cover gerechnet: klein skaliert
-/// und weichgezeichnet. Ein SwiftUI-`.blur` mit grossem Radius wuerde bei
-/// jedem Neuzeichnen des Reiters mitlaufen.
-@MainActor
-enum MediaBlur {
-    private static let context = CIContext()
-
-    static func ambient(from image: NSImage) -> NSImage? {
-        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
-        let input = CIImage(cgImage: cgImage)
-        let longest = max(input.extent.width, input.extent.height)
-        guard longest > 0 else { return nil }
-        // 96 px reichen fuer einen weichen Hintergrund und halten den Blur billig.
-        let scale = 96 / longest
-        let small = input.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
-        // Rand fortsetzen, sonst zieht der Blur von aussen Transparenz herein.
-        let blurred = small.clampedToExtent().applyingGaussianBlur(sigma: 8).cropped(to: small.extent)
-        guard let output = context.createCGImage(blurred, from: small.extent) else { return nil }
-        return NSImage(cgImage: output, size: NSSize(width: output.width, height: output.height))
     }
 }
 
