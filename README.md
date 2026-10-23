@@ -16,7 +16,7 @@
   <a href="https://github.com/Silvertree2010/homebrew-apolloshell"><img src="https://img.shields.io/badge/Homebrew-tap-FBB040?logo=homebrew&amp;logoColor=black" alt="Homebrew tap"></a>
   <img src="https://img.shields.io/badge/macOS-26%20Tahoe-000000?logo=apple" alt="macOS 26 Tahoe">
   <img src="https://img.shields.io/badge/Swift-6.2%2B-F05138?logo=swift&amp;logoColor=white" alt="Swift 6.2+">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Silvertree2010/ApolloShell" alt="License: MPL 2.0"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Silvertree2010/ApolloShell" alt="License: AGPL-3.0"></a>
   <a href="https://www.producthunt.com/products/apolloshell"><img src="https://img.shields.io/badge/Product%20Hunt-ApolloShell-DA552F?logo=producthunt&amp;logoColor=white" alt="ApolloShell on Product Hunt"></a>
 </p>
 
@@ -209,29 +209,27 @@ Full notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 ## AI disclosure
 
 <img src="https://img.shields.io/badge/Core-written%20by%20humans-2EA44F" alt="Core written by humans">
-<img src="https://img.shields.io/badge/Refactored%20with-Claude%20Fable%205.1-D97757?logo=claude&amp;logoColor=white" alt="Refactored with Claude Fable 5.1">
+<img src="https://img.shields.io/badge/Built%20with-Claude%20Opus%205.5%20%7C%20Fable%205.1-D97757?logo=claude&amp;logoColor=white" alt="Built with Claude Opus 5.5 and Fable 5.1">
 
 The core was written by me and two friends in our free time. I do most of
-the work; my friends help out. Since then the code has been refactored
-several times with Claude (Fable 5.1), and we ran large multi-agent bug hunts
-with it.
+the work; my friends help out. Since then we have used Claude (Opus 5.5
+and Fable 5.1) for new features, for several refactors and for large multi-agent bug hunts.
 
 This stays the same for new releases:
 
 | Part | Done by |
 | --- | --- |
-| New features | Us |
+| New features | Us and Claude |
 | Refactoring and bug hunts | Claude |
 | Patch releases (fixes only) | Claude |
 | Commits and code comments | Claude |
 
 ## License
 
-[Mozilla Public License 2.0](LICENSE) © 2026 Silvertree2010. You can use
-ApolloShell in your own work, open or closed; changes to its own files stay
-under the MPL and have to be shared when you distribute them. Versions up to
-0.1.3.1 were released under MIT and stay under MIT. Contributions are
-welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
+[AGPL-3.0](LICENSE) © 2026 Silvertree2010. Changed versions stay under
+the AGPL and their source has to be shared, also when they run as a network
+service. Earlier versions stay under the license they were released with.
+Contributions are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 [releases]: https://github.com/Silvertree2010/ApolloShell/releases/latest
 [caelestia]: https://github.com/caelestia-dots/shell
