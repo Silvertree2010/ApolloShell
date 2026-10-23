@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.6] - 2026-10-23
+
+A small release with one new option and two fixes in the Media tab.
+
+### Added
+
+- **Uninstall ApolloShell.** Nexus > Advanced removes ApolloShell completely:
+  it restores Apple's Dock, removes the lid-closed sleep rule, the login item,
+  its permissions, settings, themes and caches, moves the app to the Trash and
+  quits. Homebrew installs keep the app and show the `brew uninstall` command.
+
+### Fixed
+
+- The Media tab sometimes kept the cover of an earlier track after reopening
+  the Dashboard.
+
+### Changed
+
+- The Media tab no longer draws a blurred cover behind it, so it fits every
+  theme.
+
 ## [0.1.5] - 2026-10-10
 
 A feature release: a Dock that stays tidy with any number of apps, a launcher
