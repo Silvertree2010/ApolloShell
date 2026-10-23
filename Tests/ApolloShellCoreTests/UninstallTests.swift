@@ -28,5 +28,6 @@ struct UninstallTests {
     @Test("tccutil setzt nur die eigenen Freigaben zurueck")
     func tcc() {
         #expect(Uninstall.tccArguments() == ["reset", "All", AppIdentity.bundleID])
+        #expect(Uninstall.defaultsArguments() == ["delete", AppIdentity.bundleID])
     }
 }

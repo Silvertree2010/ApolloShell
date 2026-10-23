@@ -3,6 +3,11 @@ import Foundation
 public enum Uninstall {
     public static let tccutil = "/usr/bin/tccutil"
     public static let brewCommand = "brew uninstall apolloshell"
+    public static let defaults = "/usr/bin/defaults"
+
+    public static func defaultsArguments(id: String = AppIdentity.bundleID) -> [String] {
+        ["delete", id]
+    }
 
     public static func tccArguments(id: String = AppIdentity.bundleID) -> [String] {
         ["reset", "All", id]

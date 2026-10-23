@@ -13,12 +13,15 @@ enum Uninstaller {
     }
 
     private static func reset() {
-        if Subprocess.launch(Uninstall.tccutil, Uninstall.tccArguments(), onExit: { _ in finish() }) == nil { finish() }
+        if Subprocess.launch(Uninstall.tccutil, Uninstall.tccArguments(), onExit: { _ in prefs() }) == nil { prefs() }
+    }
+
+    private static func prefs() {
+        if Subprocess.launch(Uninstall.defaults, Uninstall.defaultsArguments(), onExit: { _ in finish() }) == nil { finish() }
     }
 
     private static func finish() {
         try? SMAppService.mainApp.unregister()
-        UserDefaults.standard.removePersistentDomain(forName: AppIdentity.bundleID)
         let fm = FileManager.default
         for u in Uninstall.paths(home: fm.homeDirectoryForCurrentUser) { try? fm.removeItem(at: u) }
         if kind == .disk, Bundle.main.bundleURL.pathExtension == "app" {
