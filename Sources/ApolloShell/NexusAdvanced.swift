@@ -29,6 +29,7 @@ struct NexusAdvancedSections: View {
     @State private var pendingImport: ShellSettings?
     @State private var importFailed = false
     @State private var askReset = false
+    @State private var askRemove = false
 
     var body: some View {
         Section {
@@ -63,6 +64,17 @@ struct NexusAdvancedSections: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This cannot be undone. Export your settings first if you might want them back.")
+        }
+        Section {
+            Button("Uninstall ApolloShell…", role: .destructive) { askRemove = true }
+        }
+        .alert("Uninstall ApolloShell?", isPresented: $askRemove) {
+            Button("Uninstall", role: .destructive) { Uninstaller.run() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(Uninstaller.kind == .homebrew
+                 ? "Removes all settings, themes, data and permissions, restores Apple's Dock and quits. Then run “\(Uninstall.brewCommand)” in Terminal."
+                 : "Removes all settings, themes, data and permissions, restores Apple's Dock, moves the app to the Trash and quits.")
         }
         .alert("Import these settings?", isPresented: Binding(get: { pendingImport != nil }, set: { if !$0 { pendingImport = nil } })) {
             Button("Import", role: .destructive) {

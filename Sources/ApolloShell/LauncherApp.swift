@@ -223,6 +223,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func prepareUninstall() {
+        appleDockHiding?.terminate()
+        appleDockHiding = nil
+        controller?.close()
+        dashboard?.shutdown()
+        utilities?.shutdown()
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         // Das Dock zuerst: geht schnell, und `utilities.shutdown()` wartet
         // womoeglich auf eine Administrator-Frage. Bricht launchd das Ende
