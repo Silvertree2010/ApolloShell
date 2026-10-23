@@ -34,7 +34,7 @@
 	<key>NSAppleEventsUsageDescription</key>
 	<string>ApolloShell steuert System Events für Abmelden, Neustart und Ausschalten im Sitzungsmenü.</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>© 2026 Silvertree2010 · MIT License</string>
+	<string>© 2026 Silvertree2010 · AGPL-3.0</string>
 	<key>SUAutomaticallyUpdate</key>
 	<true/>
 	<key>SUEnableAutomaticChecks</key>
