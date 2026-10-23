@@ -80,5 +80,5 @@ scripts/make-dmg.sh
 - For visible changes, add a before/after screenshot.
 - Update `CHANGELOG.md` under *Unreleased*.
 
-By contributing, you agree that your contributions are licensed under the MIT
-License of this project.
+By contributing, you agree that your contributions are licensed under the GNU
+Affero General Public License v3.0 of this project.
