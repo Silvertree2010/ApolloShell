@@ -11,8 +11,9 @@ A patch on 0.1.6 with two options for the bar, both asked for by users.
 ### Added
 
 - **The bar can sit on the right.** Nexus > Bar > Placement > Position. The
-  status popouts open to the left, and the desktop clock moves to the
-  bottom-left corner.
+  status popouts open to the left, and the panels that used to slide in from
+  the right edge (Quick Actions, the power menu, the volume and brightness
+  display, notifications) and the desktop clock move to the left side.
 - **Keep Windows Clear can be turned off.** Nexus > Bar > Placement. When it
   is off, ApolloShell no longer moves windows out from under the bar, so it
   works with window managers that place windows themselves, such as tiling

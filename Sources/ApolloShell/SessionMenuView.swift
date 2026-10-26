@@ -7,6 +7,7 @@ struct SessionMenuView: View {
     @Bindable var model: SessionMenuModel
     @FocusState private var focused: Bool
     @Environment(\.shellStyle) private var style
+    @Environment(\.drawerMirrored) private var mirrored
 
     /// Bringt das Theme ein eigenes Emblem mit?
     private var emblemFromTheme: Bool {
@@ -56,10 +57,10 @@ struct SessionMenuView: View {
             }
         }
         .padding(.vertical, SessionMenu.padding)
-        .padding(.leading, SessionMenu.padding)
-        // Rechts nur der schmale Kantenabstand; der Teil des Fensters, der
-        // ueber den Bildschirmrand ragt, liegt ausserhalb dieser Ansicht.
-        .padding(.trailing, SessionMenu.edgePadding)
+        .padding(.leading, mirrored ? SessionMenu.edgePadding : SessionMenu.padding)
+        // Zur Kante hin nur der schmale Kantenabstand; der Teil des Fensters,
+        // der ueber den Bildschirmrand ragt, liegt ausserhalb dieser Ansicht.
+        .padding(.trailing, mirrored ? SessionMenu.padding : SessionMenu.edgePadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .focusable()
         .focusEffectDisabled()

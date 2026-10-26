@@ -7,6 +7,8 @@ enum GlassLook {
 @Observable @MainActor
 final class PanelInset {
     var e = EdgeInsets()
+    /// Das Kantenfenster sitzt gespiegelt am linken Rand.
+    var m = false
 }
 
 struct PanelRoot<C: View>: View {
@@ -15,7 +17,8 @@ struct PanelRoot<C: View>: View {
     let c: C
 
     var body: some View {
-        c.padding(ins.e)
+        c.environment(\.drawerMirrored, ins.m)
+            .padding(ins.e)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .modifier(PanelGlass(r: r))
     }
@@ -42,5 +45,17 @@ private struct PanelGlass: ViewModifier {
                 b
             }
         }
+    }
+}
+
+private struct DrawerMirroredKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Kantenfenster am linken statt am rechten Rand (Leiste rechts).
+    var drawerMirrored: Bool {
+        get { self[DrawerMirroredKey.self] }
+        set { self[DrawerMirroredKey.self] = newValue }
     }
 }

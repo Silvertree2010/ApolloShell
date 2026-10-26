@@ -34,13 +34,14 @@ enum DrawerMotion {
 
     /// Zu-Zustand der sublayerTransform.
     @MainActor
-    func closedTransform(edge: DrawerEdge, size: NSSize, topInset: CGFloat, container: NSView) -> CATransform3D {
+    func closedTransform(edge: DrawerEdge, size: NSSize, topInset: CGFloat, mirrored: Bool,
+                         container: NSView) -> CATransform3D {
         switch self {
         case .slide:
             if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion { return CATransform3DIdentity }
             switch edge {
             case .top: return CATransform3DMakeTranslation(0, size.height + topInset + 5, 0)
-            case .right: return CATransform3DMakeTranslation(size.width + 5, 0, 0)
+            case .right: return CATransform3DMakeTranslation((mirrored ? -1 : 1) * (size.width + 5), 0, 0)
             case .bottomRight, .bottom: return CATransform3DMakeTranslation(0, -(size.height + 5), 0)
             }
         case .grow:
@@ -200,6 +201,9 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     private var builtScrim: ScrimWindow?
     private var hosting: NSView?
     private let ins = PanelInset()
+    /// Rechte Kante, aber dort steht die Leiste: an den linken Rand
+    /// gespiegelt. Gilt fuer den Bildschirm aus `applyGeometry`.
+    private var mirrored = false
     private(set) var isOpen = false
     private var generation = 0
 
@@ -383,8 +387,11 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         currentScreen = screen
         let inset = edge == .top ? Self.menuBarInset(screen.screen) : 0
         let wanted = Self.windowSize(for: edge, size: size, radius: cornerRadius, topInset: inset)
-        guard inset != topInset || container.frame.size != wanted else { return }
+        let m = mirrors(on: screen)
+        guard inset != topInset || container.frame.size != wanted || m != mirrored else { return }
         topInset = inset
+        mirrored = m
+        ins.m = m
         container.setFrameSize(wanted)
         layoutHosting()
     }
@@ -464,8 +471,9 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
             return EdgeHoverArea.top(screen: screen.frame, width: size.width, depth: inset + size.height,
                                      margin: cornerRadius, open: open)
         case .bottomRight:
-            return EdgeHoverArea.bottomRight(screen: screen.frame, width: size.width, height: size.height,
-                                             margin: cornerRadius, open: open)
+            let area = EdgeHoverArea.bottomRight(screen: screen.frame, width: size.width, height: size.height,
+                                                 margin: cornerRadius, open: open)
+            return mirrors(on: screen) ? BarSide.mirrored(area, in: screen.frame) : area
         case .right, .bottom:
             return nil
         }
@@ -502,8 +510,19 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         }
     }
 
+    /// Steht auf diesem Bildschirm die Leiste rechts, weichen die rechten
+    /// Kantenfenster an den linken Rand aus.
+    private func mirrors(on screen: ShellScreen) -> Bool {
+        (edge == .right || edge == .bottomRight) && Sidebar.rightScreens.contains(screen.displayID)
+    }
+
     /// Wo der sichtbare Teil im Fenster liegt (AppKit-Koordinaten, y nach oben).
     private var visibleRectInWindow: NSRect {
+        let r = unmirroredVisibleRect
+        return mirrored ? BarSide.mirrored(r, in: container.bounds) : r
+    }
+
+    private var unmirroredVisibleRect: NSRect {
         switch edge {
         case .top: NSRect(x: 0, y: 0, width: size.width, height: size.height)
         case .right: NSRect(x: 0, y: 0, width: size.width, height: size.height)
@@ -512,6 +531,11 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     }
 
     private func windowFrame(on screen: ShellScreen) -> NSRect {
+        let r = unmirroredWindowFrame(on: screen)
+        return mirrors(on: screen) ? BarSide.mirrored(r, in: screen.frame) : r
+    }
+
+    private func unmirroredWindowFrame(on screen: ShellScreen) -> NSRect {
         let frame = screen.frame
         let windowSize = container.frame.size
         switch edge {
@@ -544,7 +568,8 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     private func setSlide(closed: Bool, animated: Bool) {
         guard let layer = container.layer else { return }
         let target = closed
-            ? motion.closedTransform(edge: edge, size: size, topInset: topInset, container: container)
+            ? motion.closedTransform(edge: edge, size: size, topInset: topInset, mirrored: mirrored,
+                                     container: container)
             : CATransform3DIdentity
         let current = layer.presentation()?.sublayerTransform ?? layer.sublayerTransform
 

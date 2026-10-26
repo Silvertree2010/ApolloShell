@@ -126,18 +126,20 @@ final class ToastWindow {
 
     /// Rechts und unten 12 vom Bildschirmrand (wie das Utilities-Panel am
     /// ganzen Bildschirm, nicht am sichtbaren Bereich), hoch genug fuer 4
-    /// Meldungen ueber dem offenen Panel.
+    /// Meldungen ueber dem offenen Panel. Steht dort die Leiste rechts: links,
+    /// ueber dem dorthin ausgewichenen Utilities-Panel.
     private func frame(on screen: ShellScreen) -> NSRect {
         let s = screen.frame
         let margin = CGFloat(ToastLayout.margin)
         let width = CGFloat(ToastLayout.width)
         let stack = CGFloat(ToastLayout.stackHeight(count: ToastQueue.maxVisible))
-        return NSRect(
+        let r = NSRect(
             x: s.maxX - margin - width - Self.overscan,
             y: s.minY + margin - Self.overscan,
             width: width + 2 * Self.overscan,
             height: utilitiesHeight + stack + 2 * Self.overscan
         )
+        return Sidebar.rightScreens.contains(screen.displayID) ? BarSide.mirrored(r, in: s) : r
     }
 
     /// Wo die sichtbaren Meldungen liegen, in Bildschirmkoordinaten. Die

@@ -35,6 +35,10 @@ final class Sidebar {
 
     /// Kante der Leisten, fuer Menues, die neben einem Symbol aufgehen.
     static private(set) var side: BarSide = .left
+    /// Bildschirme mit einer Leiste am rechten Rand. Kantenfenster, die dort
+    /// rechts saessen (Utilities, OSD, Sitzungsmenue, Kurzmeldungen), gehen
+    /// auf die linke Seite.
+    static private(set) var rightScreens: Set<CGDirectDisplayID> = []
 
     private let settings: ShellSettingsStore
     private let log = Logger(category: "sidebar")
@@ -202,6 +206,7 @@ final class Sidebar {
         updateModelDemand()
         laidOutWidth = Sidebar.width
         Sidebar.side = settings.settings.bar.side
+        Sidebar.rightScreens = Sidebar.side == .right ? Set(bars.keys) : []
         log.notice("Leisten auf \(placed.count, privacy: .public) Bildschirm(en)")
         onScreensChange(placed.map(\.info))
     }
