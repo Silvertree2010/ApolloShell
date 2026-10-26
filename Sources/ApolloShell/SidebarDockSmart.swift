@@ -13,7 +13,7 @@ enum DockSmartMenu {
             m.addItem(.separator())
             m.addItem(Item(String(localized: "Remove from Dock")) { model.unpin(pinned) })
         }
-        m.popUp(positioning: nil, at: NSPoint(x: view.bounds.maxX, y: view.bounds.maxY), in: view)
+        m.popUp(positioning: nil, at: NSPoint(x: NativeAppMenu.besideX(m, view), y: view.bounds.maxY), in: view)
     }
 
     static func trash(model: SidebarDockModel, at view: NSView) {
@@ -23,7 +23,7 @@ enum DockSmartMenu {
         e.isEnabled = model.trashFull
         m.autoenablesItems = false
         m.addItem(e)
-        m.popUp(positioning: nil, at: NSPoint(x: view.bounds.maxX, y: view.bounds.maxY), in: view)
+        m.popUp(positioning: nil, at: NSPoint(x: NativeAppMenu.besideX(m, view), y: view.bounds.maxY), in: view)
     }
 
     final class Item: NSMenuItem {

@@ -633,6 +633,7 @@ struct SidebarDock: View {
     /// dort soll nichts eine echte App starten, beenden oder anheften.
     @Environment(\.barPreview) private var preview
     @Environment(\.shellStyle) private var dockStyle
+    @Environment(\.barSide) private var side
 
     private var entries: [SidebarDockModel.Entry] {
         options.showRunning ? model.entries : model.entries.filter(\.pinned)
@@ -734,9 +735,10 @@ struct SidebarDock: View {
                                make: { model.stack(g) }) {
             DockGroupFace(icons: icons, size: size)
         }
-        .overlay(alignment: .leading) {
+        .overlay(alignment: side == .right ? .trailing : .leading) {
             if running {
-                Circle().fill(dockStyle.paint(.dockIndicator, or: Color.primary.opacity(0.65))).frame(width: 4, height: 4).offset(x: -5)
+                Circle().fill(dockStyle.paint(.dockIndicator, or: Color.primary.opacity(0.65))).frame(width: 4, height: 4)
+                    .offset(x: side == .right ? 5 : -5)
             }
         }
         .allowsHitTesting(!preview)
@@ -768,6 +770,7 @@ private struct SidebarDockItem: View {
     /// Dateien werden gerade darueber gezogen: wie im Apple-Dock hervorheben.
     @State private var dropTarget = false
     @Environment(\.shellStyle) private var style
+    @Environment(\.barSide) private var side
 
     var body: some View {
         Image(nsImage: entry.icon)
@@ -796,13 +799,13 @@ private struct SidebarDockItem: View {
                 }
             }
             .animation(.easeOut(duration: 0.18), value: badge)
-            .overlay(alignment: .leading) {
+            .overlay(alignment: side == .right ? .trailing : .leading) {
                 if entry.running {
                     Circle()
                         // Mit Theme: `--apollo-dock-indicator-color`.
                         .fill(style.paint(.dockIndicator, or: Color.primary.opacity(0.65)))
                         .frame(width: 4, height: 4)
-                        .offset(x: -5)
+                        .offset(x: side == .right ? 5 : -5)
                 }
             }
             .overlay {

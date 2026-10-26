@@ -56,8 +56,9 @@ enum NativeAppMenu {
         }
     }
 
-    /// Rechts neben dem Symbol, oben buendig - die Leiste liegt links, und im
-    /// Launcher steht das Menue so neben der Zeile.
+    /// Neben dem Symbol, oben buendig: rechts davon, ausser die Leiste steht
+    /// rechts - dann links davon. Im Launcher steht das Menue rechts neben
+    /// der Zeile.
     static func popUp(_ menu: NSMenu, at view: NSView) {
         // Die Aufrufer warten zuerst auf Apples Dock; bis dahin kann die Zeile
         // weg sein (Hover vorbei, Dock neu gebaut). AppKit wirft dann "View is
@@ -66,7 +67,13 @@ enum NativeAppMenu {
         // an ganz anderer Stelle ab.
         guard view.window != nil else { return }
         let top = view.isFlipped ? view.bounds.minY : view.bounds.maxY
-        menu.popUp(positioning: nil, at: NSPoint(x: view.bounds.maxX + 6, y: top), in: view)
+        menu.popUp(positioning: nil, at: NSPoint(x: besideX(menu, view, gap: 6), y: top), in: view)
+    }
+
+    /// Linke Kante des Menues neben `view`, auf der Seite weg von der Leiste.
+    static func besideX(_ menu: NSMenu, _ view: NSView, gap: CGFloat = 0) -> CGFloat {
+        guard view.window is SidebarPanel, Sidebar.side == .right else { return view.bounds.maxX + gap }
+        return view.bounds.minX - gap - menu.size.width
     }
 }
 

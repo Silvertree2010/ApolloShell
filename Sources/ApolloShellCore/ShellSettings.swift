@@ -111,14 +111,22 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         /// Auf welchen Bildschirmen die Leiste steht (Nexus > Leiste).
         /// Vorgabe fuer alle - auch fuer vorhandene Installationen: alle.
         public var screens: ScreenChoice
+        /// An welcher Bildschirmkante die Leiste steht. Vorgabe links.
+        public var side: BarSide
+        /// Fremde Fenster aus dem Streifen der Leiste schieben (Fensterwache).
+        /// Aus fuer Fenstermanager, die selbst kacheln oder scrollen.
+        public var keepWindowsClear: Bool
 
-        public init(layout: BarLayout = BarPreset.caelestia.layout, screens: ScreenChoice = .all) {
+        public init(layout: BarLayout = BarPreset.caelestia.layout, screens: ScreenChoice = .all,
+                    side: BarSide = .left, keepWindowsClear: Bool = true) {
             self.layout = layout
             self.screens = screens
+            self.side = side
+            self.keepWindowsClear = keepWindowsClear
         }
 
         private enum CodingKeys: String, CodingKey {
-            case layout, screens
+            case layout, screens, side, keepWindowsClear
             // Nur noch gelesen, fuer die Migration.
             case showWorkspaces, showDock, showClock, showStatusIcons, clock
         }
@@ -129,6 +137,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
             // Vor diesen Einstellungen gab es die Schluessel nicht; dann die
             // Vorgaben (alle Bildschirme).
             c.lenient(.screens, into: &screens)
+            c.lenient(.side, into: &side)
+            c.lenient(.keepWindowsClear, into: &keepWindowsClear)
             // Auch eine leere Liste ist eine Leiste (alles entfernt) - nur
             // eine fehlende oder unlesbare faellt auf die alten Schalter zurueck.
             if let layout: BarLayout = c.lenient(.layout) {
@@ -148,6 +158,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(layout, forKey: .layout)
             try c.encode(screens, forKey: .screens)
+            try c.encode(side, forKey: .side)
+            try c.encode(keepWindowsClear, forKey: .keepWindowsClear)
         }
     }
 

@@ -20,6 +20,7 @@ final class SidebarScreen {
     /// Letzter gueltiger Rahmen. Ohne ihn zeigt sich die Leiste nicht.
     private var lastFrame: NSRect?
     private var expanded = false
+    private let settings: ShellSettingsStore
     /// Vordergrund-App ist auf DIESEM Bildschirm im Vollbild.
     private(set) var isHiddenForFullscreen = false
     /// Dieses Popout geht auf - der Verwalter schliesst die anderen.
@@ -29,6 +30,7 @@ final class SidebarScreen {
         info = screen.info
         frame = screen.frame
         visibleTop = screen.visibleFrame.maxY
+        self.settings = settings
 
         // Glas zeichnet SwiftUI (`SidebarRoot`), nicht NSGlassEffectView:
         // nur im selben GlassEffectContainer verschmilzt das Popout mit der
@@ -47,6 +49,7 @@ final class SidebarScreen {
         panel.contentView = hosting
         popout.hostWindow = panel
         popout.lead = { [edges] in edges.left }
+        popout.side = { [edges] in edges.side }
         popout.setExpanded = { [weak self] in self?.setExpanded($0) }
         popout.onOpen = { [weak self] in
             guard let self else { return }
@@ -119,7 +122,7 @@ final class SidebarScreen {
             let rm = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
             if !rm {
                 let a = CASpringAnimation(keyPath: "transform.translation.x")
-                a.fromValue = -60
+                a.fromValue = self.edges.side == .right ? 60 : -60
                 a.toValue = 0
                 a.damping = 22
                 a.stiffness = 170
@@ -141,24 +144,27 @@ final class SidebarScreen {
         StickySpace.pin(panel)
     }
 
-    /// Popout offen: Fenster breiter, die Leiste bleibt links 44 breit, der
-    /// Rest ist durchsichtig, bis das Glas hineinwaechst.
+    /// Popout offen: Fenster breiter, die Leiste bleibt an ihrer Kante 44
+    /// breit, der Rest ist durchsichtig, bis das Glas hineinwaechst.
     private func setExpanded(_ expanded: Bool) {
         guard expanded != self.expanded else { return }
         self.expanded = expanded
         layout()
     }
 
-    /// Am linken Rand dieses Bildschirms: unten bis zum Rand, oben bis zur
-    /// Unterkante der Menueleiste. Bildschirme ohne Menueleiste haben dort
-    /// keinen Abzug, dann reicht die Leiste bis ganz nach oben.
+    /// Am linken (oder rechten) Rand dieses Bildschirms: unten bis zum Rand,
+    /// oben bis zur Unterkante der Menueleiste. Bildschirme ohne Menueleiste
+    /// haben dort keinen Abzug, dann reicht die Leiste bis ganz nach oben.
     private func layout() {
-        let e = SidebarBleed.edges(screen: frame, others: NSScreen.screens.map(\.frame))
+        let side = settings.settings.bar.side
+        let e = SidebarBleed.edges(screen: frame, others: NSScreen.screens.map(\.frame), side: side)
+        if edges.side != side { edges.side = side }
         if edges.left != e.left { edges.left = e.left }
         if edges.bottom != e.bottom { edges.bottom = e.bottom }
         let width = (expanded ? StatusPopout.expandedWidth : Sidebar.width) + e.left
-        let rect = NSRect(x: frame.minX - e.left, y: frame.minY - e.bottom, width: width,
+        var rect = NSRect(x: frame.minX - e.left, y: frame.minY - e.bottom, width: width,
                           height: visibleTop - frame.minY + e.bottom)
+        if side == .right { rect = BarSide.mirrored(rect, in: frame) }
         lastFrame = rect
         // Mit dem echten Panelrahmen vergleichen, nicht mit `lastFrame`: beim
         // Umstecken verschiebt macOS Fenster auch selbst.
@@ -170,6 +176,8 @@ final class SidebarScreen {
 @MainActor
 @Observable
 final class SidebarEdges {
+    var side: BarSide = .left
+    /// Ueberstand ueber die Bildschirmkante auf der Seite der Leiste.
     var left: CGFloat = 0
     var bottom: CGFloat = 0
 }

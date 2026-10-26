@@ -35,12 +35,20 @@ public enum WindowClamp {
     /// `minWidth` ist die kleinste Breite, die die App zulaesst (gelernt aus
     /// einer abgelehnten Verkleinerung, sonst 0). Schmaler wird es nie; dann
     /// wird eben nur verschoben und das Fenster reicht weiter nach rechts.
+    ///
+    /// Steht die Leiste rechts (`side`), gilt dasselbe gespiegelt.
     public static func clampedFrame(
         window: CGRect,
         screen: CGRect,
         reservedWidth: CGFloat,
+        side: BarSide = .left,
         minWidth: CGFloat = 0
     ) -> CGRect? {
+        if side == .right {
+            let m = clampedFrame(window: BarSide.mirrored(window, in: screen), screen: screen,
+                                 reservedWidth: reservedWidth, minWidth: minWidth)
+            return m.map { BarSide.mirrored($0, in: screen) }
+        }
         guard reservedWidth > 0, window.width > 0, window.height > 0 else { return nil }
         let limit = screen.minX + reservedWidth
         guard window.minX < limit - tolerance else { return nil }

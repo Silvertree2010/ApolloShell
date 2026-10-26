@@ -33,6 +33,9 @@ final class Sidebar {
         return ThemeStore.shared?.style(dark: dark).barWidth(44) ?? 44
     }
 
+    /// Kante der Leisten, fuer Menues, die neben einem Symbol aufgehen.
+    static private(set) var side: BarSide = .left
+
     private let settings: ShellSettingsStore
     private let log = Logger(category: "sidebar")
 
@@ -67,6 +70,7 @@ final class Sidebar {
     private var fullscreenScreens: Set<CGDirectDisplayID> = []
     private var context: BarModuleContext!
     private var choiceObservation: Task<Void, Never>?
+    private var placementObservation: Task<Void, Never>?
     private var widthObservation: Task<Void, Never>?
     private var appearanceObservation: NSKeyValueObservation?
     /// Breite beim letzten Vermessen der Fenster.
@@ -98,6 +102,17 @@ final class Sidebar {
         choiceObservation = Task { [weak self, settings] in
             for await _ in Observations({ settings.settings.bar.screens }) {
                 self?.rebuild()
+            }
+        }
+        // Andere Kante oder Fensterwache an/aus: Popouts zu (ihre Buehne
+        // haengt an der Kante), neu vermessen und die Wache benachrichtigen.
+        placementObservation = Task { [weak self, settings] in
+            for await _ in Observations({ (settings.settings.bar.side, settings.settings.bar.keepWindowsClear) }) {
+                guard let self else { return }
+                if Sidebar.side != settings.settings.bar.side {
+                    for bar in self.bars.values { bar.closePopout() }
+                }
+                self.rebuild()
             }
         }
         // Die Breite haengt am Theme (beobachtbar) und an Hell/Dunkel (nicht
@@ -186,6 +201,7 @@ final class Sidebar {
 
         updateModelDemand()
         laidOutWidth = Sidebar.width
+        Sidebar.side = settings.settings.bar.side
         log.notice("Leisten auf \(placed.count, privacy: .public) Bildschirm(en)")
         onScreensChange(placed.map(\.info))
     }

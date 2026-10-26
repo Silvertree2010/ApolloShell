@@ -29,6 +29,7 @@ struct NexusBarPage: View {
             NexusPageForm(page: .bar) {
                 entriesSection
                 NexusBarScreensSection(store: store)
+                NexusBarPlacementSection(store: store)
                 NexusSaveWarning(failed: store.saveFailed)
             }
             Divider()
@@ -82,6 +83,29 @@ struct NexusBarPage: View {
         showsGallery = false
         if let id = store.settings.bar.layout.add(kind), BarModule(kind).hasOptions {
             expanded.insert(id)
+        }
+    }
+}
+
+// MARK: - Lage
+
+/// Nexus > Leiste > Lage: linke oder rechte Kante, und ob die Fensterwache
+/// fremde Fenster aus dem Streifen schiebt.
+private struct NexusBarPlacementSection: View {
+    @Bindable var store: ShellSettingsStore
+
+    var body: some View {
+        Section {
+            Picker("Position", selection: $store.settings.bar.side) {
+                Text("Left").tag(BarSide.left)
+                Text("Right").tag(BarSide.right)
+            }
+            .pickerStyle(.segmented)
+            NexusToggle(title: "Keep Windows Clear",
+                        tip: "Moves windows out from under the bar. Turn it off if a window manager arranges your windows, for example a tiling or scrolling one.",
+                        isOn: $store.settings.bar.keepWindowsClear)
+        } header: {
+            Text("Placement")
         }
     }
 }
@@ -422,6 +446,7 @@ struct NexusBarPreview: View {
                                    cornerRadius: 9 / scale, accessibilityLabel: String(localized: "Preview of the Bar")) {
                     SidebarContent(settings: store, context: context)
                         .environment(\.barPreview, true)
+                        .environment(\.barSide, store.settings.bar.side)
                         .frame(width: Sidebar.width, height: barHeight)
                 }
                 Text("Sample Data")

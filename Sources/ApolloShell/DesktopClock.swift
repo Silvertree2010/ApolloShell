@@ -39,9 +39,10 @@ final class DesktopClock {
                 self?.setEnabled(on)
             }
         }
-        // Die Uhr folgt der Bildschirm-Einstellung der Leiste.
+        // Die Uhr folgt der Bildschirm-Einstellung der Leiste und weicht ihr
+        // auf die andere Seite aus.
         choiceObservation = Task { [weak self, settings] in
-            for await _ in Observations({ settings.settings.bar.screens }) {
+            for await _ in Observations({ (settings.settings.bar.screens, settings.settings.bar.side) }) {
                 self?.rebuild()
             }
         }
@@ -70,7 +71,7 @@ final class DesktopClock {
             on: settings.settings.bar.screens,
             make: { _ in DesktopClockWindow(model: model) },
             update: { window, screen in
-                window.layout(on: screen, margin: Self.margin, model: model)
+                window.layout(on: screen, margin: Self.margin, side: settings.settings.bar.side, model: model)
                 window.show()
             },
             remove: { $0.tearDown() }
@@ -84,7 +85,7 @@ final class DesktopClock {
         let all = ShellScreens.current()
         guard !all.isEmpty else { return }
         for screen in ShellScreens.targets(for: settings.settings.bar.screens, among: all) {
-            slots.items[screen.displayID]?.layout(on: screen, margin: Self.margin, model: model)
+            slots.items[screen.displayID]?.layout(on: screen, margin: Self.margin, side: settings.settings.bar.side, model: model)
         }
     }
 
@@ -137,7 +138,8 @@ private final class DesktopClockWindow {
         window.contentView = hosting
     }
 
-    func layout(on screen: ShellScreen, margin: CGFloat, model: DesktopClockModel) {
+    /// Unten in der Ecke gegenueber der Leiste.
+    func layout(on screen: ShellScreen, margin: CGFloat, side: BarSide, model: DesktopClockModel) {
         // An einer frischen Ansicht messen: `hosting` hat sizingOptions = []
         // und meldet deshalb keine eigene Groesse (fittingSize war 0 x 0,
         // die Uhr unsichtbar - gemessen 14.09.).
@@ -146,7 +148,7 @@ private final class DesktopClockWindow {
         // Der View bringt 24 pt Schatten-Rand mit; die 32 pt gelten fuer die Schrift.
         let inset = margin - 24
         window.setFrame(NSRect(
-            x: visible.maxX - size.width - inset,
+            x: side == .right ? visible.minX + inset : visible.maxX - size.width - inset,
             y: visible.minY + inset,
             width: size.width,
             height: size.height

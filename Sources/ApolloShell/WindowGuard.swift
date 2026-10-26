@@ -37,6 +37,10 @@ final class WindowGuard {
     /// So breit ist der Streifen. Das Theme kann die Leiste zur Laufzeit
     /// breiter oder schmaler machen; der Verwalter meldet es mit.
     private var barWidth: CGFloat = 0
+    private var side: BarSide = .left
+    /// Nexus > Leiste > "Keep Windows Clear". Aus: kein Streifen, Fenster
+    /// bleiben, wo sie sind.
+    private var enabled = true
 
     /// `askForAccess`: beim Start die Systemfrage zeigen, falls die Freigabe
     /// fehlt. Aus, solange die Einfuehrung laeuft - die erklaert erst, wozu,
@@ -93,11 +97,14 @@ final class WindowGuard {
     /// Auf welchen Bildschirmen eine Leiste steht und wie breit sie ist.
     /// Danach richtet sich, wo und wie breit der Streifen freigehalten wird;
     /// der Verwalter der Leisten meldet jede Aenderung.
-    func setBarScreens(_ keys: Set<String>, barWidth: CGFloat) {
-        guard keys != barScreenKeys || barWidth != self.barWidth else { return }
+    func setBarScreens(_ keys: Set<String>, barWidth: CGFloat, side: BarSide, enabled: Bool) {
+        guard keys != barScreenKeys || barWidth != self.barWidth || side != self.side || enabled != self.enabled
+        else { return }
         barScreenKeys = keys
         self.barWidth = barWidth
-        log.notice("Streifen (\(Int(barWidth), privacy: .public) pt) freihalten auf \(keys.count, privacy: .public) Bildschirm(en)")
+        self.side = side
+        self.enabled = enabled
+        log.notice("Streifen (\(Int(barWidth), privacy: .public) pt, \(side.rawValue, privacy: .public)) freihalten auf \(enabled ? keys.count : 0, privacy: .public) Bildschirm(en)")
         guard let screens = screensForWorker() else { return }
         worker.screensChanged(screens)
     }
@@ -116,7 +123,8 @@ final class WindowGuard {
             GuardScreen(
                 key: screen.info.key,
                 frame: WindowClamp.flipped(screen.frame, primaryHeight: primaryHeight),
-                reservedWidth: barScreenKeys.contains(screen.info.key) ? barWidth : 0
+                reservedWidth: enabled && barScreenKeys.contains(screen.info.key) ? barWidth : 0,
+                side: side
             )
         }
     }
@@ -170,9 +178,11 @@ struct GuardScreen: Sendable, Equatable {
     /// Rahmen in Bedienungshilfen-Koordinaten (Ursprung oben links am
     /// Hauptbildschirm, y nach unten).
     let frame: CGRect
-    /// So breit ist der freizuhaltende Streifen am linken Rand. 0: dort
+    /// So breit ist der freizuhaltende Streifen am Rand der Leiste. 0: dort
     /// steht keine Leiste, Fenster werden in Ruhe gelassen.
     let reservedWidth: CGFloat
+    /// An welcher Kante der Streifen liegt.
+    let side: BarSide
 }
 
 /// Die eigentliche Fensterwache.
@@ -463,7 +473,7 @@ final class WindowGuardWorker: @unchecked Sendable {
               screens[index].reservedWidth > 0,
               let target = WindowClamp.clampedFrame(
                   window: frame, screen: screens[index].frame,
-                  reservedWidth: screens[index].reservedWidth, minWidth: minWidths[window] ?? 0
+                  reservedWidth: screens[index].reservedWidth, side: screens[index].side, minWidth: minWidths[window] ?? 0
               )
         else { return }
 

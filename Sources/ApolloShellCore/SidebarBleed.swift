@@ -3,7 +3,11 @@ import CoreGraphics
 public enum SidebarBleed {
     public static let depth: CGFloat = 30
 
-    public static func edges(screen: CGRect, others: [CGRect], depth: CGFloat = depth) -> (left: CGFloat, bottom: CGFloat) {
+    public static func edges(screen: CGRect, others: [CGRect], side: BarSide = .left,
+                             depth: CGFloat = depth) -> (left: CGFloat, bottom: CGFloat) {
+        if side == .right {
+            return edges(screen: screen, others: others.map { BarSide.mirrored($0, in: screen) }, depth: depth)
+        }
         let rest = others.filter { $0 != screen }
         func free(_ r: CGRect) -> Bool { !rest.contains { $0.intersects(r) } }
         let left = free(CGRect(x: screen.minX - depth, y: screen.minY, width: depth, height: screen.height)) ? depth : 0

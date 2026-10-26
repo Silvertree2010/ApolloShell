@@ -51,7 +51,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         switch self {
         case .general: String(localized: "Start at login, permissions and file manager.")
         case .hotKeys: String(localized: "Global shortcuts for Launcher, Dashboard, Quick Actions and Nexus.")
-        case .bar: String(localized: "The building blocks of the bar on the left: arrange, add, configure.")
+        case .bar: String(localized: "The building blocks of the bar: arrange, add, configure, and choose its edge.")
         case .utilities: String(localized: "Cards and quick toggles in the Quick Actions panel, bottom right.")
         case .launcher: String(localized: "The pinned apps that appear at the top without a search text.")
         case .dashboard: String(localized: "The Dashboard's tabs and cards: arrange, add, configure. Plus the location for the weather.")

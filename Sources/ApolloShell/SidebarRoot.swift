@@ -41,14 +41,20 @@ struct SidebarRoot: View {
                 width: open ? size.width : 0,
                 height: open ? size.height : StatusPopoutLayout.seedHeight
             )
+            // Rechts: dieselbe Buehne, an der Mitte des Fensters gespiegelt.
+            let right = edges.side == .right
+            let width = geometry.size.width
             ZStack(alignment: .topLeading) {
                 Color.clear
-                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: lead + Sidebar.width, bulge: bulge)))
+                    .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: lead + Sidebar.width, bulge: bulge,
+                                                                    mirrored: right)))
                 SidebarContent(settings: settings, context: context)
                     .frame(width: Sidebar.width, height: h)
-                    .padding(.leading, lead)
-                popoutContent(size: size, top: top, bulge: bulge, open: open)
+                    .offset(x: right ? width - lead - Sidebar.width : lead)
+                popoutContent(size: size, top: top, bulge: bulge, open: open,
+                              x: right ? width - bulge.maxX : bulge.minX)
             }
+            .environment(\.barSide, edges.side)
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
             .animation(StatusPopoutMotion.spatial, value: size)
             // Sichtbarer Teil der Beule ab der rechten Leistenkante, fuer den
@@ -64,7 +70,8 @@ struct SidebarRoot: View {
     /// Alle drei Inhalte sind immer aufgebaut (nur unsichtbar): so ist die
     /// Groesse des naechsten schon gemessen, bevor man wechselt. Sichtbar ist
     /// nur, was die Beule freigibt.
-    private func popoutContent(size: CGSize, top: CGFloat, bulge: CGRect, open: Bool) -> some View {
+    /// `x`: linke Kante der Beule im Fenster (rechts gespiegelt).
+    private func popoutContent(size: CGSize, top: CGFloat, bulge: CGRect, open: Bool, x: CGFloat) -> some View {
         ZStack(alignment: .topLeading) {
             ForEach(StatusPopoutKind.allCases, id: \.self) { kind in
                 let active = open && popout.shown == kind
@@ -77,7 +84,7 @@ struct SidebarRoot: View {
                 .scrollDisabled((sizes[kind]?.height ?? 0) <= size.height)
                 .scrollBounceBehavior(.basedOnSize)
                 .frame(width: size.width, height: size.height, alignment: .topLeading)
-                .offset(x: bulge.minX, y: top)
+                .offset(x: x, y: top)
                 .opacity(active ? 1 : 0)
                 .animation(active ? StatusPopoutMotion.fadeIn : StatusPopoutMotion.fadeOut, value: active)
                 .allowsHitTesting(active)
@@ -88,13 +95,13 @@ struct SidebarRoot: View {
             if open {
                 HoverTracker { popout.onPanelHover($0) }
                     .frame(width: bulge.width + 8, height: bulge.height)
-                    .offset(x: bulge.minX - 8, y: bulge.minY)
+                    .offset(x: edges.side == .right ? x : x - 8, y: bulge.minY)
             }
         }
         .mask(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: StatusPopoutLayout.cornerRadius)
                 .frame(width: bulge.width, height: bulge.height)
-                .offset(x: bulge.minX, y: bulge.minY)
+                .offset(x: x, y: bulge.minY)
         }
     }
 }
@@ -133,6 +140,8 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
 struct SidebarGlassShape: Shape {
     var barWidth: CGFloat
     var bulge: CGRect
+    /// Leiste rechts: der Umriss an der Mitte gespiegelt.
+    var mirrored = false
 
     /// Lage und Groesse der Beule animieren: so gleitet die Form beim
     /// Oeffnen, Wechseln und Schliessen.
@@ -148,6 +157,12 @@ struct SidebarGlassShape: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
+        let path = leftPath(in: rect)
+        guard mirrored else { return path }
+        return path.applying(CGAffineTransform(a: -1, b: 0, c: 0, d: 1, tx: rect.minX + rect.maxX, ty: 0))
+    }
+
+    private func leftPath(in rect: CGRect) -> Path {
         var path = Path()
         guard bulge.width > 0.5, bulge.height > 0.5 else {
             path.addRect(CGRect(x: rect.minX, y: rect.minY, width: barWidth, height: rect.height))

@@ -30,6 +30,7 @@ final class StatusPopout {
     /// Fenster der Leiste, in dem das Popout liegt.
     weak var hostWindow: NSWindow?
     var lead: () -> CGFloat = { 0 }
+    var side: () -> BarSide = { .left }
     /// Leistenfenster verbreitern (`true`) oder wieder schmal machen.
     var setExpanded: (Bool) -> Void = { _ in }
     /// Dieses Popout geht gerade auf. Der Verwalter der Leisten schliesst
@@ -123,7 +124,8 @@ final class StatusPopout {
 
     private func stagePoint(_ p: NSPoint) -> CGPoint? {
         guard let f = hostWindow?.frame else { return nil }
-        return CGPoint(x: p.x - f.minX - lead() - Sidebar.width, y: f.maxY - p.y)
+        let x = side() == .right ? f.maxX - lead() - Sidebar.width - p.x : p.x - f.minX - lead() - Sidebar.width
+        return CGPoint(x: x, y: f.maxY - p.y)
     }
 
     private var pointerOnPanel: Bool {

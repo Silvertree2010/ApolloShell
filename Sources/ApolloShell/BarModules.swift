@@ -16,7 +16,17 @@ private struct BarPreviewKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct BarSideKey: EnvironmentKey {
+    static let defaultValue = BarSide.left
+}
+
 extension EnvironmentValues {
+    /// Kante der Leiste: der Laufpunkt im Dock sitzt auf der Aussenseite.
+    var barSide: BarSide {
+        get { self[BarSideKey.self] }
+        set { self[BarSideKey.self] = newValue }
+    }
+
     /// In der Vorschau von Nexus: keine Maus-Ansichten (Hover, Dock-Klicks,
     /// Ziehen). Die Vorschau ist verkleinert, AppKit-Ansichten machen das
     /// nicht mit - ihre Flaechen laegen neben den Symbolen und reagierten

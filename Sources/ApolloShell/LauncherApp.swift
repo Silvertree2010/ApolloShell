@@ -196,9 +196,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Leiste hat - und erfaehrt jede Aenderung daran (Bildschirm dazu,
         // weg, die Einstellung in Nexus geaendert oder eine neue Breite aus
         // dem Theme).
-        windowGuard.setBarScreens(Set(sidebar.screens.map(\.key)), barWidth: Sidebar.width)
+        let bar = { [settings] in settings.settings.bar }
+        windowGuard.setBarScreens(Set(sidebar.screens.map(\.key)), barWidth: Sidebar.width,
+                                  side: bar().side, enabled: bar().keepWindowsClear)
         sidebar.onScreensChange = { [weak windowGuard] screens in
-            windowGuard?.setBarScreens(Set(screens.map(\.key)), barWidth: Sidebar.width)
+            windowGuard?.setBarScreens(Set(screens.map(\.key)), barWidth: Sidebar.width,
+                                       side: bar().side, enabled: bar().keepWindowsClear)
         }
 
         nexus.onShowOnboarding = { [weak onboarding] in onboarding?.show() }
