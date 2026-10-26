@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.6.1] - 2026-10-26
+
+A patch on 0.1.6 with two options for the bar, both asked for by users.
+
+### Added
+
+- **The bar can sit on the right.** Nexus > Bar > Placement > Position. The
+  status popouts open to the left, and the desktop clock moves to the
+  bottom-left corner.
+- **Keep Windows Clear can be turned off.** Nexus > Bar > Placement. When it
+  is off, ApolloShell no longer moves windows out from under the bar, so it
+  works with window managers that place windows themselves, such as tiling
+  or scrolling ones.
+
 ## [0.1.6] - 2026-10-23
 
 A small release with one new option and two fixes in the Media tab.
