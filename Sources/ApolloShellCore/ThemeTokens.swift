@@ -532,7 +532,7 @@ public extension ThemeTokenCatalog {
         .length("--apollo-bar-radius", 16, max: 48, group: .bar, "Corner radius of the sidebar"),
         .length("--apollo-bar-padding", 10, max: 48, group: .bar, "Space between sidebar edge and its blocks"),
         .length("--apollo-bar-item-spacing", 8, max: 48, group: .bar, "Space between two blocks"),
-        .length("--apollo-bar-blur", 24, max: 64, group: .bar, "Blur behind the sidebar"),
+        .length("--apollo-bar-blur", 24, max: 64, group: .bar, "Blur behind the sidebar when its opacity is below 1"),
 
         // MARK: Dock
         .length("--apollo-dock-icon-size", 26, min: 16, max: 128, group: .dock, "Size of the app icons"),

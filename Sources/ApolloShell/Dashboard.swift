@@ -19,6 +19,7 @@ final class Dashboard {
     private let media = MediaModel()
     private let settings: ShellSettingsStore
     private let drawer: EdgeDrawer<DashboardView>
+    private var hoverObservation: Task<Void, Never>?
 
     /// `settings`: Wetteranbieter (Nexus > Anbieter), Reiter und Karten
     /// (Nexus > Dashboard).
@@ -30,7 +31,11 @@ final class Dashboard {
         // Haengt nicht an Reitern und Karten - das Raster ist immer 839 x 392.
         let size = NSHostingView(rootView: view.shellTheme()).fittingSize
         drawer = EdgeDrawer(edge: .top, size: size, cornerRadius: 25, rootView: view)
-        drawer.opensOnHover = true
+        hoverObservation = Task { [weak self, settings] in
+            for await on in Observations({ settings.settings.features.dashboardHover }) {
+                self?.drawer.opensOnHover = on
+            }
+        }
         drawer.onOpen = { [model, weather, media, settings] in
             let layout = settings.settings.dashboard
             // Ein inzwischen ausgeblendeter Reiter bleibt nicht gewaehlt.

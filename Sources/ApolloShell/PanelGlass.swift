@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum GlassLook {
@@ -57,5 +58,52 @@ extension EnvironmentValues {
     var drawerMirrored: Bool {
         get { self[DrawerMirroredKey.self] }
         set { self[DrawerMirroredKey.self] = newValue }
+    }
+}
+
+struct BackdropBlur: NSViewRepresentable {
+    let radius: Double
+
+    func makeNSView(context: Context) -> BlurView {
+        let v = BlurView()
+        v.blendingMode = .behindWindow
+        v.state = .active
+        v.material = .underWindowBackground
+        return v
+    }
+
+    func updateNSView(_ v: BlurView, context: Context) {
+        v.radius = radius
+    }
+
+    final class BlurView: NSVisualEffectView {
+        var radius: Double = 24 {
+            didSet { if radius != oldValue { apply() } }
+        }
+
+        override func layout() {
+            super.layout()
+            apply()
+        }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            apply()
+        }
+
+        private func apply() {
+            guard let layer else { return }
+            for l in BackdropBlur.layers(layer) where String(describing: type(of: l)).contains("Backdrop") {
+                guard let fs = l.filters as? [NSObject] else { continue }
+                for f in fs where (f.value(forKey: "name") as? String)?.hasPrefix("gaussianBlur") == true {
+                    f.setValue(radius, forKey: "inputRadius")
+                }
+                l.filters = fs
+            }
+        }
+    }
+
+    fileprivate static func layers(_ l: CALayer) -> [CALayer] {
+        [l] + (l.sublayers ?? []).flatMap(layers)
     }
 }

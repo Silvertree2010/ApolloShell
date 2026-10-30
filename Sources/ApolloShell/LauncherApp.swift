@@ -136,7 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sidebar.onPower = { [weak sessionMenu] in sessionMenu?.toggle() }
         LauncherActions.openSession = { [weak sessionMenu] in sessionMenu?.open() }
         ClipboardHistory.shared.start()
-        let osd = OSD()
+        let osd = OSD(settings: settings)
         self.osd = osd
         osdExtras = OSDExtras(osd: osd)
         desktopClock = DesktopClock(settings: settings)
@@ -227,6 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func prepareUninstall() {
+        SystemInputIndicator.setHidden(false)
         appleDockHiding?.terminate()
         appleDockHiding = nil
         controller?.close()

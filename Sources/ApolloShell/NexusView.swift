@@ -55,7 +55,7 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         case .utilities: String(localized: "Cards and quick toggles in the Quick Actions panel, bottom right.")
         case .launcher: String(localized: "The pinned apps that appear at the top without a search text.")
         case .dashboard: String(localized: "The Dashboard's tabs and cards: arrange, add, configure. Plus the location for the weather.")
-        case .desktop: String(localized: "The desktop clock and which events show a toast.")
+        case .desktop: String(localized: "The desktop clock, the OSD, panels that open on hover and which events show a toast.")
         case .themes: String(localized: "The look of the whole shell, from one CSS file.")
         case .about: String(localized: "Version, updates, crash reports and system.")
         }

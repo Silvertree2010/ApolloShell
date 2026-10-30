@@ -194,7 +194,7 @@ Numbers are clamped to the range in the type column.
 | `--apollo-bar-radius` | length (0px–48px) | `16px` |  | Corner radius of the sidebar |
 | `--apollo-bar-padding` | length (0px–48px) | `10px` |  | Space between sidebar edge and its blocks |
 | `--apollo-bar-item-spacing` | length (0px–48px) | `8px` |  | Space between two blocks |
-| `--apollo-bar-blur` | length (0px–64px) | `24px` |  | Blur behind the sidebar |
+| `--apollo-bar-blur` | length (0px–64px) | `24px` |  | Blur behind the sidebar when its opacity is below 1 |
 
 ### Dock
 

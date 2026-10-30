@@ -38,6 +38,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public var theme = ThemeSettings()
     /// Absturzberichte (Nexus > Updates).
     public var crashReports = CrashReportSettings()
+    public var features = Features()
     public var version = ShellSettings.currentVersion
 
     public static let currentVersion = 1
@@ -199,6 +200,30 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
     }
 
+    public struct Features: Codable, Equatable, Sendable {
+        public var osd = true
+        public var replaceSystemOSD = true
+        public var dashboardHover = true
+        public var utilitiesHover = true
+
+        public init(osd: Bool = true, replaceSystemOSD: Bool = true,
+                    dashboardHover: Bool = true, utilitiesHover: Bool = true) {
+            self.osd = osd
+            self.replaceSystemOSD = replaceSystemOSD
+            self.dashboardHover = dashboardHover
+            self.utilitiesHover = utilitiesHover
+        }
+
+        public init(from decoder: any Decoder) throws {
+            self.init()
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            c.lenient(.osd, into: &osd)
+            c.lenient(.replaceSystemOSD, into: &replaceSystemOSD)
+            c.lenient(.dashboardHover, into: &dashboardHover)
+            c.lenient(.utilitiesHover, into: &utilitiesHover)
+        }
+    }
+
     /// Schreibtisch (Caelestia: background).
     public struct Background: Codable, Equatable, Sendable {
         public var desktopClock = true
@@ -273,6 +298,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         theme = c.lenient(.theme) ?? ThemeSettings()
         // Erst ab 0.1.4.1; fehlt er, wird gefragt.
         crashReports = c.lenient(.crashReports) ?? CrashReportSettings()
+        features = c.lenient(.features) ?? Features()
         let v: Int = c.lenient(.version) ?? 0
         version = v
         Self.migrate(&self, from: v)

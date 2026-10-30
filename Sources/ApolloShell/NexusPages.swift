@@ -18,10 +18,24 @@ struct NexusDesktopPage: View {
                 NexusToggle(title: "Desktop Clock",
                             isOn: $store.settings.background.desktopClock)
             }
+            Section("OSD") {
+                NexusToggle(title: "Show OSD", tip: "Volume, brightness, keyboard layout and Caps Lock. Turn off to use another OSD app.",
+                            isOn: $store.settings.features.osd)
+                NexusToggle(title: "Replace macOS OSD", tip: "Handles the volume and brightness keys itself so only one OSD shows. Needs Accessibility. The macOS keyboard layout popup may need a logout to go away.",
+                            isOn: $store.settings.features.replaceSystemOSD)
+                    .disabled(!store.settings.features.osd)
+            }
+            Section("Open on Hover") {
+                NexusToggle(title: "Dashboard", tip: "Opens when the pointer hits the top middle edge.",
+                            isOn: $store.settings.features.dashboardHover)
+                NexusToggle(title: "Quick Actions", tip: "Opens when the pointer hits the bottom corner. Turn off if you use a hot corner there.",
+                            isOn: $store.settings.features.utilitiesHover)
+            }
             NexusToastsPage(store: store)
             NexusRestoreSection(title: "Restore Desktop Defaults",
-                                message: "The desktop clock and all toast events go back to their defaults.") {
+                                message: "The desktop clock, OSD, hover and all toast events go back to their defaults.") {
                 store.settings.background = .init()
+                store.settings.features = .init()
                 store.settings.toasts = .init()
             }
         }

@@ -121,7 +121,14 @@ private struct SidebarGlass<S: Shape>: ViewModifier {
             let fill = style.paintsBar
                 ? style.barFill
                 : AnyShapeStyle(Color(nsColor: .windowBackgroundColor).opacity(GlassLook.fill))
-            let base = content.background(fill, in: shape)
+            let blur = style.value(.barBlur) ?? 24
+            let base = content
+                .background(fill, in: shape)
+                .background {
+                    if style.paintsBar, !style.barIsOpaque, blur > 0 {
+                        BackdropBlur(radius: blur).clipShape(shape)
+                    }
+                }
             if style.glass, !(style.paintsBar && style.barIsOpaque) {
                 base.glassEffect(.clear, in: shape)
             } else {

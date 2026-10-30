@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.7] - 2026-10-30
+
+Fixes and options from user reports.
+
+### Added
+
+- **Replace macOS OSD.** Nexus > Desktop > OSD. ApolloShell now handles the
+  volume and brightness keys itself, so only its own OSD shows instead of both.
+  It also hides the macOS keyboard layout and Caps Lock popup (a logout may be
+  needed for that one). Needs Accessibility; without it both OSDs still show.
+  Shift+Option with the keys moves in quarter steps, like macOS.
+- **The OSD can be turned off.** Nexus > Desktop > OSD > Show OSD, for people
+  who use another OSD app.
+- **Open on hover can be turned off** for the Dashboard and Quick Actions,
+  separately. Nexus > Desktop > Open on Hover. Useful with hot corners or a
+  notch app. The bar buttons and shortcuts keep working.
+
+### Fixed
+
+- `--apollo-bar-blur` had no effect. A translucent bar now blurs what is
+  behind it, with the radius from the theme.
+
 ## [0.1.6.1] - 2026-10-26
 
 A patch on 0.1.6 with two options for the bar, both asked for by users.

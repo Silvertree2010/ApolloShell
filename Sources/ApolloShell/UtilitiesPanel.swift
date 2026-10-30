@@ -19,6 +19,7 @@ final class UtilitiesPanel {
     private let state: UtilitiesLayoutState
     private let drawer: EdgeDrawer<UtilitiesPanelView>
     private var observation: Task<Void, Never>?
+    private var hoverObservation: Task<Void, Never>?
     private var lidObservation: Task<Void, Never>?
     /// Auf oder zu - die Kurzmeldungen weichen dann nach oben aus
     /// (Caelestia haengt sie an `utilities.top`).
@@ -47,7 +48,6 @@ final class UtilitiesPanel {
         // (UtilitiesMetrics), die Ansicht haelt sich daran. Kein Zustand
         // (langer Geraetename, Wach halten an) aendert sie.
         drawer = EdgeDrawer(edge: .bottomRight, size: Self.size(for: layout), cornerRadius: 25, rootView: view)
-        drawer.opensOnHover = true
         drawer.onOpen = { [weak self] in
             self?.model.acquire()
             self?.onVisibilityChange(true)
@@ -81,6 +81,11 @@ final class UtilitiesPanel {
         }
         // "Also With the Lid Closed" in Nexus: gilt sofort, auch mitten
         // in "Keep Awake". Der erste Wert kommt beim Start (dann ist es aus).
+        hoverObservation = Task { [weak self, settings] in
+            for await on in Observations({ settings.settings.features.utilitiesHover }) {
+                self?.drawer.opensOnHover = on
+            }
+        }
         lidObservation = Task { [weak self, settings] in
             for await _ in Observations({ settings.settings.keepAwake.lidClosed }) {
                 self?.model.lidSettingChanged()

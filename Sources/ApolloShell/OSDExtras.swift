@@ -14,11 +14,18 @@ enum OSDBrightness {
     static func get() -> Float? {
         guard let getF else { return nil }
         var v: Float = 0
-        return getF(CGMainDisplayID(), &v) == 0 ? v : nil
+        return getF(display, &v) == 0 ? v : nil
     }
 
     static func set(_ v: Float) {
-        _ = setF?(CGMainDisplayID(), min(max(v, 0), 1))
+        _ = setF?(display, min(max(v, 0), 1))
+    }
+
+    private static var display: CGDirectDisplayID {
+        var ids = [CGDirectDisplayID](repeating: 0, count: 16)
+        var n: UInt32 = 0
+        CGGetOnlineDisplayList(16, &ids, &n)
+        return ids.prefix(Int(n)).first { CGDisplayIsBuiltin($0) != 0 } ?? CGMainDisplayID()
     }
 }
 
@@ -107,6 +114,7 @@ final class OSDExtras {
     }
 
     private func show(_ sym: String, _ text: String) {
+        guard osd.enabled else { return }
         info.symbol = sym
         info.text = text
         drawer.open()
@@ -118,5 +126,29 @@ final class OSDExtras {
         guard let src = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
               let p = TISGetInputSourceProperty(src, kTISPropertyLocalizedName) else { return "" }
         return Unmanaged<CFString>.fromOpaque(p).takeUnretainedValue() as String
+    }
+}
+
+@MainActor
+enum SystemInputIndicator {
+    private static let key = "TSMLanguageIndicatorEnabled" as CFString
+    private static let mine = "hidSystemInputIndicator"
+
+    static func setHidden(_ hide: Bool) {
+        let d = UserDefaults.standard
+        if hide {
+            guard !d.bool(forKey: mine) else { return }
+            write(false)
+            d.set(true, forKey: mine)
+        } else if d.bool(forKey: mine) {
+            write(nil)
+            d.removeObject(forKey: mine)
+        }
+    }
+
+    private static func write(_ v: Bool?) {
+        CFPreferencesSetValue(key, v.map { $0 as CFBoolean }, kCFPreferencesAnyApplication,
+                              kCFPreferencesCurrentUser, kCFPreferencesAnyHost)
+        CFPreferencesSynchronize(kCFPreferencesAnyApplication, kCFPreferencesCurrentUser, kCFPreferencesAnyHost)
     }
 }
