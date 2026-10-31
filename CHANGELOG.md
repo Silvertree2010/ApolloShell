@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.7.1] - 2026-10-31
+
+Fixes and an option from user reports (#8, #9, #10, #11).
+
+### Added
+
+- **12-hour clock in the bar.** Nexus > Bar > Clock > 12-Hour Time. Shows
+  AM or PM under the minutes.
+
+### Fixed
+
+- Drag to reorder did nothing in Nexus: bar building blocks, Quick Actions
+  cards, pinned launcher apps, Dashboard tabs and cards, and weather
+  favorites can be dragged again. The context menu still has Move Up and
+  Move Down.
+- `--apollo-bar-radius` had no effect. The inner corners of the bar are now
+  rounded with it. `--apollo-panel-radius` is only for panels.
+- The percentage in the OSD could slip out of its circle while holding the
+  volume or brightness key.
+
 ## [0.1.7] - 2026-10-30
 
 Fixes and options from user reports.
