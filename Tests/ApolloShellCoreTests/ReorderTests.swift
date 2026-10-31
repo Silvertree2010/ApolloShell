@@ -11,13 +11,4 @@ struct DragReorderTests {
         list.move(fromOffsets: IndexSet(integer: from), toOffset: DragReorder.offset(from: from, onto: to))
         #expect(list == expected)
     }
-
-    @Test("Nutzlast nur aus derselben Liste")
-    func payload() {
-        let p = DragReorder.payload("bar", 3)
-        #expect(DragReorder.index(p, scope: "bar") == 3)
-        #expect(DragReorder.index(p, scope: "tabs") == nil)
-        #expect(DragReorder.index("hello", scope: "bar") == nil)
-        #expect(DragReorder.index(DragReorder.payload("cards.top", 1), scope: "cards") == nil)
-    }
 }

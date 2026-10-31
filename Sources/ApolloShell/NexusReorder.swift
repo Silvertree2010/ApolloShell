@@ -1,5 +1,20 @@
 import ApolloShellCore
+import CoreTransferable
 import SwiftUI
+import UniformTypeIdentifiers
+
+extension UTType {
+    static let apolloReorder = UTType(exportedAs: AppIdentity.scoped("reorder"))
+}
+
+private struct NexusRowDrag: Codable, Transferable {
+    let scope: String
+    let i: Int
+
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: .apolloReorder)
+    }
+}
 
 private struct NexusReorder: ViewModifier {
     let scope: String
@@ -11,16 +26,16 @@ private struct NexusReorder: ViewModifier {
     func body(content: Content) -> some View {
         content
             .contentShape(.rect)
-            .draggable(DragReorder.payload(scope, i)) {
+            .draggable(NexusRowDrag(scope: scope, i: i)) {
                 content
                     .padding(.horizontal, 8)
                     .frame(width: 260, alignment: .leading)
                     .background(.regularMaterial, in: .rect(cornerRadius: 8))
             }
-            .dropDestination(for: String.self) { ps, _ in
+            .dropDestination(for: NexusRowDrag.self) { ds, _ in
                 hot = false
-                guard let s = ps.first.flatMap({ DragReorder.index($0, scope: scope) }), s != i, (0..<n).contains(s) else { return false }
-                move(IndexSet(integer: s), DragReorder.offset(from: s, onto: i))
+                guard let d = ds.first, d.scope == scope, d.i != i, (0..<n).contains(d.i) else { return false }
+                move(IndexSet(integer: d.i), DragReorder.offset(from: d.i, onto: i))
                 return true
             } isTargeted: { hot = $0 }
             .background {

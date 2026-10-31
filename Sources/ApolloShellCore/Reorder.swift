@@ -22,14 +22,4 @@ public enum DragReorder {
     public static func offset(from s: Int, onto t: Int) -> Int {
         t > s ? t + 1 : t
     }
-
-    public static func payload(_ scope: String, _ i: Int) -> String {
-        "apolloshell.reorder.\(scope):\(i)"
-    }
-
-    public static func index(_ p: String, scope: String) -> Int? {
-        let pre = "apolloshell.reorder.\(scope):"
-        guard p.hasPrefix(pre) else { return nil }
-        return Int(p.dropFirst(pre.count))
-    }
 }

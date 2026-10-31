@@ -95,7 +95,7 @@ private struct VolumeSlider: View {
                         .font(.system(size: 10, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .contentTransition(.identity)
-                        .transaction { $0.animation = nil }
+                        .animation(nil, value: VolumeGlyphs.percent(model.muted ? 0 : model.volume))
                 } else {
                     ThemedIcon(model.muted ? "status-volume-muted" : "status-volume",
                                fallback: VolumeGlyphs.symbol(volume: model.volume, muted: model.muted))
@@ -105,9 +105,10 @@ private struct VolumeSlider: View {
             }
             .foregroundStyle(Color.black.opacity(0.8))
             .transition(.opacity)
+            .frame(width: diameter, height: diameter)
+            .clipShape(.circle)
         }
         .frame(width: diameter, height: diameter)
-        .clipShape(.circle)
         .compositingGroup()
         .animation(.easeOut(duration: 0.2), value: model.moving)
     }

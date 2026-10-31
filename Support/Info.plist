@@ -45,5 +45,18 @@
 	<string>N9LE2BcmvNGtJRDoTEl83MkLKQUqeeTJ38HUa6CMcUY=</string>
 	<key>SUScheduledCheckInterval</key>
 	<integer>86400</integer>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>io.github.silvertree2010.apolloshell.reorder</string>
+			<key>UTTypeDescription</key>
+			<string>ApolloShell list row</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
