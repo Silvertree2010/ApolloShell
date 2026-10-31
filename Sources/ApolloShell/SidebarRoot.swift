@@ -23,6 +23,7 @@ struct SidebarRoot: View {
     /// bevor die Beule losgeht, und ein spaeter geladener Inhalt (Bluetooth
     /// liest erst nach dem Oeffnen) gleitet auf seine neue Hoehe.
     @State private var sizes: [StatusPopoutKind: CGSize] = [:]
+    @Environment(\.shellStyle) private var style
 
     var body: some View {
         GeometryReader { geometry in
@@ -47,7 +48,8 @@ struct SidebarRoot: View {
             ZStack(alignment: .topLeading) {
                 Color.clear
                     .modifier(SidebarGlass(shape: SidebarGlassShape(barWidth: lead + Sidebar.width, bulge: bulge,
-                                                                    mirrored: right)))
+                                                                    mirrored: right,
+                                                                    radius: style.barRadius(0), inset: edges.bottom)))
                 SidebarContent(settings: settings, context: context)
                     .frame(width: Sidebar.width, height: h)
                     .offset(x: right ? width - lead - Sidebar.width : lead)
@@ -149,6 +151,8 @@ struct SidebarGlassShape: Shape {
     var bulge: CGRect
     /// Leiste rechts: der Umriss an der Mitte gespiegelt.
     var mirrored = false
+    var radius: CGFloat = 0
+    var inset: CGFloat = 0
 
     /// Lage und Groesse der Beule animieren: so gleitet die Form beim
     /// Oeffnen, Wechseln und Schliessen.
@@ -171,8 +175,18 @@ struct SidebarGlassShape: Shape {
 
     private func leftPath(in rect: CGRect) -> Path {
         var path = Path()
+        let rc = max(0, min(radius, barWidth / 2, rect.height / 2))
+        let yb = rc > 0 ? rect.maxY - inset : rect.maxY
         guard bulge.width > 0.5, bulge.height > 0.5 else {
-            path.addRect(CGRect(x: rect.minX, y: rect.minY, width: barWidth, height: rect.height))
+            path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.minX + barWidth - rc, y: rect.minY))
+            path.addQuadCurve(to: CGPoint(x: rect.minX + barWidth, y: rect.minY + rc),
+                              control: CGPoint(x: rect.minX + barWidth, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.minX + barWidth, y: yb - rc))
+            path.addQuadCurve(to: CGPoint(x: rect.minX + barWidth - rc, y: yb),
+                              control: CGPoint(x: rect.minX + barWidth, y: yb))
+            path.addLine(to: CGPoint(x: rect.minX, y: yb))
+            path.closeSubpath()
             return path
         }
         let r = min(StatusPopoutLayout.cornerRadius, bulge.width / 2, bulge.height / 2)
@@ -184,8 +198,11 @@ struct SidebarGlassShape: Shape {
         let j = StatusPopoutJoin.radii(top: top, bottom: bottom, minY: rect.minY, maxY: rect.maxY,
                                        width: bulge.width, join: StatusPopoutLayout.join)
 
+        let rt = min(rc, max(0, top - j.top - rect.minY))
+        let rb = min(rc, max(0, yb - bottom - j.bottom))
         path.move(to: CGPoint(x: x, y: rect.minY))
-        path.addLine(to: CGPoint(x: edge, y: rect.minY))
+        path.addLine(to: CGPoint(x: edge - rt, y: rect.minY))
+        path.addQuadCurve(to: CGPoint(x: edge, y: rect.minY + rt), control: CGPoint(x: edge, y: rect.minY))
         // Rechte Leistenkante hinunter bis zur Beule, dann einwaerts gekruemmt
         // hinein.
         path.addLine(to: CGPoint(x: edge, y: top - j.top))
@@ -198,8 +215,9 @@ struct SidebarGlassShape: Shape {
         path.addLine(to: CGPoint(x: edge + j.bottom, y: bottom))
         path.addQuadCurve(to: CGPoint(x: edge, y: bottom + j.bottom), control: CGPoint(x: edge, y: bottom))
         // Weiter die Leistenkante hinunter und um die Leiste herum zurueck.
-        path.addLine(to: CGPoint(x: edge, y: rect.maxY))
-        path.addLine(to: CGPoint(x: x, y: rect.maxY))
+        path.addLine(to: CGPoint(x: edge, y: yb - rb))
+        path.addQuadCurve(to: CGPoint(x: edge - rb, y: yb), control: CGPoint(x: edge, y: yb))
+        path.addLine(to: CGPoint(x: x, y: yb))
         path.closeSubpath()
         return path
     }

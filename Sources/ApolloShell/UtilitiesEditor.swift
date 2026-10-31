@@ -59,8 +59,10 @@ struct UtilitiesEditorPage: View {
             ForEach(Array(layout.cards.enumerated()), id: \.element.id) { index, card in
                 UtilitiesEditorCardRow(store: store, card: card, isFirst: index == 0,
                                        isLast: index == layout.cards.count - 1)
+                    .nexusReorder("cards", index: index, count: layout.cards.count) {
+                        store.settings.utilities.layout.moveCards(fromOffsets: $0, toOffset: $1)
+                    }
             }
-            .onMove { store.settings.utilities.layout.moveCards(fromOffsets: $0, toOffset: $1) }
         } header: {
             Text("Cards")
         }

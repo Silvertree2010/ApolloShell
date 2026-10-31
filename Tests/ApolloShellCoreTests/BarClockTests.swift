@@ -32,6 +32,23 @@ struct BarClockTests {
         #expect(BarClock.minute(date, calendar: calendar("Europe/Zurich")) == "05")
     }
 
+    @Test("12 Stunden: 00 wird 12 AM, 12 bleibt 12 PM, 14 wird 02 PM", arguments: [
+        (0, "12", "AM"), (9, "09", "AM"), (12, "12", "PM"), (14, "02", "PM"), (23, "11", "PM"),
+    ])
+    func twelveHour(hour: Int, text: String, period: String) {
+        let date = utc(hour, 0)
+        #expect(BarClock.hour(date, calendar: calendar("UTC"), twelveHour: true) == text)
+        #expect(BarClock.period(date, calendar: calendar("UTC")) == period)
+    }
+
+    @Test("12-Stunden-Option liest sich aus settings.json, fehlt sie: 24 Stunden")
+    func twelveHourDecoding() throws {
+        let on = try JSONDecoder().decode(BarClockOptions.self, from: Data(#"{"twelveHour":true}"#.utf8))
+        let off = try JSONDecoder().decode(BarClockOptions.self, from: Data(#"{"showDate":true}"#.utf8))
+        #expect(on.twelveHour)
+        #expect(!off.twelveHour)
+    }
+
     @Test("naechste volle Minute, auch mit Sekundenbruchteil")
     func nextMinuteMidway() {
         #expect(BarClock.nextMinute(after: utc(14, 5, 30.5), calendar: calendar("UTC")) == utc(14, 6))

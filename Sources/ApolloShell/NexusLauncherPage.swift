@@ -147,8 +147,10 @@ struct NexusLauncherPage: View {
                 }
                 ForEach(Array(model.list.ids.enumerated()), id: \.element) { index, id in
                     NexusPinnedRow(model: model, id: id, position: index + 1, count: model.list.ids.count)
+                        .nexusReorder("pinned", index: index, count: model.list.ids.count) {
+                            model.move(fromOffsets: $0, toOffset: $1)
+                        }
                 }
-                .onMove { model.move(fromOffsets: $0, toOffset: $1) }
             } header: {
                 HStack {
                     Text("Pinned Apps")

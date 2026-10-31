@@ -104,7 +104,8 @@ struct BarModuleView: View {
             SidebarDock(model: context.dock, options: options)
                 .layoutValue(key: BarFlexible.self, value: true)
         case .clock(let options):
-            SidebarClock(model: context.clock, showIcon: options.showIcon, showDate: options.showDate)
+            SidebarClock(model: context.clock, showIcon: options.showIcon, showDate: options.showDate,
+                         twelveHour: options.twelveHour)
                 // Klick oeffnet das Dashboard mit dem Kalender.
                 .contentShape(.rect)
                 .onTapGesture { context.onDashboard() }

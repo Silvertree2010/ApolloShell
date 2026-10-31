@@ -5,8 +5,14 @@ import Foundation
 public enum BarClock {
     /// Immer 24 Stunden, zweistellig - unabhaengig von der Region, sonst
     /// stuende bei englischer Einstellung "2" statt "14" in der Leiste.
-    public static func hour(_ date: Date, calendar: Calendar) -> String {
-        twoDigits(calendar.component(.hour, from: date))
+    public static func hour(_ date: Date, calendar: Calendar, twelveHour: Bool = false) -> String {
+        let h = calendar.component(.hour, from: date)
+        guard twelveHour else { return twoDigits(h) }
+        return twoDigits(h % 12 == 0 ? 12 : h % 12)
+    }
+
+    public static func period(_ date: Date, calendar: Calendar) -> String {
+        calendar.component(.hour, from: date) < 12 ? "AM" : "PM"
     }
 
     public static func minute(_ date: Date, calendar: Calendar) -> String {

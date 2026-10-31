@@ -146,6 +146,7 @@ struct SidebarClock: View {
     let model: SidebarClockModel
     var showIcon = true
     var showDate = false
+    var twelveHour = false
 
     static let tint = Color(nsColor: .systemPurple)
     private static let locale = Locale(identifier: "de_CH")
@@ -175,16 +176,21 @@ struct SidebarClock: View {
                 .opacity(0.8)
                 .padding(.bottom, 4)
             }
-            Text(BarClock.hour(model.now, calendar: calendar))
+            Text(BarClock.hour(model.now, calendar: calendar, twelveHour: twelveHour))
             Text(BarClock.minute(model.now, calendar: calendar))
                 .padding(.top, -4)
+            if twelveHour {
+                Text(BarClock.period(model.now, calendar: calendar))
+                    .font(shellStyle.font(size: 9, weight: .semibold))
+                    .opacity(0.8)
+            }
         }
         .font(shellStyle.font(size: 13, weight: .semibold))
         .monospacedDigit()
         .foregroundStyle(color)
         .frame(width: 32)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(model.now.formatted(.dateTime.hour().minute().locale(Self.locale)))
+        .accessibilityLabel(model.now.formatted(.dateTime.hour(twelveHour ? .defaultDigits(amPM: .abbreviated) : .twoDigits(amPM: .omitted)).minute().locale(twelveHour ? Locale(identifier: "en_US") : Self.locale)))
         .help(model.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Self.locale)))
     }
 }

@@ -164,10 +164,12 @@ public struct BarDockOptions: Codable, Equatable, Sendable {
 public struct BarClockOptions: Codable, Equatable, Sendable {
     public var showIcon: Bool
     public var showDate: Bool
+    public var twelveHour: Bool
 
-    public init(showIcon: Bool = true, showDate: Bool = false) {
+    public init(showIcon: Bool = true, showDate: Bool = false, twelveHour: Bool = false) {
         self.showIcon = showIcon
         self.showDate = showDate
+        self.twelveHour = twelveHour
     }
 
     public init(from decoder: any Decoder) throws {
@@ -175,6 +177,7 @@ public struct BarClockOptions: Codable, Equatable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         c.lenient(.showIcon, into: &showIcon)
         c.lenient(.showDate, into: &showDate)
+        c.lenient(.twelveHour, into: &twelveHour)
     }
 }
 

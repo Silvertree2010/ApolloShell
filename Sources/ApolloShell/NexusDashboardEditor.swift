@@ -24,8 +24,10 @@ struct NexusDashboardTabsSection: View {
             ForEach(Array(tabs.order.enumerated()), id: \.element) { index, tab in
                 NexusDashboardTabRow(store: store, tab: tab, isFirst: index == 0,
                                      isLast: index == tabs.order.count - 1)
+                    .nexusReorder("tabs", index: index, count: tabs.order.count) {
+                        store.settings.dashboard.tabs.move(fromOffsets: $0, toOffset: $1)
+                    }
             }
-            .onMove { store.settings.dashboard.tabs.move(fromOffsets: $0, toOffset: $1) }
         } header: {
             Text("Tabs")
         }
@@ -113,8 +115,10 @@ struct NexusDashboardCardSections: View {
                 ForEach(Array(list.enumerated()), id: \.element.kind) { index, card in
                     NexusDashboardCardRow(store: store, card: card, zone: zone, isFirst: index == 0,
                                           isLast: index == list.count - 1, isExpanded: expandedBinding(card.kind))
+                        .nexusReorder("cards.\(zone.rawValue)", index: index, count: list.count) {
+                            store.settings.dashboard.cards.move(in: zone, fromOffsets: $0, toOffset: $1)
+                        }
                 }
-                .onMove { store.settings.dashboard.cards.move(in: zone, fromOffsets: $0, toOffset: $1) }
             } header: {
                 Text(zone.title)
             }

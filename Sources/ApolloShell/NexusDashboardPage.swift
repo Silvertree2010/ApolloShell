@@ -221,10 +221,12 @@ struct NexusDashboardPage: View {
                     Text("No favorites yet – search for a place below and add it.")
                         .foregroundStyle(.secondary)
                 }
-                ForEach(model.favorites.locations) { place in
+                ForEach(Array(model.favorites.locations.enumerated()), id: \.element.id) { index, place in
                     NexusWeatherFavoriteRow(model: model, place: place)
+                        .nexusReorder("weather", index: index, count: model.favorites.locations.count) {
+                            model.moveFavorites(fromOffsets: $0, toOffset: $1)
+                        }
                 }
-                .onMove { model.moveFavorites(fromOffsets: $0, toOffset: $1) }
             } header: {
                 NexusTipHeader(title: "Favorites", tip: "The selected favorite is used for the weather. The Dashboard shows a change the next time it opens.")
             }

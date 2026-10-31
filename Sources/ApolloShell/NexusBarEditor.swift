@@ -54,8 +54,10 @@ struct NexusBarPage: View {
             ForEach(Array(layout.entries.enumerated()), id: \.element.id) { index, entry in
                 NexusBarRow(store: store, entry: entry, isFirst: index == 0,
                             isLast: index == layout.entries.count - 1, isExpanded: expandedBinding(entry.id))
+                    .nexusReorder("bar", index: index, count: layout.entries.count) {
+                        store.settings.bar.layout.move(fromOffsets: $0, toOffset: $1)
+                    }
             }
-            .onMove { store.settings.bar.layout.move(fromOffsets: $0, toOffset: $1) }
             HStack(spacing: 8) {
                 Button {
                     showsGallery = true
@@ -279,6 +281,7 @@ private struct NexusBarOptions: View {
             let options = binding(\.clock, BarModule.clock, fallback: BarClockOptions())
             NexusToggle(title: "Show Icon", isOn: options.showIcon)
             NexusToggle(title: "Show Date", isOn: options.showDate)
+            NexusToggle(title: "12-Hour Time", isOn: options.twelveHour)
         case .statusIcons:
             let options = binding(\.statusIcons, BarModule.statusIcons, fallback: BarStatusIconsOptions())
             NexusToggle(title: "Wi-Fi", isOn: options.showWifi)
@@ -360,7 +363,8 @@ enum NexusBarText {
                 + " · " + size(o.iconSize)
         case .clock(let o):
             ([String(localized: "Time")] + (o.showIcon ? [String(localized: "Icon")] : [])
-                + (o.showDate ? [String(localized: "Date")] : [])).joined(separator: " · ")
+                + (o.showDate ? [String(localized: "Date")] : [])
+                + (o.twelveHour ? [String(localized: "12-Hour")] : [])).joined(separator: " · ")
         case .statusIcons(let o):
             statusDetail(o)
         case .gap(let o):
