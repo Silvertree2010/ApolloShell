@@ -52,6 +52,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var nexus: Nexus?
     private var commandCenter: CommandCenter?
     private var updates: UpdateController?
+    private var shellEditor: ShellEditor?
+    private var editModeWindows: EditModeWindows?
     private var crashReporter: CrashReporter?
     private var themes: ThemeStore?
     /// Einfuehrung beim ersten Start.
@@ -140,14 +142,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.osd = osd
         osdExtras = OSDExtras(osd: osd)
         desktopClock = DesktopClock(settings: settings)
-        let dashboard = Dashboard(settings: settings)
+        let dashboardEditor = DashboardEditor(store: settings)
+        let shellEditor = ShellEditor(store: settings, dashboard: dashboardEditor)
+        self.shellEditor = shellEditor
+        let dashboard = Dashboard(settings: settings, editor: dashboardEditor)
         self.dashboard = dashboard
+        shellEditor.dashboardStartPageID = { [weak dashboard] in dashboard?.currentPageID }
+        let editModeWindows = EditModeWindows(editor: shellEditor)
+        self.editModeWindows = editModeWindows
+        editModeWindows.dashboardFrame = { [weak dashboard] in dashboard?.openFrame }
+        LauncherActions.editDashboard = { [weak self] in self?.beginEditing() }
         sidebar.onDashboard = { [weak dashboard] in dashboard?.toggle() }
         sidebar.onDashboardTab = { [weak dashboard] tab in dashboard?.show(tab: tab) }
         hotKeys.setHandler(.dashboard) { [weak dashboard] in dashboard?.toggle() }
         // Wetter ohne Ort: der Hinweis im Dashboard oeffnet Nexus direkt bei
         // Wetter (Nexus > Dashboard).
-        dashboard.onOpenNexus { [weak nexus] in nexus?.show(page: .dashboard) }
+        dashboard.onSetLocation { [weak self] in self?.beginEditing() }
         let utilities = UtilitiesPanel(settings: settings)
         self.utilities = utilities
         sidebar.onUtilities = { [weak utilities] in utilities?.toggle() }
@@ -164,8 +174,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.toaster = toaster
         // Farbpipette der Utilities meldet "Color Copied".
         utilities.onToast = { [weak toaster] content in toaster?.toast(content) }
-        DashTimer.shared.onDone = { [weak toaster] t in
-            toaster?.toast(title: String(localized: "Timer Done"), message: t, symbol: "timer")
+        ShellTimer.shared.onFinish = { [weak toaster] finished in
+            let title: String = switch (finished.mode, finished.phase) {
+            case (.pomodoro, .focus): String(localized: "Time for a Break")
+            case (.pomodoro, _): String(localized: "Break Is Over")
+            default: String(localized: "Timer Done")
+            }
+            toaster?.toast(title: title, message: ShellTimerState.text(finished.target ?? 0, countingDown: false), symbol: "timer")
+            NSSound(named: "Glass")?.play()
         }
         let toastWindow = ToastWindow(toaster: toaster, utilitiesHeight: utilities.height)
         self.toastWindow = toastWindow
@@ -277,5 +293,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         source.resume()
         sigterm = source
+    }
+
+    func beginEditing() {
+        guard let shellEditor, let screen = ShellScreens.underPointer()?.screen ?? NSScreen.main else { return }
+        nexus?.close()
+        shellEditor.begin(screen: screen)
     }
 }

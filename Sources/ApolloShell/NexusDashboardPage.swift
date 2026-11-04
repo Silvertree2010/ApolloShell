@@ -168,52 +168,47 @@ struct NexusDashboardPage: View {
     @Bindable var store: ShellSettingsStore
     @Bindable var model: NexusWeatherModel
     var providers: NexusProvidersModel?
-    @State private var showsGallery = false
-    @State private var pending: LayoutPresetReplacement<DashboardPreset>?
-    /// Aufgeklappte Karten: bleiben beim Umsortieren offen.
-    @State private var expanded: Set<DashboardCardKind>
+    @State private var askRestore = false
 
-    /// `expanded`: schon aufgeklappte Karten (Bildprobe).
-    init(store: ShellSettingsStore, model: NexusWeatherModel, providers: NexusProvidersModel? = nil, expanded: Set<DashboardCardKind> = []) {
+    init(store: ShellSettingsStore, model: NexusWeatherModel, providers: NexusProvidersModel? = nil) {
         _store = Bindable(store)
         _model = Bindable(model)
         self.providers = providers
-        _expanded = State(initialValue: expanded)
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: 0) {
-                NexusPageForm(page: .dashboard) {
-                    NexusDashboardTabsSection(store: store)
-                    NexusDashboardCardSections(store: store, expanded: $expanded,
-                                               onAdd: { showsGallery = true }, onReplace: { pending = $0 })
-                    weatherSections
-                    if let providers { NexusWeatherSourceSection(store: store, model: providers) }
-                    NexusSaveWarning(failed: store.saveFailed)
-                    NexusSaveWarning(failed: model.saveFailed, file: "weather.json")
+        NexusPageForm(page: .dashboard) {
+            Section {
+                HStack {
+                    Text("Pages and Widgets")
+                    NexusTip(text: "Drag widgets, change their size and add new ones right in the Dashboard. Each widget has its own options, weather widgets their own places.")
+                    Spacer()
+                    Button("Edit Dashboard…") { LauncherActions.editDashboard() }
                 }
-                Divider()
-                NexusDashboardPreview(store: store)
-                    .frame(height: NexusDashboardPreview.height(for: geometry.size.height))
+            } header: {
+                Text("Layout")
             }
-        }
-        .sheet(isPresented: $showsGallery) {
-            NexusDashboardGallery(cards: store.settings.dashboard.cards, onAdd: add, onCancel: { showsGallery = false })
-        }
-        .nexusPresetAlert($pending, title: NexusDashboardText.replacementTitle, message: NexusDashboardText.replacementMessage) { layout in
-            store.settings.dashboard = layout
-            expanded = []
+            if let providers { NexusWeatherSourceSection(store: store, model: providers) }
+            Section {
+                Button("Restore Default Pages…", role: .destructive) { askRestore = true }
+            }
+            .alert("Restore default pages?", isPresented: $askRestore) {
+                Button("Restore", role: .destructive) {
+                    store.settings.dashboardPages = DashboardPages(pages: DashboardPages.defaultPages(
+                        places: WeatherFavorites.loadLive(), hasBattery: PerformanceSampler.hasInternalBattery))
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Every page and widget goes back to the start, your own pages are removed.")
+            }
+            NexusSaveWarning(failed: store.saveFailed)
         }
     }
+}
 
-    /// Aus der Galerie: an ihren Platz, mit Optionen gleich aufgeklappt.
-    private func add(_ kind: DashboardCardKind) {
-        showsGallery = false
-        if store.settings.dashboard.cards.add(kind) != nil {
-            expanded.insert(kind)
-        }
-    }
+private struct NexusUnusedWeather: View {
+    @Bindable var model: NexusWeatherModel
+    var body: some View { weatherSections }
 
     @ViewBuilder private var weatherSections: some View {
             Section {

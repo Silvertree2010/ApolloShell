@@ -47,6 +47,10 @@ final class Nexus: NSObject, NSWindowDelegate {
         super.init()
     }
 
+    func close() {
+        window?.close()
+    }
+
     func show(page: NexusPage? = nil) {
         if let page { state.page = page }
         let window = self.window ?? makeWindow()

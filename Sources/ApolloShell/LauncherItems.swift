@@ -128,6 +128,7 @@ final class LauncherFileSearch: NSObject {
 enum LauncherActions {
     static var openSettings: () -> Void = {}
     static var openSession: () -> Void = {}
+    static var editDashboard: () -> Void = {}
 
     static func run(_ a: LauncherAction) {
         switch a {

@@ -169,6 +169,8 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     /// Nach der Schliessbewegung, wenn das Fenster weg ist - nicht, wenn es
     /// vorher wieder aufging.
     var onHidden: () -> Void = {}
+    var prepareForScreen: ((NSScreen) -> Void)?
+    var openFrame: NSRect? { isOpen ? builtPanel?.frame : nil }
 
     /// Caelestia: erscheint, wenn die Maus an die Kante stoesst, und geht,
     /// wenn sie den Bereich verlaesst (Regeln in ApolloShellCore/EdgeHover).
@@ -253,20 +255,50 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         return max(screen.frame.maxY - screen.visibleFrame.maxY, screen.safeAreaInsets.top)
     }
 
+    var isPinned = false {
+        didSet {
+            guard isPinned != oldValue else { return }
+            builtPanel?.setPinned(isPinned)
+            guard oldValue, !isPinned else { return }
+            unpin()
+        }
+    }
+
     func toggle() {
+        guard !isPinned else { return }
         isOpen ? close() : open()
     }
 
-    /// Per Tastenkombination oder Symbol.
     func open() {
+        guard !isPinned else { return }
         open(byHover: false)
+    }
+
+    func takeKeyboard() {
+        guard isOpen, takesKeyboard else { return }
+        panel.makeKey()
+    }
+
+    private func unpin() {
+        guard isOpen else { return }
+        guard opensOnHover, let target = currentScreen,
+              let area = hoverArea(on: target, open: true), area.contains(NSEvent.mouseLocation)
+        else {
+            close()
+            return
+        }
+        hoverState = EdgeHoverState(visible: true, shortcutActive: false)
     }
 
     /// Per Maus geoeffnet nimmt es keinen Fokus: die App darunter behaelt die
     /// Tastatur, man faehrt ja nur vorbei.
-    private func open(byHover: Bool) {
-        // Dort, wo der Zeiger steht.
-        guard !isOpen, let screen = ShellScreens.underPointer() else { return }
+    func open(on target: NSScreen) {
+        open(byHover: false, on: ShellScreens.matching(target))
+    }
+
+    private func open(byHover: Bool, on chosen: ShellScreen? = nil) {
+        guard !isOpen, let screen = chosen ?? ShellScreens.underPointer() else { return }
+        prepareForScreen?(screen.screen)
         isOpen = true
         generation += 1
         afterClose = nil
@@ -447,6 +479,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 
     private func hoverMoved() {
         guard opensOnHover else { return }
+        if isOpen && isPinned { return }
         // Offen: der Bildschirm, auf dem das Fenster steht - sonst risse ein
         // Zeiger, der hinueberwandert, es sofort wieder zu. Zu: der unter dem
         // Zeiger, damit die Kante jedes Bildschirms oeffnet.
@@ -595,7 +628,11 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
         let level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + (scrim == nil ? 0 : 1))
         let panel = DrawerPanel(size: container.frame.size, level: level, takesKeyboard: takesKeyboard)
         panel.delegate = self
-        panel.onEscape = { [weak self] in self?.close() }
+        panel.onEscape = { [weak self] in
+            guard let self, !self.isPinned else { return }
+            self.close()
+        }
+        panel.setPinned(isPinned)
 
         let hosting = FirstMouseHostingView(rootView: PanelRoot(r: cornerRadius, ins: ins, c: rootView).shellTheme())
         hosting.sizingOptions = []
@@ -618,7 +655,7 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
     }
 
     func windowDidResignKey(_ notification: Notification) {
-        if closesOnResignKey { close() }
+        if closesOnResignKey && !isPinned { close() }
     }
 }
 
@@ -628,10 +665,19 @@ final class EdgeDrawer<Content: View>: NSObject, NSWindowDelegate {
 final class DrawerPanel: ShellPanel {
     var onEscape: () -> Void = {}
 
+    private static let unpinnedBehavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary]
+    private static let pinnedBehavior: NSWindow.CollectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+
     init(size: NSSize, level: NSWindow.Level, takesKeyboard: Bool) {
         super.init(size: size, level: level,
-                   behavior: [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary],
+                   behavior: Self.unpinnedBehavior,
                    takesKeyboard: takesKeyboard, mayLeaveScreen: true)
+    }
+
+    func setPinned(_ pinned: Bool) {
+        collectionBehavior = pinned ? Self.pinnedBehavior : Self.unpinnedBehavior
+        setAccessibilitySubrole(pinned ? .unknown : .systemDialog)
+        isExcludedFromWindowsMenu = pinned
     }
 
     override func cancelOperation(_ sender: Any?) {

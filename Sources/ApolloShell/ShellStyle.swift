@@ -40,6 +40,15 @@ struct ShellStyle: Equatable {
     }
 
     var accent: Color { color(.accent) ?? .accentColor }
+    var contrastAccent: Color {
+        if let color = color(.secondaryAccent) { return color }
+        guard let rgb = NSColor(accent).usingColorSpace(.sRGB) else { return .orange }
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        rgb.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        guard saturation > 0.15 else { return Color(white: brightness > 0.5 ? 0.35 : 0.75) }
+        return Color(hue: (hue + 0.5).truncatingRemainder(dividingBy: 1), saturation: saturation,
+                     brightness: max(brightness, 0.85), opacity: alpha)
+    }
     var secondaryAccent: Color { color(.secondaryAccent) ?? Color(nsColor: .systemIndigo) }
     var text: Color { color(.text) ?? .primary }
     var secondaryText: Color { color(.secondaryText) ?? .secondary }

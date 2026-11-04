@@ -1,0 +1,68 @@
+import Foundation
+import Testing
+@testable import ApolloShellCore
+
+@Suite("Widget on a page: frame, options, lenient reading")
+struct WidgetInstanceTests {
+    private func decode(_ json: String) -> WidgetInstance? {
+        try? JSONDecoder().decode(WidgetInstance.self, from: Data(json.utf8))
+    }
+
+    @Test("Defaults per kind: only its own field, weather with locations")
+    func defaults() {
+        let place = WeatherLocation(name: "Chur", latitude: 46.85, longitude: 9.53)
+        let places = WeatherFavorites(locations: [place], selectedID: place.id)
+        let weather = WidgetOptions.defaults(for: .weather, places: places)
+        #expect(weather.weather == DashboardWeatherOptions())
+        #expect(weather.places == places)
+        #expect(weather.clock == nil)
+        #expect(WidgetOptions.defaults(for: .weatherDaily, places: places).places == places)
+        #expect(WidgetOptions.defaults(for: .clock).clock == DashboardClockOptions())
+        #expect(WidgetOptions.defaults(for: .performanceCPU) == WidgetOptions())
+    }
+
+    @Test("Round trip")
+    func roundTrip() throws {
+        let widget = WidgetInstance(kind: .clock, frame: WidgetFrame(x: 0, y: 142, width: 110, height: 250),
+                                    options: WidgetOptions(clock: DashboardClockOptions(timeZone: "Asia/Tokyo")))
+        let data = try JSONEncoder().encode(widget)
+        #expect(try JSONDecoder().decode(WidgetInstance.self, from: data) == widget)
+        #expect(!String(decoding: data, as: UTF8.self).contains("\"weather\""))
+    }
+
+    @Test("Unknown kind or missing frame: not readable")
+    func rejects() {
+        #expect(decode(#"{"kind":"toaster","frame":{"x":0,"y":0,"width":90,"height":250}}"#) == nil)
+        #expect(decode(#"{"kind":"clock"}"#) == nil)
+        #expect(decode(#"{"kind":"clock","frame":{"x":0,"y":0}}"#) == nil)
+    }
+
+    @Test("Missing identifier becomes new, broken options become defaults")
+    func lenient() {
+        let widget = decode(#"{"kind":"clock","frame":{"x":0,"y":0,"width":110,"height":250},"options":7}"#)
+        #expect(widget?.kind == .clock)
+        #expect(widget?.options == WidgetOptions.defaults(for: .clock))
+        let partial = decode(#"{"kind":"clock","frame":{"x":0,"y":0,"width":110,"height":250},"options":{"clock":{"showDate":true},"user":5}}"#)
+        #expect(partial?.options.clock?.showDate == true)
+        #expect(partial?.options.user == nil)
+    }
+
+    @Test("Rounding to whole points")
+    func rounding() {
+        #expect(WidgetFrame(x: 10.4, y: 10.6, width: 99.5, height: 130).rounded() == WidgetFrame(x: 10, y: 11, width: 100, height: 130))
+    }
+
+    @Test("Display: stored, missing = the first, one of another kind = the first")
+    func display() throws {
+        let decoder = JSONDecoder()
+        let graph = try decoder.decode(WidgetOptions.self, from: Data(#"{"display":"graph"}"#.utf8))
+        #expect(graph.display == .graph)
+        #expect(graph.display(for: .performanceCPU) == .graph)
+        #expect(graph.display(for: .clock) == .standard)
+        let unknown = try decoder.decode(WidgetOptions.self, from: Data(#"{"display":"hologram"}"#.utf8))
+        #expect(unknown.display == nil)
+        #expect(WidgetOptions().display(for: .weatherDaily) == .standard)
+        let encoded = try JSONEncoder().encode(WidgetOptions())
+        #expect(String(decoding: encoded, as: UTF8.self) == "{}")
+    }
+}

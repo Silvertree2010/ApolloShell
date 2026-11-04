@@ -1,24 +1,30 @@
 import ApolloShellCore
 import SwiftUI
 
-/// Dashboard wie bei Caelestia (modules/dashboard): Reiterleiste oben,
-/// darunter das Kartenraster. Masse aus dem Caelestia-Quellcode (Recherche
-/// 14.09.): Aussenabstand 16, Kartenabstand 12, Karten Wetter 275 breit
-/// (Radius 42), Benutzer 340 (28), Uhr 110 (16), Kalender (28), Ressourcen
-/// (16), Medien 200 (56). Apple-Optik: SF Symbols, Systemschrift, Glas.
+/// Dashboard like Caelestia's (modules/dashboard): tab bar on top, the
+/// selected page below it. Measurements from the Caelestia source code
+/// (research 09/14): outer padding 16, card spacing 12, weather card 275
+/// wide (radius 42), user 340 (28), clock 110 (16), calendar (28),
+/// resources (16), media 200 (56). Apple look: SF Symbols, system font,
+/// glass.
 ///
-/// Welche Reiter und Karten wo stehen, bestimmt Nexus > Dashboard
-/// (settings.dashboard, `DashboardLayout`); die Ansicht liest es live. Die
-/// Flaeche bleibt dabei immer 839 x 392 - die Karten verteilen sich darin
-/// nach `DashboardGeometry`.
+/// Which pages exist and what lies on them is determined by
+/// `settings.dashboardPages` (`DashboardPages`, Nexus > Dashboard); the
+/// view reads it live. The area itself always stays 839 x 392 - the
+/// widgets sit inside it at their own frames (`BentoPageView`).
 ///
-/// Wetter kommt vom gewaehlten Anbieter (WeatherView.swift), Medien ueber den
-/// mediaremote-adapter (MediaModel.swift, MediaView.swift).
+/// Weather comes per widget from its own `WeatherModel`
+/// (`WeatherModels.swift`), media via the mediaremote-adapter
+/// (MediaModel.swift, MediaView.swift).
 struct DashboardView: View {
     @Bindable var model: DashboardModel
-    let weather: WeatherModel
+    let weatherModels: WeatherModels
     let media: MediaModel
     let settings: ShellSettingsStore
+    let editor: DashboardEditor
+    /// The models of the widgets of 09/23 - one set for the dashboard, owned
+    /// by `Dashboard`, which starts and stops them.
+    var extras = DashboardExtras()
     @Namespace private var tabIndicator
     @Environment(\.shellStyle) private var style
 
@@ -26,206 +32,295 @@ struct DashboardView: View {
     static let spacing = CGFloat(DashboardGeometry.spacing)
     static let gridWidth = CGFloat(DashboardGeometry.width)
     static let gridHeight = CGFloat(DashboardGeometry.height)
-    /// Caelestias Standardkurve: 500 ms, leicht ueberschiessend - fuer den
-    /// Reiter-Indikator und fuer Karten, die in Nexus umziehen.
+    /// Caelestia's standard curve: 500 ms, slightly overshooting - for the
+    /// tab indicator and for widgets moving into Nexus.
     static let motion = Animation.shellSpatial
+    /// Minimum width of a tab in the scrolling bar (many pages).
+    static let tabWidth: CGFloat = 96
+    static let rootSpace = "dashboardRoot"
+
+    /// The pages - during an edit their working copy, otherwise from the
+    /// settings, otherwise (not yet migrated, e.g. in Nexus before the
+    /// first launch) the four bundled ones.
+    private var pages: DashboardPages {
+        editor.session?.pages ?? settings.settings.dashboardPages
+            ?? DashboardPages(pages: DashboardPages.defaultPages(places: .empty,
+                                                                  hasBattery: PerformanceSampler.hasInternalBattery))!
+    }
 
     var body: some View {
-        let layout = settings.settings.dashboard
-        // In Nexus ausgeblendet, waehrend er gewaehlt war: der erste
-        // sichtbare. `Dashboard` zieht `model.tab` beim Oeffnen nach.
-        let tab = layout.tabs.resolved(model.tab)
-        VStack(spacing: 0) {
-            tabBar(tabs: layout.tabs.visible, selected: tab)
-            Divider().opacity(0.5)
-            Group {
-                switch tab {
-                case .dashboard: DashboardGrid(cards: layout.cards, model: model, weather: weather, media: media)
-                case .media: MediaTab(model: media)
-                case .performance: PerformanceView(model: model.performance)
-                case .weather: WeatherTab(model: weather)
-                }
+        let pages = pages
+        let selectedID = editor.session?.pageID ?? model.pageID
+        let selected = selectedID.flatMap(pages.page(id:)) ?? pages.pages[0]
+        // Scaled around the top-left corner (edge window on top) - the
+        // reference size (scale 1) is computed by `ScaledToFit` itself
+        // from `content.fixedSize()`, so its result (even at scale 1)
+        // stays bit-identical with `.fixedSize()` alone.
+        ScaledToFit(scale: model.scale) {
+            content(pages: pages, selected: selected)
+                .scaleEffect(model.scale, anchor: .topLeading)
+        }
+        // Coordinate space of the whole view (top left, scaled) - only
+        // for the self-test of edit mode (`debugPageRectInHost`).
+        .coordinateSpace(name: Self.rootSpace)
+        // A change in the shown widgets (page change - also from
+        // `Dashboard.show(tab:)` or during an edit -, or a widget dropped
+        // on/removed from the same page) re-checks whether the
+        // performance measurement should run, and restarts the weather
+        // models of the now-shown weather widgets, as long as open.
+        .onChange(of: PageWidgetsKey(page: selected), initial: true) { _, key in
+            model.showsPerformance = key.kinds.contains { $0.isPerformance }
+            if model.isOpen {
+                weatherModels.start(for: selected.widgets.filter { $0.kind.usesPlaces })
+                extras.start(for: selected.widgets)
             }
-            .frame(width: Self.gridWidth, height: Self.gridHeight)
-            .padding(Self.padding)
+        }
+    }
+
+    /// Comparison value for `.onChange`: changes on every switch of the
+    /// shown page and on every change of its widgets (kind or identifier)
+    /// - not on mere option changes (e.g. locations).
+    private struct PageWidgetsKey: Equatable {
+        let pageID: DashboardPage.ID
+        let kinds: [WidgetKind]
+        let widgetIDs: [WidgetInstance.ID]
+
+        init(page: DashboardPage) {
+            pageID = page.id
+            kinds = page.widgets.map(\.kind)
+            widgetIDs = page.widgets.map(\.id)
+        }
+    }
+
+    private func content(pages: DashboardPages, selected: DashboardPage) -> some View {
+        VStack(spacing: 0) {
+            pageBar(pages: pages.pages, selected: selected)
+            Divider().opacity(0.5)
+            BentoPageView(page: selected, context: WidgetContext(dashboard: model, media: media,
+                                                                  weather: weatherModels.model(for:), extras: extras),
+                          editor: editor)
+                .frame(width: Self.gridWidth, height: Self.gridHeight)
+                .padding(Self.padding)
         }
         .fixedSize()
     }
 
-    private func tabBar(tabs: [DashboardTab], selected: DashboardTab) -> some View {
-        HStack(spacing: 0) {
-            ForEach(tabs) { tab in
-                Button {
-                    // Caelestia: Indikator 500 ms mit leicht ueberschiessender Kurve.
-                    withAnimation(Self.motion) { model.tab = tab }
-                } label: {
-                    VStack(spacing: 4) {
-                        // Theme: icons/panel-media.png, panel-performance.png,
-                        // panel-weather.png; der Reiter Dashboard nimmt
-                        // bar-dashboard.
-                        ThemedIcon(tab.iconID, fallback: tab.symbol)
-                            .font(style.font(size: 16, weight: .medium))
-                            .symbolVariant(selected == tab ? .fill : .none)
-                            .frame(width: 18, height: 18)
-                        Text(tab.title).font(style.font(size: 12, weight: .medium))
-                    }
-                    .foregroundStyle(selected == tab ? style.accent : Color.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-                    .overlay(alignment: .bottom) {
-                        if selected == tab {
-                            Capsule()
-                                .fill(style.accent)
-                                .frame(width: 44, height: 3)
-                                .matchedGeometryEffect(id: "indicator", in: tabIndicator)
-                        }
-                    }
-                    .contentShape(.rect)
+    /// As long as every page can stand at least `tabWidth` wide, spread
+    /// evenly across the full width as before; otherwise scrolling, with
+    /// the selected page in view. During editing (task 4) a **+** is
+    /// added at the end, which creates and shows a new page.
+    @ViewBuilder
+    private func pageBar(pages: [DashboardPage], selected: DashboardPage) -> some View {
+        let extra: CGFloat = editor.isEditing ? Self.tabWidth : 0
+        if CGFloat(pages.count) * Self.tabWidth + extra <= Self.gridWidth {
+            HStack(spacing: 0) {
+                ForEach(pages) { page in
+                    pageButton(page, selected: selected).frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.plain)
+                if editor.isEditing { addPageButton.frame(width: Self.tabWidth) }
             }
-        }
-        .frame(width: Self.gridWidth)
-        .padding(.horizontal, Self.padding)
-        // Ein- und Ausblenden in Nexus gleitet, statt zu springen.
-        .animation(Self.motion, value: tabs)
-    }
-}
-
-// MARK: - Raster
-
-/// Die Karten an ihren Plaetzen. Die Masse rechnet `DashboardGeometry`
-/// (getestet in ApolloShellCore); gesetzt werden sie mit denselben Stapeln
-/// wie vor dem Baukasten: Reihen links untereinander, die Spalte rechts.
-///
-/// Warum Stapel und kein eigenes `Layout`, das jede Karte direkt auf ihren
-/// Rahmen setzt (so war es zuerst): die Karten lagen gleich, aber innen
-/// rechnete SwiftUI anders gerundet - die Kalenderzahl "10" stand bei
-/// x = 332.74999999999994 statt 332.75 (gemessen 14.09.). Genau auf der
-/// Pixelgrenze (2x: 665,5 px) kippt das um einen ganzen Pixel. Mit denselben
-/// Stapeln wie vorher ist Caelestias Anordnung pixelgleich (Bildprobe).
-/// Deshalb bekommt die einzige flexible Karte einer Reihe auch wie frueher
-/// keine Breite: den Rest verteilt der Stapel, er ist gleich dem gerechneten.
-private struct DashboardGrid: View {
-    let cards: DashboardCards
-    let model: DashboardModel
-    let weather: WeatherModel
-    let media: MediaModel
-
-    var body: some View {
-        let placements = DashboardGeometry.placements(for: cards)
-        if placements.isEmpty {
-            DashboardEmptyGrid()
+            .frame(width: Self.gridWidth)
+            .padding(.horizontal, Self.padding)
+            .animation(Self.motion, value: pages.map(\.id))
         } else {
-            let side = placements.filter { $0.zone == .side }
-            HStack(alignment: .top, spacing: DashboardView.spacing) {
-                if placements.contains(where: { $0.zone.isRow }) {
-                    VStack(spacing: DashboardView.spacing) {
-                        row(placements.filter { $0.zone == .top })
-                        row(placements.filter { $0.zone == .bottom })
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(pages) { page in
+                            pageButton(page, selected: selected).frame(width: Self.tabWidth).id(page.id)
+                        }
+                        if editor.isEditing { addPageButton.frame(width: Self.tabWidth) }
                     }
                 }
-                ForEach(side, id: \.card.kind) { placement in
-                    card(placement)
-                        .frame(width: placement.frame.width, height: placement.frame.height)
+                .frame(width: Self.gridWidth)
+                .padding(.horizontal, Self.padding)
+                // `initial: true`: with more than eight pages the bar
+                // scrolls, and the page one is on has to be in view the
+                // moment the bar appears - not only after the next switch.
+                // That first one without the animation: there is nothing
+                // to animate from, it would look like a jump.
+                .onChange(of: selected.id, initial: true) { old, id in
+                    if old == id {
+                        proxy.scrollTo(id, anchor: .center)
+                    } else {
+                        withAnimation(Self.motion) { proxy.scrollTo(id, anchor: .center) }
+                    }
                 }
             }
-            // Umordnen in Nexus gleitet sichtbar (in der Vorschau), statt zu springen.
-            .animation(DashboardView.motion, value: placements.map(\.frame))
+            .animation(Self.motion, value: pages.map(\.id))
         }
     }
+
+    /// Menu instead of a plain button (task 7): "New Page" as before,
+    /// plus "Restore Default Pages" for the bundled pages that the old
+    /// Nexus page list still offered before task 7. Disabled once all
+    /// four already exist (`DashboardEditor.isMissingDefaultPages`).
+    private var addPageButton: some View {
+        Menu {
+            Button("New Page") {
+                withAnimation(Self.motion) { _ = editor.addPage() }
+            }
+            Button("Restore Default Pages") {
+                withAnimation(Self.motion) { editor.restoreDefaults() }
+            }
+            .disabled(!editor.isMissingDefaultPages)
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: "plus")
+                    .font(style.font(size: 16, weight: .medium))
+                    .frame(width: 18, height: 18)
+                Text(" ").font(style.font(size: 12, weight: .medium))
+            }
+            .foregroundStyle(.secondary)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .contentShape(.rect)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .help("Add Page")
+        .accessibilityLabel("Add Page")
+    }
+
+    @FocusState private var renameFieldFocused: Bool
 
     @ViewBuilder
-    private func row(_ list: [DashboardPlacement]) -> some View {
-        if let height = list.first?.frame.height {
-            let flexible = list.filter { $0.card.kind.width(in: $0.zone).isFlexible }
-            HStack(spacing: DashboardView.spacing) {
-                ForEach(list, id: \.card.kind) { placement in
-                    if flexible.count == 1, flexible[0].card.kind == placement.card.kind {
-                        card(placement)
+    private func pageButton(_ page: DashboardPage, selected: DashboardPage) -> some View {
+        if editor.isEditing, editor.renamingPageID == page.id {
+            renameField(page, selected: selected)
+        } else {
+            pageTab(page, selected: selected)
+        }
+    }
+
+    /// Renaming: the field stands on its own instead of inside the tab
+    /// button's label - there, the button got every click (page switch),
+    /// the field never got focus (live test 09/19).
+    private func renameField(_ page: DashboardPage, selected: DashboardPage) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: page.symbol)
+                .font(style.font(size: 16, weight: .medium))
+                .frame(width: 18, height: 18)
+            TextField("Name", text: Binding(
+                get: { page.name },
+                set: { editor.renamePage(page.id, to: $0) }
+            ))
+            .textFieldStyle(.plain)
+            .font(style.font(size: 12, weight: .medium))
+            .multilineTextAlignment(.center)
+            .focused($renameFieldFocused)
+            .onSubmit { editor.renamingPageID = nil }
+            .onAppear { renameFieldFocused = true }
+            .padding(.horizontal, 6)
+            .background(Color.primary.opacity(0.08), in: .rect(cornerRadius: 5))
+        }
+        .foregroundStyle(style.accent)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+    }
+
+    private func pageTab(_ page: DashboardPage, selected: DashboardPage) -> some View {
+        Button {
+            // Caelestia: indicator 500 ms with a slightly overshooting
+            // curve. During an edit, the session switches the page -
+            // Nexus follows, because it observes the same `editor` object.
+            withAnimation(Self.motion) {
+                if editor.isEditing { editor.pageID = page.id } else { model.pageID = page.id }
+            }
+        } label: {
+            VStack(spacing: 4) {
+                // Theme: icons/panel-media.png, panel-performance.png,
+                // panel-weather.png; the Dashboard page uses bar-dashboard.
+                // Custom pages have no theme identifier, only their symbol.
+                Group {
+                    // A theme brings its own picture for the four bundled
+                    // pages - unless the symbol has been picked by hand
+                    // since (Icon in the page's menu). Then that one wins,
+                    // otherwise the menu looked as if it did nothing on
+                    // exactly those four pages (20.09.).
+                    if let template = page.template, page.symbol == template.tab.symbol {
+                        ThemedIcon(template.tab.iconID, fallback: page.symbol)
                     } else {
-                        card(placement).frame(width: placement.frame.width)
+                        Image(systemName: page.symbol)
                     }
                 }
+                .font(style.font(size: 16, weight: .medium))
+                .symbolVariant(page.id == selected.id ? .fill : .none)
+                .frame(width: 18, height: 18)
+                Text(page.name).font(style.font(size: 12, weight: .medium)).lineLimit(1)
             }
-            .frame(height: height)
-        }
-    }
-
-    private func card(_ placement: DashboardPlacement) -> DashboardCardView {
-        DashboardCardView(placement: placement, model: model, weather: weather, media: media)
-    }
-}
-
-/// Eine Karte nach ihrer Art - die eine Stelle, an der jede Art ihre Ansicht
-/// bekommt. Die Form folgt der Flaeche, nicht dem Platz: eine gestreckte
-/// Karte in der unteren Reihe ist breit genug, um nebeneinander zu stehen.
-/// Die Groesse selbst setzt `DashboardGrid`.
-private struct DashboardCardView: View {
-    let placement: DashboardPlacement
-    let model: DashboardModel
-    let weather: WeatherModel
-    let media: MediaModel
-
-    var body: some View {
-        let size = CGSize(width: placement.frame.width, height: placement.frame.height)
-        // Hochkant: hoch genug fuer Symbol ueber Text, zu schmal fuer nebeneinander.
-        let upright = size.height >= 200 && size.width < 300
-        Group {
-            switch placement.card {
-            case .weather(let options):
-                SmallWeatherCard(model: weather, options: options, vertical: upright)
-            case .user(let options):
-                UserCard(model: model, options: options, vertical: upright)
-            case .clock(let options):
-                DateTimeCard(now: model.now, locale: model.calendar.locale ?? .current, options: options)
-            case .calendar(let options):
-                CalendarCard(model: model, options: options, tall: size.height > 300)
-            case .resources(let options):
-                ResourcesCard(model: model, options: options, horizontal: size.width > size.height)
-            case .timer(let options):
-                TimerCard(options: options, vertical: upright)
-            case .media(let options):
-                // Rechts (200 x 392) Caelestias Karte; flach und breit ein
-                // Streifen; sonst die kleine hochkant.
-                if size.width > size.height * 1.3 {
-                    MediaStripCard(model: media, options: options, height: size.height)
-                } else if size.height >= 330 {
-                    MediaDashCard(model: media, options: options)
-                } else {
-                    MediaCompactCard(model: media, options: options)
+            .foregroundStyle(page.id == selected.id ? style.accent : Color.secondary)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .overlay(alignment: .bottom) {
+                if page.id == selected.id {
+                    Capsule()
+                        .fill(style.accent)
+                        .frame(width: 44, height: 3)
+                        .matchedGeometryEffect(id: "indicator", in: tabIndicator)
                 }
             }
+            .contentShape(.rect)
         }
-    }
-}
-
-/// Alle Karten entfernt: ein ruhiger Hinweis statt einer leeren Flaeche.
-private struct DashboardEmptyGrid: View {
-    @Environment(\.shellStyle) private var style
-
-    var body: some View {
-        Card(radius: 28) {
-            VStack(spacing: 8) {
-                Image(systemName: "square.grid.2x2")
-                    .font(style.font(size: 30, weight: .light))
-                    .foregroundStyle(.tertiary)
-                Text("No Cards")
-                    .font(style.font(size: 15, weight: .semibold))
-                Text("Cards can be added in Nexus under Dashboard.")
-                    .font(style.font(size: 12))
-                    .foregroundStyle(.secondary)
+        .buttonStyle(.plain)
+        // Context menu only while editing (task 4): rename, icon,
+        // duplicate, delete (never the last page - `DashboardEditor`
+        // does not allow it anyway, the button still stays visible so the
+        // menu does not look different for every page).
+        .contextMenu {
+            if editor.isEditing {
+                Button("Rename") { editor.renamingPageID = page.id }
+                Menu("Icon") {
+                    ForEach(nexusPageSymbols, id: \.self) { symbol in
+                        Button {
+                            editor.setSymbol(symbol, forPage: page.id)
+                        } label: {
+                            Label(symbol, systemImage: symbol)
+                        }
+                    }
+                }
+                Button("Duplicate") { editor.duplicatePage(page.id) }
+                // Without confirmation: a `.alert` hangs as a sheet off
+                // the borderless edge window at the top of the screen and
+                // did not appear reliably there - and the whole edit can
+                // be undone with "Cancel" anyway.
+                Button("Delete", role: .destructive) { withAnimation(Self.motion) { _ = editor.removePage(page.id) } }
+                    .disabled((editor.session?.pages.pages.count ?? 0) <= 1)
             }
         }
     }
 }
 
-// MARK: - Karten
+/// Measures its content unscaled (`sizeThatFits(.unspecified)`, the same
+/// thing `.fixedSize()` alone also does) and reports this size times
+/// `scale` to the parent - the content itself carries its own
+/// `.scaleEffect(scale, anchor: .topLeading)`. This way the reported area
+/// (edge window, `RenderMode`, Nexus preview) stays exactly as large as
+/// the scaled, drawn result, without needing to know the unscaled size
+/// from outside - and at `scale == 1` bit-identical with `.fixedSize()`
+/// alone.
+struct ScaledToFit: Layout {
+    let scale: CGFloat
 
-/// Initiale, Name und zwei Kapseln. Hochkant (untere Reihe, Spalte) steht
-/// die Initiale ueber dem Namen.
-private struct UserCard: View {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let subview = subviews.first else { return .zero }
+        let ideal = subview.sizeThatFits(.unspecified)
+        return CGSize(width: ideal.width * scale, height: ideal.height * scale)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let subview = subviews.first else { return }
+        let ideal = subview.sizeThatFits(.unspecified)
+        subview.place(at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(ideal))
+    }
+}
+
+// MARK: - Cards
+
+/// Initial, name, and two badges. Portrait (bottom row, column): the
+/// initial sits above the name.
+struct UserCard: View {
     let model: DashboardModel
     var options = DashboardUserOptions()
     var vertical = false
@@ -291,26 +386,38 @@ private struct Badge: View {
     }
 }
 
-/// Uhr wie Caelestia: Stunde, drei Punkte, Minute untereinander - oder
-/// "14:05" in einer Zeile. Das Datum darunter auf Wunsch.
-private struct DateTimeCard: View {
+/// Clock like Caelestia: hour, three dots, minute stacked - or "14:05" on
+/// one line. The date below it on request.
+struct DateTimeCard: View {
     let now: Date
     let locale: Locale
     var options = DashboardClockOptions()
+    /// Wider than its column (110) the digits grow with the card;
+    /// never below the size from before.
+    var size = CGSize(width: 110, height: 250)
     @Environment(\.shellStyle) private var style
+
+    private var scale: CGFloat { max(1, min(size.width / 110, size.height / 130, 2.4)) }
+
+    /// Time zone from the options (`nil` = the system's) - affects both
+    /// clock and date, so a chosen city really shows its own time.
+    private var timeZone: TimeZone { options.resolvedTimeZone }
 
     var body: some View {
         Card(radius: 16) {
             VStack(spacing: 12) {
                 clock
                 if options.showDate {
-                    // Als fertiger Text: `Text(_:format:)` nimmt die Sprache
-                    // der Umgebung statt der im Format (Bildprobe: "Monday")
-                    // - so passt das Datum zu den Wochentagen im Kalender.
+                    // As finished text: `Text(_:format:)` uses the
+                    // environment's language instead of the one in the
+                    // format (image sample: "Monday") - so the date
+                    // matches the weekdays in the calendar. Time zone
+                    // comes from `.environment(\.timeZone, ...)` below
+                    // (SwiftUI applies it to `Text(_:format:)`).
                     VStack(spacing: 1) {
-                        Text(now.formatted(.dateTime.weekday(.wide).locale(locale)))
+                        Text(now, format: .dateTime.weekday(.wide).locale(locale))
                             .font(style.font(size: 12, weight: .semibold))
-                        Text(now.formatted(.dateTime.day().month(.abbreviated).locale(locale)))
+                        Text(now, format: .dateTime.day().month(.abbreviated).locale(locale))
                             .font(style.font(size: 11, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
@@ -319,21 +426,22 @@ private struct DateTimeCard: View {
                 }
             }
         }
+        .environment(\.timeZone, timeZone)
     }
 
     @ViewBuilder private var clock: some View {
         switch options.style {
         case .stacked:
-            VStack(spacing: 6) {
+            VStack(spacing: 6 * scale) {
                 Text(now, format: .dateTime.hour(.twoDigits(amPM: .omitted)))
-                Text("•••").font(style.font(size: 14, weight: .bold)).foregroundStyle(.secondary)
+                Text("•••").font(style.font(size: 14 * scale, weight: .bold)).foregroundStyle(.secondary)
                 Text(now, format: .dateTime.minute(.twoDigits))
             }
-            .font(.system(size: 30, weight: .semibold, design: .rounded))
+            .font(.system(size: 30 * scale, weight: .semibold, design: .rounded))
             .monospacedDigit()
         case .inline:
             Text(now, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
-                .font(.system(size: 30, weight: .semibold, design: .rounded))
+                .font(.system(size: 30 * scale, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -341,13 +449,13 @@ private struct DateTimeCard: View {
     }
 }
 
-/// Monat mit heute markiert (Caelestia: DayOfWeekRow + MonthGrid). Erster
-/// Wochentag und Kalenderwochen aus den Optionen; die Sprache bleibt die des
-/// Modells.
-private struct CalendarCard: View {
+/// Month with today marked (Caelestia: DayOfWeekRow + MonthGrid). First
+/// weekday and week numbers from the options; the language stays that of
+/// the model.
+struct CalendarCard: View {
     let model: DashboardModel
     var options = DashboardCalendarOptions()
-    /// Ueber die ganze Hoehe (obere Reihe leer): Zeilen weiter auseinander.
+    /// Over the full height (top row empty): rows spaced further apart.
     var tall = false
     @Environment(\.shellStyle) private var style
 
@@ -405,12 +513,23 @@ private struct CalendarCard: View {
     }
 }
 
-/// Ringe fuer CPU, RAM, Speicher (Caelestia: CircularProgress, Strich 6) -
-/// untereinander in der schmalen Karte, nebeneinander in der oberen Reihe.
-private struct ResourcesCard: View {
+/// Rings for CPU, RAM, storage (Caelestia: CircularProgress, stroke 6) -
+/// stacked in the narrow card, side by side in the top row.
+struct ResourcesCard: View {
     let model: DashboardModel
     var options = DashboardResourcesOptions()
     var horizontal = false
+    var size = CGSize(width: 90, height: 250)
+
+    /// The rings grow in large cards (both sides from 200); in the places
+    /// from before they stay 56.
+    private var side: CGFloat {
+        guard size.width >= 200, size.height >= 200 else { return 56 }
+        let count = CGFloat(max(options.count, 1))
+        let fit = horizontal ? min((size.width - 40 - 16 * (count - 1)) / count, size.height - 40)
+                             : min(size.width - 40, (size.height - 40 - 14 * (count - 1)) / count)
+        return min(max(56, fit), 120)
+    }
 
     var body: some View {
         Card(radius: 16) {
@@ -423,21 +542,23 @@ private struct ResourcesCard: View {
     }
 
     @ViewBuilder private var rings: some View {
-        if options.showCPU { Ring(value: model.cpu, symbol: "cpu", iconID: "panel-cpu", help: "CPU") }
-        if options.showMemory { Ring(value: model.memory, symbol: "memorychip", iconID: "panel-memory", help: String(localized: "Memory")) }
-        if options.showStorage { Ring(value: model.storage, symbol: "internaldrive", iconID: "panel-disk", help: String(localized: "Storage")) }
+        if options.showCPU { Ring(value: model.cpu, symbol: "cpu", iconID: "panel-cpu", help: "CPU", side: side) }
+        if options.showMemory { Ring(value: model.memory, symbol: "memorychip", iconID: "panel-memory", help: String(localized: "Memory"), side: side) }
+        if options.showStorage { Ring(value: model.storage, symbol: "internaldrive", iconID: "panel-disk", help: String(localized: "Storage"), side: side) }
     }
 }
 
 private struct Ring: View {
     let value: Double
     let symbol: String
-    /// Kennung fuer den Symbol-Austausch im Theme.
+    /// Identifier for the symbol replacement in the theme.
     var iconID: String = ""
     let help: String
+    var side: CGFloat = 56
     @Environment(\.shellStyle) private var style
 
     var body: some View {
+        let icon = side * 14 / 56
         ZStack {
             Circle().stroke(Color.primary.opacity(0.10), lineWidth: 6)
             Circle()
@@ -446,11 +567,202 @@ private struct Ring: View {
                 .rotationEffect(.degrees(-90))
                 .animation(.easeOut(duration: 0.6), value: value)
             ThemedIcon(iconID.isEmpty ? symbol : iconID, fallback: symbol)
-                .font(style.font(size: 14, weight: .medium))
-                .frame(width: 16, height: 16)
+                .font(style.font(size: icon, weight: .medium))
+                .frame(width: icon + 2, height: icon + 2)
         }
-        .frame(width: 56, height: 56)
+        .frame(width: side, height: side)
         .help("\(help) \(Int((value * 100).rounded()))%")
         .accessibilityLabel("\(help) \(Int((value * 100).rounded())) percent")
+    }
+}
+
+/// About 24 SF Symbols to choose from for a page (context menu "Icon"
+/// above) - enough variety without the menu overhead of a full symbol
+/// picker. Until task 7 the same list lived in Nexus's old page builder
+/// (`NexusDashboardPages.swift`, since removed).
+let nexusPageSymbols = [
+    "square.grid.2x2", "star", "house", "briefcase", "bolt", "gamecontroller",
+    "moon.stars", "sun.max", "cloud.sun", "music.note", "film", "book",
+    "paintbrush", "hammer", "wrench.and.screwdriver", "leaf", "pawprint",
+    "airplane", "car", "bicycle", "figure.walk", "heart", "flag", "globe",
+]
+
+// MARK: - Other displays of the overview cards
+
+/// Display "minimal" of the user: only the initial and the name, large.
+struct UserMinimalCard: View {
+    let model: DashboardModel
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let avatar = min(size.height - 40, size.width * 0.45, 120)
+        let vertical = size.height >= 200 && size.width < 300
+        Card(radius: 28) {
+            let layout = vertical ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 16))
+            layout {
+                Text(String(model.userName.prefix(1)))
+                    .font(.system(size: avatar * 0.42, weight: .semibold, design: .rounded))
+                    .foregroundStyle(style.onAccent)
+                    .frame(width: avatar, height: avatar)
+                    .background(style.accent, in: .circle)
+                Text(model.userName)
+                    .font(style.font(size: vertical ? 18 : 22, weight: .semibold))
+                    .lineLimit(vertical ? 2 : 1)
+                    .multilineTextAlignment(vertical ? .center : .leading)
+                    .minimumScaleFactor(0.7)
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+}
+
+/// Display "analog" of the clock: a dial with hands, the date below on request.
+struct AnalogClockCard: View {
+    let now: Date
+    let locale: Locale
+    var options = DashboardClockOptions()
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let timeZone = options.resolvedTimeZone
+        let dateHeight: CGFloat = options.showDate ? 34 : 0
+        let dial = max(40, min(size.width - 24, size.height - 24 - dateHeight))
+        Card(radius: 16) {
+            VStack(spacing: 8) {
+                ClockDial(now: now, timeZone: timeZone)
+                    .frame(width: dial, height: dial)
+                if options.showDate {
+                    VStack(spacing: 1) {
+                        Text(now, format: .dateTime.weekday(.wide).locale(locale))
+                            .font(style.font(size: 12, weight: .semibold))
+                        Text(now, format: .dateTime.day().month(.abbreviated).locale(locale))
+                            .font(style.font(size: 11, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                }
+            }
+        }
+        .environment(\.timeZone, timeZone)
+    }
+}
+
+private struct ClockDial: View {
+    let now: Date
+    let timeZone: TimeZone
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let parts = calendar.dateComponents([.hour, .minute], from: now)
+        let minute = Double(parts.minute ?? 0)
+        let hour = Double((parts.hour ?? 0) % 12) + minute / 60
+        return GeometryReader { geometry in
+            let side = min(geometry.size.width, geometry.size.height)
+            let center = CGPoint(x: geometry.size.width / 2, y: geometry.size.height / 2)
+            ZStack {
+                Circle().fill(Color.primary.opacity(0.06))
+                ForEach(0..<12, id: \.self) { tick in
+                    Capsule()
+                        .fill(Color.primary.opacity(tick % 3 == 0 ? 0.55 : 0.25))
+                        .frame(width: side * (tick % 3 == 0 ? 0.025 : 0.018), height: side * 0.07)
+                        .offset(y: -side * 0.41)
+                        .rotationEffect(.degrees(Double(tick) * 30))
+                }
+                Capsule()
+                    .fill(Color.primary)
+                    .frame(width: side * 0.045, height: side * 0.27)
+                    .offset(y: -side * 0.135)
+                    .rotationEffect(.degrees(hour * 30))
+                Capsule()
+                    .fill(style.accent)
+                    .frame(width: side * 0.03, height: side * 0.38)
+                    .offset(y: -side * 0.19)
+                    .rotationEffect(.degrees(minute * 6))
+                Circle().fill(style.accent).frame(width: side * 0.07, height: side * 0.07)
+            }
+            .frame(width: side, height: side)
+            .position(center)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(now, format: .dateTime.hour().minute()))
+    }
+}
+
+/// Display "today" of the calendar: the day large, weekday and month around
+/// it - for a glance instead of planning.
+struct CalendarTodayCard: View {
+    let model: DashboardModel
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        let locale = model.calendar.locale ?? .current
+        let big = size.height >= 250
+        Card(radius: 28) {
+            VStack(spacing: big ? 4 : 0) {
+                Text(model.now, format: .dateTime.weekday(.wide).locale(locale))
+                    .font(style.font(size: big ? 18 : 14, weight: .semibold))
+                    .foregroundStyle(style.accent)
+                Text(model.now, format: .dateTime.day().locale(locale))
+                    .font(.system(size: big ? min(size.height * 0.42, 150) : 64, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.5)
+                Text(model.now, format: .dateTime.month(.wide).year().locale(locale))
+                    .font(style.font(size: big ? 15 : 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .lineLimit(1)
+            .padding(12)
+        }
+    }
+}
+
+/// Display "bars" of the resources: one bar per value, with its figure.
+struct ResourcesBarsCard: View {
+    let model: DashboardModel
+    var options = DashboardResourcesOptions()
+    let size: CGSize
+    @Environment(\.shellStyle) private var style
+
+    var body: some View {
+        Card(radius: 16) {
+            VStack(alignment: .leading, spacing: size.height >= 200 ? 18 : 10) {
+                if options.showCPU { row(symbol: "cpu", iconID: "panel-cpu", title: "CPU", value: model.cpu) }
+                if options.showMemory {
+                    row(symbol: "memorychip", iconID: "panel-memory", title: String(localized: "Memory"), value: model.memory)
+                }
+                if options.showStorage {
+                    row(symbol: "internaldrive", iconID: "panel-disk", title: String(localized: "Storage"), value: model.storage)
+                }
+            }
+            .padding(.horizontal, size.width >= 150 ? 16 : 12)
+        }
+    }
+
+    private func row(symbol: String, iconID: String, title: String, value: Double) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                ThemedIcon(iconID, fallback: symbol)
+                    .font(style.font(size: 11, weight: .semibold))
+                    .frame(width: 13, height: 13)
+                    .foregroundStyle(style.accent)
+                if size.width >= 150 {
+                    Text(title).font(style.font(size: 12, weight: .medium)).lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                Text("\(Int((value * 100).rounded())) %")
+                    .font(style.font(size: 12, weight: .semibold))
+                    .monospacedDigit()
+                    .fixedSize()
+            }
+            UsageBar(value: value, height: 6)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title) \(Int((value * 100).rounded())) percent")
     }
 }

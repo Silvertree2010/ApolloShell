@@ -1,15 +1,15 @@
 import Foundation
 
-// Wetteranbieter: woher das Dashboard sein Wetter holt. Alle ohne Schluessel
-// und ohne Konto. Jeder Anbieter baut seine Anfragen selbst und liest seine
-// Antworten zu einem `WeatherReport` mit WMO-Codes - so bleiben Symbole,
-// Texte und Oberflaeche fuer alle gleich, egal wie der Anbieter das Wetter
-// benennt (MET Norway: "lightrainshowers_day", wttr.in: 353).
+// The weather providers: where the dashboard gets its weather. All without a
+// key and without an account. Every provider builds its requests itself and
+// reads its answers into a `WeatherReport` with WMO codes - that way symbols,
+// texts and the user interface stay the same for all of them, no matter what
+// the provider calls the weather (MET Norway: "lightrainshowers_day", wttr.in: 353).
 
-// MARK: - Kennung
+// MARK: - Identifier
 
-/// Wert in settings.json (`providers.weather`). Die Rohwerte sind das
-/// Dateiformat - nicht umbenennen.
+/// The value in settings.json (`providers.weather`). The raw values are the
+/// file format - do not rename them.
 public enum WeatherProviderID: String, Codable, CaseIterable, Sendable, Identifiable {
     case openMeteo
     case metNorway
@@ -17,11 +17,11 @@ public enum WeatherProviderID: String, Codable, CaseIterable, Sendable, Identifi
 
     public var id: Self { self }
 
-    /// Ohne Einstellung: Open-Meteo, wie vor der Auswahl.
+    /// Without a setting: Open-Meteo, as before the choice existed.
     public static let standard = openMeteo
 
-    /// Der Anbieter dazu. `timeZone`: fuer Anbieter, deren Antwort keine
-    /// Zeitzone nennt (MET Norway, wttr.in) - siehe dort.
+    /// The provider for it. `timeZone`: for providers whose answer names no
+    /// time zone (MET Norway, wttr.in) - see there.
     public func provider(timeZone: TimeZone = .current) -> any WeatherProvider {
         switch self {
         case .openMeteo: OpenMeteoProvider()
@@ -31,10 +31,10 @@ public enum WeatherProviderID: String, Codable, CaseIterable, Sendable, Identifi
     }
 }
 
-// MARK: - Beschreibung
+// MARK: - Description
 
-/// Quellenangabe. Open-Meteo und MET Norway stehen unter CC BY 4.0: wer ihre
-/// Daten zeigt, muss die Quelle nennen und verlinken.
+/// The attribution. Open-Meteo and MET Norway are under CC BY 4.0: whoever
+/// shows their data has to name the source and link to it.
 public struct WeatherAttribution: Equatable, Sendable {
     public let name: String
     public let url: URL
@@ -44,15 +44,15 @@ public struct WeatherAttribution: Equatable, Sendable {
         self.url = url
     }
 
-    /// "Wetterdaten: MET Norway" - die Zeile im Wetter-Reiter.
+    /// "Weather data: MET Norway" - the line in the weather tab.
     public var text: String { String(localized: "Weather data: \(name)") }
 }
 
-/// Was ein Anbieter liefert. Die Oberflaeche richtet sich nach den Daten
-/// selbst (drei Tage sind drei Karten); das hier beschreibt die Anbieter in
-/// Nexus, damit man weiss, was man mit der Wahl verliert.
+/// What a provider delivers. The user interface follows the data itself
+/// (three days are three cards); this describes the providers in Nexus, so
+/// that one knows what one loses with the choice.
 public struct WeatherCapabilities: Equatable, Sendable {
-    /// Abstand der Stundenwerte in Stunden.
+    /// The gap between the hourly values in hours.
     public let hourStep: Int
     public let days: Int
     public let precipitationProbability: Bool
@@ -72,7 +72,7 @@ public struct WeatherCapabilities: Equatable, Sendable {
         self.sunTimes = sunTimes
     }
 
-    /// "7 Tage · stündlich" oder "3 Tage · alle 3 Stunden", dazu was fehlt.
+    /// "7 days · hourly" or "3 days · every 3 hours", plus what is missing.
     public var summary: String {
         var parts = [String(localized: "\(days) days"),
                      hourStep == 1 ? String(localized: "hourly") : String(localized: "every \(hourStep) hours")]
@@ -85,18 +85,18 @@ public struct WeatherCapabilities: Equatable, Sendable {
     }
 }
 
-// MARK: - Anfragen
+// MARK: - Requests
 
-/// Kennung fuer alle Anfragen. MET Norway verlangt sie in den
-/// Nutzungsbedingungen (App-Name plus Adresse, sonst 403); die anderen
-/// bekommen sie aus Hoeflichkeit auch.
+/// The identifier for all requests. MET Norway asks for it in their terms (an
+/// app name plus an address, otherwise 403); the others get it out of
+/// politeness too.
 public enum WeatherUserAgent {
-    /// Die oeffentliche Projektseite. Keine persoenliche Mail: die Kennung
-    /// geht an Dritte.
+    /// The public project page. No personal mail: the identifier goes to third
+    /// parties.
     public static let projectURL = "https://github.com/Silvertree2010/ApolloShell"
 
-    /// "ApolloShell/0.1 (+https://github.com/Silvertree2010/ApolloShell)". Ohne Version
-    /// (aus `swift build` gestartet, ohne Info.plist): "dev".
+    /// "ApolloShell/0.1 (+https://github.com/Silvertree2010/ApolloShell)".
+    /// Without a version (started from `swift build`, without an Info.plist): "dev".
     public static func value(version: String?) -> String {
         let version = version?.trimmingCharacters(in: .whitespaces) ?? ""
         return "ApolloShell/\(version.isEmpty ? "dev" : version) (+\(projectURL))"
@@ -105,8 +105,8 @@ public enum WeatherUserAgent {
 
 public struct WeatherRequest: Equatable, Sendable {
     public let url: URL
-    /// Zusatz (z. B. Sonnenzeiten): scheitert er, gilt der Bericht trotzdem,
-    /// nur ohne diese Angaben. Die erste Anfrage ist nie optional.
+    /// An extra (the sun times, say): when it fails, the report still holds,
+    /// only without those entries. The first request is never optional.
     public let optional: Bool
 
     public init(url: URL, optional: Bool = false) {
@@ -122,35 +122,35 @@ public struct WeatherRequest: Equatable, Sendable {
 }
 
 public enum WeatherProviderError: Error, Equatable {
-    /// Die Pflichtantwort fehlt.
+    /// The required answer is missing.
     case missingResponse
-    /// Ohne aktuelle Temperatur und Wetterlage gibt es nichts anzuzeigen.
+    /// Without a current temperature and condition there is nothing to show.
     case noCurrentWeather
 }
 
-// MARK: - Anbieter
+// MARK: - Providers
 
 public protocol WeatherProvider: Sendable {
     var id: WeatherProviderID { get }
     var attribution: WeatherAttribution { get }
     var capabilities: WeatherCapabilities { get }
-    /// Die erste ist Pflicht, weitere duerfen scheitern (`optional`).
+    /// The first one is required, further ones may fail (`optional`).
     func requests(for location: WeatherLocation, now: Date) -> [WeatherRequest]
-    /// `bodies` in der Reihenfolge von `requests`; `nil` = optionale Anfrage
-    /// gescheitert.
+    /// `bodies` in the order of `requests`; `nil` = the optional request
+    /// failed.
     func decode(_ bodies: [Data?], now: Date) throws -> WeatherReport
 }
 
 extension WeatherProvider {
-    /// Die Pflichtantwort, sonst Fehler.
+    /// The required answer, otherwise an error.
     func primary(_ bodies: [Data?]) throws -> Data {
         guard let first = bodies.first, let data = first else { throw WeatherProviderError.missingResponse }
         return data
     }
 }
 
-/// Open-Meteo (Weather.swift): die Vorgabe. Nennt die Zeitzone des Orts
-/// selbst (`timezone=auto`), braucht also keine.
+/// Open-Meteo (Weather.swift): the default. Names the time zone of the place
+/// itself (`timezone=auto`), so it needs none.
 public struct OpenMeteoProvider: WeatherProvider {
     public init() {}
 
@@ -174,12 +174,12 @@ public struct OpenMeteoProvider: WeatherProvider {
     }
 }
 
-// MARK: - Gemeinsame Helfer
+// MARK: - Shared helpers
 
 enum WeatherQuery {
-    /// Hoechstens vier Nachkommastellen (~10 m): MET Norway weist mehr mit
-    /// 403 ab, und die Ortssuche liefert fuenf. Ohne Nullen am Ende, immer
-    /// mit Punkt - `String(format:)` ohne Locale ist dafuer fest.
+    /// At most four decimals (~10 m): MET Norway turns more down with a 403,
+    /// and the place search delivers five. Without zeros at the end, always
+    /// with a point - `String(format:)` without a locale is fixed that way.
     static func coordinate(_ value: Double) -> String {
         var text = String(format: "%.4f", value)
         while text.hasSuffix("0") { text.removeLast() }
@@ -187,14 +187,14 @@ enum WeatherQuery {
         return text == "-0" ? "0" : text
     }
 
-    /// "+02:00" fuer die Zone zum Zeitpunkt `date` (Sommerzeit beachtet).
+    /// "+02:00" for the zone at the time `date` (daylight saving taken into account).
     static func offset(_ zone: TimeZone, at date: Date) -> String {
         let seconds = zone.secondsFromGMT(for: date)
         let minutes = abs(seconds) / 60
         return String(format: "%@%02d:%02d", seconds < 0 ? "-" : "+", minutes / 60, minutes % 60)
     }
 
-    /// "2026-09-14" im Kalender der Zone.
+    /// "2026-09-14" in the calendar of the zone.
     static func day(_ date: Date, in zone: TimeZone) -> String {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
@@ -204,9 +204,9 @@ enum WeatherQuery {
 }
 
 enum WeatherTime {
-    /// Zeit mit Zone: "2026-09-14T16:00:00Z" (MET Locationforecast) oder
-    /// "2026-09-14T06:38+02:00" (MET Sunrise, ohne Sekunden). Von Hand wie
-    /// `OpenMeteo.localDate`: ISO8601DateFormatter will Sekunden.
+    /// A time with a zone: "2026-09-14T16:00:00Z" (MET Locationforecast) or
+    /// "2026-09-14T06:38+02:00" (MET Sunrise, without seconds). By hand like
+    /// `OpenMeteo.localDate`: ISO8601DateFormatter wants seconds.
     static func isoDate(_ text: String) -> Date? {
         guard let t = text.firstIndex(of: "T") else { return nil }
         var body = Substring(text)
@@ -219,7 +219,7 @@ enum WeatherTime {
             offset = (zone[0] * 3600 + zone[1] * 60) * (body[sign] == "-" ? -1 : 1)
             body = body[..<sign]
         } else {
-            // Ohne Zone waere die Zeit mehrdeutig.
+            // Without a zone the time would be ambiguous.
             return nil
         }
         let parts = body.split(whereSeparator: { !$0.isASCII || !$0.isNumber }).compactMap { Int($0) }

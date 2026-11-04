@@ -24,6 +24,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     /// Dashboard (Caelestia: dashboard): Reiter und Karten, siehe
     /// `DashboardLayout`. Fehlt der Abschnitt, gilt Caelestias Dashboard.
     public var dashboard = DashboardLayout()
+    public var dashboardPages: DashboardPages?
+    public var dashboardScale: Double = 1
     /// Globale Tastenkuerzel (Nexus > Tastenkürzel).
     public var hotKeys = HotKeySettings.existingInstall
     /// "Keep Awake" auch zugeklappt.
@@ -286,6 +288,8 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         providers = c.lenient(.providers) ?? Providers()
         utilities = c.lenient(.utilities) ?? Utilities()
         dashboard = c.lenient(.dashboard) ?? DashboardLayout()
+        dashboardPages = c.lenient(.dashboardPages)
+        dashboardScale = BentoGeometry.clampedUserScale(c.lenient(.dashboardScale) ?? 1)
         // Fehlt ein Abschnitt, stammt die Datei von vor der Veroeffentlichung:
         // wie bisher (alte Kuerzel, zugeklappt wach, keine Einfuehrung).
         hotKeys = c.lenient(.hotKeys) ?? .existingInstall

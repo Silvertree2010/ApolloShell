@@ -2,93 +2,252 @@ import AppKit
 import ApolloShellCore
 import SwiftUI
 
-/// Dashboard-Fenster oben mittig, buendig an der Oberkante (Caelestia:
-/// Dashboard am oberen Rand). Oeffnet per SUPER+D, ueber das Symbol oben in
-/// der Leiste und wie bei Caelestia, wenn die Maus oben mittig an den Rand
-/// stoesst.
+/// Dashboard window top center, flush with the top edge (Caelestia:
+/// Dashboard at the top edge). Opens via Super+D, via the icon at the
+/// top of the bar, and like Caelestia when the mouse hits the top
+/// center edge.
 ///
-/// Reiter und Karten kommen aus Nexus > Dashboard (settings.dashboard); die
-/// Ansicht liest sie live. Die Groesse bleibt dabei immer dieselbe.
+/// Tabs and cards come from Nexus > Dashboard (settings.dashboard); the
+/// view reads them live. The size always stays the same.
 @MainActor
 final class Dashboard {
     private let model = DashboardModel()
-    /// Eigenes Modell: laedt nur beim Oeffnen, wenn die Daten aelter als
-    /// 15 min sind, und alle 30 min, solange offen.
-    private let weather: WeatherModel
-    /// Now Playing: der Adapter-Prozess laeuft nur, solange offen.
-    private let media = MediaModel()
+    /// One `WeatherModel` per weather widget: only fetches on open when
+    /// the data is older than 15 min, and every 30 min while open.
+    private let weatherModels: WeatherModels
+    /// Now Playing, shared with the bars' now-playing blocks (one adapter
+    /// process for both); the dashboard asks for the stream while open.
+    private let media: MediaModel
+    /// Timer, clipboard, files, connection, drives, photos (09/23).
+    private let extras = DashboardExtras()
     private let settings: ShellSettingsStore
+    private let editor: DashboardEditor
     private let drawer: EdgeDrawer<DashboardView>
     private var hoverObservation: Task<Void, Never>?
+    /// Size at scale 1 (measured from the content, see `init`).
+    private let baseSize: NSSize
+    /// Follows the on/off switch in the Nexus panel; lives as long as the app.
+    private var enabledObservation: Task<Void, Never>?
 
-    /// `settings`: Wetteranbieter (Nexus > Anbieter), Reiter und Karten
-    /// (Nexus > Dashboard).
-    init(settings: ShellSettingsStore) {
+    /// `settings`: weather provider (Nexus > Provider), pages and
+    /// widgets (Nexus > Dashboard, `settings.dashboardPages`). `editor`:
+    /// an edit session, started from Nexus > Dashboard > Edit - the same
+    /// object also holds Nexus.
+    /// `media`: the shell's one `MediaModel`; a fresh one where nothing else
+    /// shares it (the self-tests).
+    init(settings: ShellSettingsStore, editor: DashboardEditor, media: MediaModel = MediaModel()) {
         self.settings = settings
-        weather = WeatherModel(settings: settings)
-        let view = DashboardView(model: model, weather: weather, media: media, settings: settings)
-        // Groesse aus dem Inhalt (feste Karten-Masse), vor dem ersten Oeffnen.
-        // Haengt nicht an Reitern und Karten - das Raster ist immer 839 x 392.
-        let size = NSHostingView(rootView: view.shellTheme()).fittingSize
-        drawer = EdgeDrawer(edge: .top, size: size, cornerRadius: 25, rootView: view)
+        self.media = media
+        self.editor = editor
+        // Migration on the very first access to the pages - before
+        // anything that reads them (including the size measurement right
+        // below).
+        if settings.settings.dashboardPages == nil {
+            let places = WeatherFavorites.loadLive()
+            settings.settings.dashboardPages = DashboardPages.migrated(
+                from: settings.settings.dashboard, places: places, hasBattery: PerformanceSampler.hasInternalBattery
+            )
+        }
+        weatherModels = WeatherModels(settings: settings, editor: editor)
+        let view = DashboardView(model: model, weatherModels: weatherModels, media: media, settings: settings, editor: editor,
+                                 extras: extras)
+        // The history has to see what is copied while the dashboard is closed.
+        if settings.settings.dashboardPages?.pages.contains(where: { $0.contains(.clipboard) }) == true {
+            extras.clipboard.start()
+        }
+        // Size from the content (fixed card dimensions) at scale 1,
+        // before the first opening. Does not depend on pages and
+        // widgets - the grid is always 839 x 392; `prepareForScreen`
+        // below scales from here.
+        let baseSize = NSHostingView(rootView: view.shellTheme()).fittingSize
+        drawer = EdgeDrawer(edge: .top, size: baseSize, cornerRadius: 25, rootView: view)
+        self.baseSize = baseSize
         hoverObservation = Task { [weak self, settings] in
             for await on in Observations({ settings.settings.features.dashboardHover }) {
                 self?.drawer.opensOnHover = on
             }
         }
-        drawer.onOpen = { [model, weather, media, settings] in
-            let layout = settings.settings.dashboard
-            // Ein inzwischen ausgeblendeter Reiter bleibt nicht gewaehlt.
-            // Nexus und Dashboard sind nie zugleich offen (das Dashboard
-            // schliesst, sobald ein anderes Fenster den Fokus hat) - beim
-            // Oeffnen nachzuziehen genuegt.
-            model.tab = layout.tabs.resolved(model.tab)
-            model.start()
-            // Ohne Karte und Reiter kein Abruf und kein Adapter-Prozess.
-            if layout.usesWeather { weather.start() }
-            if layout.usesMedia { media.start() }
+        drawer.prepareForScreen = { [weak self] screen in
+            self?.applyScale(on: screen)
         }
-        drawer.onClose = { [model, weather, media] in
+        drawer.onOpen = { [model, weatherModels, media, settings, extras] in
+            let page = Dashboard.resolvedPage(model: model, settings: settings)
+            model.pageID = page.id
+            model.showsPerformance = page.widgets.contains { $0.kind.isPerformance }
+            model.start()
+            let pages = settings.settings.dashboardPages
+            // Without a widget, no fetch and no adapter process.
+            if pages?.usesWeather == true { weatherModels.start(for: page.widgets.filter { $0.kind.usesPlaces }) }
+            if pages?.usesMedia == true { media.start() }
+            extras.start(for: page.widgets)
+        }
+        drawer.onClose = { [model, weatherModels, media, extras] in
             model.stop()
-            weather.stop()
+            weatherModels.stop()
             media.stop()
+            extras.stop()
+        }
+        // Edit (Nexus > Dashboard > Edit): the window stays open and
+        // pinned, regardless of the mouse; weather, media, and
+        // performance run for the session's currently shown page as usual.
+        editor.onBegin = { [weak drawer, model, weatherModels, media] screen in
+            guard let drawer else { return }
+            let alreadyOpen = drawer.isOpen
+            drawer.isPinned = true
+            if let page = editor.page {
+                model.pageID = page.id
+                model.showsPerformance = page.widgets.contains { $0.kind.isPerformance }
+            }
+            if alreadyOpen {
+                if let page = editor.page {
+                    if page.widgets.contains(where: { $0.kind.usesPlaces }) {
+                        weatherModels.start(for: page.widgets.filter { $0.kind.usesPlaces })
+                    }
+                    if page.widgets.contains(where: { $0.kind.usesMedia }) { media.start() }
+                }
+            } else {
+                drawer.open(on: screen)
+            }
+        }
+        editor.onEnd = { [weak self, weak drawer, model, settings, editor] in
+            // Scale back to the saved one (after "Done" that is the new
+            // one, after "Cancel" the old one).
+            self?.applyScaleWhileOpen()
+            // Stay on the last edited page (if it no longer exists after
+            // "Cancel", `resolvedPage` takes the first one).
+            if let id = editor.lastPageID, settings.settings.dashboardPages?.page(id: id) != nil {
+                model.pageID = id
+            }
+            // The places of a weather widget can have been changed during
+            // the edit and taken back again by Cancel. The models read
+            // them live, but what they fetched last stands on the screen
+            // until they are started again (20.09.).
+            if drawer?.isOpen == true, let self, let id = model.pageID,
+               let page = settings.settings.dashboardPages?.page(id: id) {
+                let weather = page.widgets.filter { $0.kind.usesPlaces }
+                if !weather.isEmpty { self.weatherModels.start(for: weather) }
+            }
+            // Unpinning alone - the window stays open until the mouse
+            // leaves or a click happens elsewhere, like a normally
+            // opened Dashboard.
+            drawer?.isPinned = false
+        }
+        // If Nexus changes the locations of a weather widget during
+        // editing, it only shows them after restarting its model
+        // (`start()` only re-reads them then).
+        editor.onOptionsChange = { [weak weatherModels] id in weatherModels?.restart(id) }
+        // Slider in the toolbar: the open Dashboard follows immediately.
+        editor.onScaleChange = { [weak self] in self?.applyScaleWhileOpen() }
+        editor.onNeedsKeyboard = { [weak drawer] in drawer?.takeKeyboard() }
+        // Delivers the current value first, then every change.
+        enabledObservation = Task { [weak self, settings] in
+            for await on in Observations({ true }) {
+                self?.enabledChanged(on)
+            }
         }
     }
 
-    /// Nexus bei Wetter oeffnen, wenn es (noch) keinen Ort gibt - vom
-    /// Aufrufer verdrahtet (siehe `AppDelegate`).
-    func onOpenNexus(_ action: @escaping () -> Void) {
-        weather.onOpenNexus = action
+    /// Scale for this screen: automatic based on width times slider -
+    /// during editing the toolbar's slider (`editor.scale`), otherwise
+    /// the saved one.
+    private func applyScale(on screen: NSScreen) {
+        let user = editor.scale ?? settings.settings.dashboardScale
+        let scale = BentoGeometry.scale(screenWidth: screen.frame.width, availableHeight: screen.visibleFrame.height,
+                                        contentHeight: baseSize.height, contentWidth: baseSize.width, userScale: user)
+        model.scale = CGFloat(scale)
+        drawer.resize(to: NSSize(width: baseSize.width * CGFloat(scale), height: baseSize.height * CGFloat(scale)))
+    }
+
+    private func applyScaleWhileOpen() {
+        guard drawer.isOpen, let screen = drawer.currentScreen?.screen else { return }
+        applyScale(on: screen)
+    }
+
+    /// The page shown when opening: `model.pageID`, if it still exists,
+    /// otherwise the first one.
+    private static func resolvedPage(model: DashboardModel, settings: ShellSettingsStore) -> DashboardPage {
+        let pages = settings.settings.dashboardPages
+        return model.pageID.flatMap { pages?.page(id: $0) } ?? pages?.pages.first
+            ?? DashboardPages.defaultPages(places: .empty, hasBattery: PerformanceSampler.hasInternalBattery)[0]
+    }
+
+    /// Open Nexus at Weather when there is (still) no location - wired
+    /// by the caller (see `AppDelegate`).
+    func onSetLocation(_ action: @escaping () -> Void) {
+        weatherModels.onSetLocation = action
     }
 
     func toggle() {
+        guard isEnabled || editor.isEditing else { return }
         drawer.toggle()
     }
 
-    /// Baustein der Leiste (Medien, Wetter, CPU, Akku): gleich beim
-    /// passenden Reiter - oder, wenn der ausgeblendet ist, beim ersten
-    /// sichtbaren. Ist es dort schon offen, zu - wie beim Dashboard-Symbol
-    /// ein zweiter Klick.
+    /// Switched off in the Nexus panel: nothing opens it - no hover at the
+    /// top edge, no shortcut, no bar module. The edit mode still shows it:
+    /// switching a panel off is not the same as losing its pages.
+    private var isEnabled: Bool { true }
+
+    private func enabledChanged(_ on: Bool) {
+        drawer.opensOnHover = on
+        if !on, !editor.isEditing { drawer.close() }
+    }
+
+    /// Frame of the open Dashboard (edit mode: the gallery sits below
+    /// it instead of above).
+    var openFrame: NSRect? { drawer.openFrame }
+
+    /// For `ShellEditor.dashboardStartPageID`: the page that is
+    /// currently open (or was last) - the global edit mode starts there.
+    var currentPageID: DashboardPage.ID? { model.pageID }
+
+    /// Module of the bar (media, weather, CPU, battery): goes straight
+    /// to the matching page - or, if there is none anymore, to the
+    /// first one with a matching widget, otherwise the very first one.
+    /// If it is already open, close it - like a second click on the
+    /// Dashboard icon.
     func show(tab: DashboardTab) {
-        let tab = settings.settings.dashboard.tabs.resolved(tab)
-        if drawer.isOpen, model.tab == tab {
+        guard let pages = settings.settings.dashboardPages else { return }
+        let kinds: [WidgetKind] = switch tab {
+        case .dashboard: []
+        case .media: [.mediaPlayer, .media]
+        case .performance: [.performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork,
+                            .performanceMemory, .performanceBattery]
+        case .weather: [.weatherHero, .weatherHourly, .weatherDaily, .weather]
+        }
+        // During editing the window stays pinned open - no
+        // `drawer.close()`/`open()` (they have no effect anymore anyway,
+        // `EdgeDrawer.isPinned`), only the session switches the page,
+        // and only if a clear one is found (template or matching
+        // widget) - otherwise editing stays where it is.
+        if editor.isEditing {
+            if let session = editor.session,
+               let page = session.pages.pages.first(where: { $0.template == PageTemplate(tab) })
+                   ?? session.pages.pages.first(where: { page in kinds.contains(where: page.contains) }) {
+                editor.pageID = page.id
+            }
+            return
+        }
+        guard isEnabled else { return }
+        let page = pages.page(for: PageTemplate(tab), showing: kinds)
+        if drawer.isOpen, model.pageID == page.id {
             drawer.close()
             return
         }
-        model.tab = tab
+        model.pageID = page.id
+        model.showsPerformance = page.widgets.contains { $0.kind.isPerformance }
         drawer.open()
     }
 
-    /// Von `FullscreenMonitor`: auf diesen Bildschirmen ist Vollbild, dort
-    /// oeffnet die Maus oben nichts. An den Kanten der uebrigen Bildschirme
-    /// bleibt es beim Aufklappen per Maus.
+    /// From `FullscreenMonitor`: these screens are in full screen, so
+    /// the mouse at the top opens nothing there. At the edges of the
+    /// remaining screens, opening via mouse still works.
     func setFullscreen(_ screens: Set<CGDirectDisplayID>) {
         drawer.suspendedScreens = screens
     }
 
-    /// Beim Beenden der App: den perl-Prozess des Adapters nicht verwaist
-    /// weiterlaufen lassen, falls das Dashboard gerade offen ist.
+    /// When the app quits: do not let the adapter's perl process keep
+    /// running orphaned if the Dashboard is currently open.
     func shutdown() {
-        media.stop()
+        media.shutdown()
     }
 }

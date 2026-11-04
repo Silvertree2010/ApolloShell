@@ -37,6 +37,11 @@ enum ShellScreens {
     ///
     /// Leer, wenn gerade keiner da ist (Kabel mitten im Umstecken): die
     /// Aufrufer lassen dann stehen, was steht.
+    static func matching(_ screen: NSScreen) -> ShellScreen? {
+        guard let id = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value else { return nil }
+        return current().first { $0.displayID == id }
+    }
+
     static func current() -> [ShellScreen] {
         let screens = NSScreen.screens
         guard let primary = screens.first else { return [] }
