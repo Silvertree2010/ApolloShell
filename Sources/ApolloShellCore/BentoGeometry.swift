@@ -55,8 +55,7 @@ public enum BentoGeometry {
     /// grew wider than the screen it stands on.
     public static func scale(screenWidth: Double, availableHeight: Double, contentHeight: Double,
                              contentWidth: Double = 0, userScale: Double) -> Double {
-        let automatic = min(max(screenWidth / referenceScreenWidth, automaticRange.lowerBound), automaticRange.upperBound)
-        var wanted = automatic * clampedUserScale(userScale)
+        var wanted = clampedUserScale(userScale)
         if contentHeight > 0 { wanted = min(wanted, availableHeight / contentHeight) }
         if contentWidth > 0 { wanted = min(wanted, screenWidth / contentWidth) }
         return wanted

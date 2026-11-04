@@ -37,12 +37,12 @@ struct BentoGeometryTests {
         #expect(!BentoGeometry.isValid(f(0, 130, 110, 250), kind: .clock, others: others))   // too close
     }
 
-    @Test("The scale: automatic by width, the slider, the height limits it", arguments: [
+    @Test("The scale: 1:1 like 0.1.7.1 on every screen, the slider, the height limits it", arguments: [
         (1512.0, 2000.0, 1.0, 1.0),
-        (2560, 2000, 1.0, 1.5),
-        (1280, 2000, 1.0, 0.85),
+        (2560, 2000, 1.0, 1.0),
+        (1280, 2000, 1.0, 1.0),
         (1512, 2000, 1.2, 1.2),
-        (2560, 2000, 1.5, 2.25),
+        (2560, 2000, 1.5, 1.5),
         (1512, 400, 1.0, 400.0 / 460.0),
         (1512, 2000, 9.0, 1.5),
         (1512, 2000, .nan, 1.0),
