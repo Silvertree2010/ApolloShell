@@ -264,6 +264,7 @@ struct DashboardView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .focusEffectDisabled()
         // Context menu only while editing (task 4): rename, icon,
         // duplicate, delete (never the last page - `DashboardEditor`
         // does not allow it anyway, the button still stays visible so the

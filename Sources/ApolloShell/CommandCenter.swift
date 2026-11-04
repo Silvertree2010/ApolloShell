@@ -40,6 +40,7 @@ final class CommandCenter: NSObject, NSMenuDelegate {
         var r: [NSMenuItem] = []
         r.append(Self.item(String(localized: "Settings…"), key: ",") { [nexus] in nexus.show() })
         r.append(Self.item(String(localized: "Edit Bar…")) { [nexus] in nexus.show(page: .bar) })
+        r.append(Self.item(String(localized: "Edit Dashboard…")) { LauncherActions.editDashboard() })
         r.append(Self.item(String(localized: "Themes…")) { [nexus] in nexus.show(page: .themes) })
         if let themes {
             r.append(Self.item(String(localized: "Marketplace…")) { MarketplaceWindow.shared.show(themes: themes) })
