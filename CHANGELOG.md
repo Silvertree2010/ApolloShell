@@ -4,14 +4,38 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.8] - 2026-11-04
 
 ### Added
+- **The Dashboard as a bento grid.** Each page holds widgets you place
+  freely, in several sizes and display modes: an analogue clock, CPU and
+  GPU as a graph or a gauge, memory and storage as bars, the battery as a
+  ring, the hourly weather as a curve, the next days as a list, and more.
+  New widgets: weather overview, hourly and next days, CPU, GPU, storage,
+  network, memory, battery, connection, apps, photos, clipboard, recent
+  files, drives, sun and moon.
+- **Edit the Dashboard in place.** Edit Dashboard in Nexus > Dashboard or
+  in the menu bar icon pins the Dashboard open with a toolbar and a
+  gallery. Drag widgets, resize them, open their options, add, rename and
+  reorder pages, and scale the whole Dashboard. Cancel leaves everything as
+  it was.
+- **Timer with stopwatch and pomodoro**, with a toast and a sound at the
+  end, even with the Dashboard closed.
+- Each weather widget has its own places.
 - Homebrew installs update themselves: once a day ApolloShell checks for a
   new release and runs `brew upgrade apolloshell` in the background. When the
   upgrade is done, **Restart now** in Nexus > About starts the new version.
   On by default; **Install updates automatically** turns it off. **Upgrade
   now** starts it by hand.
+
+### Changed
+- Your Dashboard from 0.1.7.1 carries over on the first start: tabs become
+  pages, cards become widgets at the same places with the same options.
+  Hidden tabs are left out; Restore Default Pages in Nexus > Dashboard
+  brings them back.
+- Nexus > Dashboard: the card editor makes way for Edit Dashboard, the
+  weather source and Restore Default Pages.
+- The player tells music from video and shapes its card after it.
 
 ## [0.1.7.1] - 2026-10-31
 
