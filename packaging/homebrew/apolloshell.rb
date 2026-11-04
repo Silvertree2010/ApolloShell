@@ -33,8 +33,9 @@ class Apolloshell < Formula
     # keychain offers it, otherwise ad-hoc (see caveats).
     ENV["BUILD_NUMBER"] = version.to_s
     # Marks the bundle as a Homebrew build. The app then never replaces
-    # itself - this copy belongs to Homebrew, and `brew upgrade` is the way
-    # to a new version. It still says when a newer one is out.
+    # itself through Sparkle - this copy belongs to Homebrew. When a newer
+    # release is out it runs `brew upgrade apolloshell` itself (Nexus >
+    # About > Install updates automatically, on by default).
     ENV["HOMEBREW_BUILD"] = "1"
     system "scripts/assemble-app.sh", "#{bin_path}/ApolloShell", "#{buildpath}/ApolloShell.app"
     prefix.install "ApolloShell.app"
@@ -63,9 +64,10 @@ class Apolloshell < Formula
       (If the Homebrew build cannot reach your keychain, build with
       ./build.sh from a git checkout instead.)
 
-      Updates: this copy belongs to Homebrew, so ApolloShell does not
-      replace itself. It says when a new version is out; install it with
+      Updates: ApolloShell checks daily and runs
         brew upgrade apolloshell
+      in the background when a new version is out. The new version starts
+      after a restart of ApolloShell. Turn this off in Nexus > About.
 
       Start at login: System Settings > General > Login Items.
     EOS

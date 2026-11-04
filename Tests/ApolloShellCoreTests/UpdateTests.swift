@@ -182,3 +182,51 @@ struct UpdateSettingsTests {
         #expect(ShellSettings.load(from: Data(#"{"theme": {"name": "Mitternacht"}}"#.utf8)).theme.name == "Mitternacht")
     }
 }
+
+@Suite("Updates: Homebrew upgrade")
+struct HomebrewUpgradeTests {
+    @Test("Finds the prefix from the Cellar path behind a symlink")
+    func locatesCellar() {
+        let i = HomebrewUpgrade.locate(bundlePath: "/Users/x/Applications/ApolloShell.app",
+                                       resolve: { _ in "/opt/homebrew/Cellar/apolloshell/0.1.7.1/ApolloShell.app" },
+                                       isExecutable: { $0 == "/opt/homebrew/bin/brew" })
+        #expect(i?.prefix == "/opt/homebrew")
+        #expect(i?.optBundlePath == "/opt/homebrew/opt/apolloshell/ApolloShell.app")
+    }
+
+    @Test("Custom prefix wins over the standard ones")
+    func customPrefix() {
+        let i = HomebrewUpgrade.locate(bundlePath: "/home/brew/Cellar/apolloshell/1/ApolloShell.app",
+                                       resolve: { $0 }, isExecutable: { _ in true })
+        #expect(i?.brew == "/home/brew/bin/brew")
+    }
+
+    @Test("Falls back to /usr/local and gives up without brew")
+    func fallback() {
+        let a = HomebrewUpgrade.locate(bundlePath: "/Applications/ApolloShell.app", resolve: { $0 },
+                                       isExecutable: { $0 == "/usr/local/bin/brew" })
+        #expect(a?.prefix == "/usr/local")
+        #expect(HomebrewUpgrade.locate(bundlePath: "/Applications/ApolloShell.app", resolve: { $0 },
+                                       isExecutable: { _ in false }) == nil)
+    }
+
+    @Test("Environment keeps brew on PATH and old kegs in place")
+    func environment() {
+        let e = HomebrewUpgrade.environment(base: ["HOME": "/Users/x", "SECRET": "y"], install: .init(prefix: "/opt/homebrew"))
+        #expect(e["HOME"] == "/Users/x")
+        #expect(e["SECRET"] == nil)
+        #expect(e["PATH"]?.hasPrefix("/opt/homebrew/bin:") == true)
+        #expect(e["HOMEBREW_NO_INSTALL_CLEANUP"] == "1")
+        #expect(HomebrewUpgrade.arguments() == ["upgrade", "--formula", "apolloshell"])
+    }
+
+    @Test("Outcome follows the version in opt, not only the exit status")
+    func outcome() {
+        let cur = AppVersion("0.1.7.1")
+        #expect(HomebrewUpgrade.outcome(status: 0, output: "", current: cur, installed: AppVersion("0.1.8")) == .upgraded(AppVersion("0.1.8")!))
+        #expect(HomebrewUpgrade.outcome(status: 1, output: "", current: cur, installed: AppVersion("0.1.8")) == .upgraded(AppVersion("0.1.8")!))
+        #expect(HomebrewUpgrade.outcome(status: 0, output: "", current: cur, installed: cur) == .unchanged)
+        #expect(HomebrewUpgrade.outcome(status: 1, output: "==> x\nError: no bottle\n", current: cur, installed: cur) == .failed("Error: no bottle"))
+        #expect(HomebrewUpgrade.outcome(status: 2, output: "", current: cur, installed: nil) == .failed("brew upgrade exited with status 2"))
+    }
+}

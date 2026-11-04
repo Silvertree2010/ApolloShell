@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Homebrew installs update themselves: once a day ApolloShell checks for a
+  new release and runs `brew upgrade apolloshell` in the background. When the
+  upgrade is done, **Restart now** in Nexus > About starts the new version.
+  On by default; **Install updates automatically** turns it off. **Upgrade
+  now** starts it by hand.
+
 ## [0.1.7.1] - 2026-10-31
 
 Fixes and an option from user reports (#8, #9, #10, #11).

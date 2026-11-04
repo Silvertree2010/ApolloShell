@@ -58,10 +58,12 @@ enum Subprocess {
 
     /// Laufen lassen und die Ausgabe abholen, ohne einen Faden zu
     /// blockieren. `nil`: liess sich nicht starten.
-    static func output(_ path: String, _ arguments: [String]) async -> Result? {
+    static func output(_ path: String, _ arguments: [String],
+                       environment: [String: String]? = nil, mergeStderr: Bool = false,
+                       qos: DispatchQoS.QoSClass = .userInitiated) async -> Result? {
         await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                continuation.resume(returning: runAndWait(path, arguments))
+            DispatchQueue.global(qos: qos).async {
+                continuation.resume(returning: runAndWait(path, arguments, environment: environment, mergeStderr: mergeStderr))
             }
         }
     }
@@ -69,10 +71,13 @@ enum Subprocess {
     /// Laufen lassen und darauf warten. Nur, wo Warten nichts kostet: auf
     /// einem eigenen Faden, beim Beenden der App, oder fuer Werkzeuge, die
     /// gemessen nach Millisekunden fertig sind.
-    static func runAndWait(_ path: String, _ arguments: [String]) -> Result? {
+    static func runAndWait(_ path: String, _ arguments: [String],
+                           environment: [String: String]? = nil, mergeStderr: Bool = false) -> Result? {
         let process = make(path, arguments)
         let pipe = Pipe()
         process.standardOutput = pipe
+        if mergeStderr { process.standardError = pipe }
+        if let environment { process.environment = environment }
         do {
             try process.run()
         } catch {

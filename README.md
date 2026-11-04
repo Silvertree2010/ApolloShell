@@ -51,8 +51,8 @@ If you like it, a star on GitHub helps other Mac users find it.
 - **Nexus**, the settings app, where every panel can be rearranged.
 - Volume display, notifications for power and audio, a desktop clock and a
   session menu.
-- **Keeps itself up to date** (the `.dmg` build), or says when a new version
-  is out (Homebrew).
+- **Keeps itself up to date**, through Sparkle (the `.dmg` build) or
+  through `brew upgrade` (Homebrew).
 
 | Dashboard | Control centre | Launcher |
 | --- | --- | --- |
@@ -113,14 +113,19 @@ The `.dmg` build keeps itself up to date: it checks once a day in the
 background, downloads a new version when it finds one, and installs it the
 next time the app quits. Nexus also offers **Restart now** as soon as an
 update is waiting, because a shell rarely quits on its own. Both switches are
-on by default and can be turned off in **Nexus > Updates**.
+on by default and can be turned off in **Nexus > About**.
 
-A Homebrew install belongs to Homebrew, so ApolloShell never replaces itself
-there. It says when a new version is out; you install it with:
+A Homebrew install belongs to Homebrew, so ApolloShell does not replace its
+own files there. It checks once a day and, when a new version is out, runs
+this in the background:
 
 ```sh
 brew upgrade apolloshell
 ```
+
+The new version starts the next time ApolloShell starts; Nexus offers
+**Restart now** once the upgrade is done. Turn it off with **Install updates
+automatically** in **Nexus > About**.
 
 ## Shortcuts
 

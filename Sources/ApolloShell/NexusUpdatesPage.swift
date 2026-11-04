@@ -35,6 +35,11 @@ struct NexusUpdatesPage: View {
                 Section {
                     NexusToggle(title: "Check for updates automatically",
                                 isOn: $store.settings.updates.checkAutomatically)
+                    if updates.canUpgradeViaHomebrew {
+                        NexusToggle(title: "Install updates automatically",
+                                    tip: "Runs “\(updates.upgradeCommand)” in the background. The new version starts when you restart ApolloShell.",
+                                    isOn: $store.settings.updates.installAutomatically)
+                    }
                     LabeledContent("Upgrade") {
                         HStack(spacing: 8) {
                             Text(updates.upgradeCommand)
@@ -48,7 +53,7 @@ struct NexusUpdatesPage: View {
                         }
                     }
                 } header: {
-                    NexusTipHeader(title: "Homebrew", tip: "This copy belongs to Homebrew, so it does not replace itself. It only tells you about new versions.")
+                    NexusTipHeader(title: "Homebrew", tip: "This copy belongs to Homebrew and is updated through brew.")
                 }
             }
 
@@ -64,6 +69,9 @@ struct NexusUpdatesPage: View {
 
             Section {
                 Button("Check now") { updates.checkNow() }
+                if case .found = updates.status, updates.canUpgradeViaHomebrew {
+                    Button("Upgrade now") { updates.upgradeViaHomebrew() }
+                }
                 if updates.isReadyToInstall {
                     Button("Restart now") { updates.installNowIfReady() }
                 }
@@ -120,8 +128,17 @@ private struct NexusUpdateStatusRow: View {
                     if let page { Link("Notes", destination: page).controlSize(.small) }
                 }
             }
+        case let .upgrading(version):
+            LabeledContent("Status") {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(version.isEmpty ? String(localized: "Upgrading with Homebrew…") : String(localized: "Upgrading to \(version) with Homebrew…"))
+                }
+            }
         case let .ready(version):
-            LabeledContent(String(localized: "Ready"), value: String(localized: "\(version) will be installed when you quit"))
+            LabeledContent(String(localized: "Ready"), value: updates.installKind == .homebrew
+                           ? String(localized: "\(version) starts when you restart ApolloShell")
+                           : String(localized: "\(version) will be installed when you quit"))
         case let .failed(message):
             LabeledContent(String(localized: "Failed"), value: message)
         case .unavailable:

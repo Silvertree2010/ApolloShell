@@ -34,6 +34,7 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         case upToDate
         /// Gefunden und wird geladen (DMG) beziehungsweise nur gemeldet (Homebrew).
         case found(version: String, page: URL?)
+        case upgrading(version: String)
         /// Geladen, wartet aufs Einspielen.
         case ready(version: String)
         /// Fehlgeschlagen; Text von Sparkle oder vom Netz.
@@ -56,6 +57,8 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     /// Von Sparkle gereicht, sobald ein geladenes Update aufs Beenden wartet.
     private var installNow: (() -> Void)?
     private var checkTask: Task<Void, Never>?
+    private var tick: Timer?
+    private var brewing = false
 
     /// Prueft die Homebrew-Fassung hoechstens einmal pro Tag von selbst.
     private static let checkInterval: TimeInterval = 86400
@@ -66,6 +69,14 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
         self.installKind = installKind
         super.init()
         lastCheck = settings.settings.updates.lastCheck
+
+        if installKind == .homebrew {
+            let t = Timer(timeInterval: 3600, repeats: true) { [weak self] _ in
+                Task { @MainActor in self?.checkInBackgroundIfDue() }
+            }
+            RunLoop.main.add(t, forMode: .common)
+            tick = t
+        }
 
         guard installKind.updatesItself, Self.bundleCanUpdate else {
             status = .unavailable
@@ -94,6 +105,10 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     /// Der Befehl fuer die Homebrew-Fassung.
     var upgradeCommand: String { InstallKind.homebrewUpgradeCommand }
 
+    var canUpgradeViaHomebrew: Bool {
+        installKind == .homebrew && HomebrewUpgrade.locate(bundlePath: Bundle.main.bundlePath) != nil
+    }
+
     /// Uebernimmt die beiden Schalter aus Nexus. Nach jeder Aenderung rufen.
     func applySettings() {
         guard let updater = updaterController?.updater else { return }
@@ -106,6 +121,8 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     /// Fenster - hier ausdruecklich gewollt, weil der Benutzer gerade
     /// geklickt hat.
     func checkNow() {
+        guard !brewing else { return }
+        if updaterController == nil, installNow != nil { return }
         rememberCheck(at: Date())
         if let updaterController {
             // Liegt schon ein Update bereit, holt Sparkle nur dieses wieder
@@ -121,7 +138,7 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
     /// Hintergrundpruefung beim Start, nur fuer die Homebrew-Fassung und nur
     /// wenn der Schalter an ist. Sparkle bringt seinen eigenen Zeitplan mit.
     func checkInBackgroundIfDue() {
-        guard updaterController == nil, installKind == .homebrew else { return }
+        guard updaterController == nil, installKind == .homebrew, !brewing, installNow == nil else { return }
         guard settings.settings.updates.checkAutomatically else { return }
         if let lastCheck, Date().timeIntervalSince(lastCheck) < Self.checkInterval { return }
         checkViaGitHub()
@@ -157,9 +174,54 @@ final class UpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDrive
             self?.rememberCheck(at: Date())
             switch outcome {
             case .current: self?.status = .upToDate
-            case let .newer(release): self?.status = .found(version: release.version.description, page: release.page)
+            case let .newer(release):
+                self?.status = .found(version: release.version.description, page: release.page)
+                self?.upgradeViaHomebrewIfWanted(release.version)
             case let .failed(message): self?.status = .failed(message)
             }
+        }
+    }
+
+    private func upgradeViaHomebrewIfWanted(_ version: AppVersion) {
+        guard installKind == .homebrew, settings.settings.updates.installAutomatically else { return }
+        upgradeViaHomebrew(version)
+    }
+
+    func upgradeViaHomebrew(_ version: AppVersion? = nil) {
+        guard installKind == .homebrew, !brewing, installNow == nil,
+              let ins = HomebrewUpgrade.locate(bundlePath: Bundle.main.bundlePath) else { return }
+        brewing = true
+        status = .upgrading(version: version?.description ?? "")
+        let cur = AppVersion(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")
+        let env = HomebrewUpgrade.environment(base: ProcessInfo.processInfo.environment, install: ins)
+        checkTask = Task { [weak self] in
+            let res = await Subprocess.output("/usr/bin/nice", ["-n", "10", ins.brew] + HomebrewUpgrade.arguments(),
+                                              environment: env, mergeStderr: true, qos: .utility)
+            let got = Bundle(path: ins.optBundlePath)?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+            let out = HomebrewUpgrade.outcome(status: res?.status ?? -1, output: res?.text ?? "",
+                                              current: cur, installed: got.flatMap(AppVersion.init))
+            guard let self else { return }
+            self.brewing = false
+            switch out {
+            case let .upgraded(v):
+                self.installNow = { Self.relaunch(ins.optBundlePath) }
+                self.status = .ready(version: v.description)
+            case .unchanged:
+                if case .upgrading = self.status { self.status = .found(version: version?.description ?? "", page: nil) }
+            case let .failed(msg):
+                self.status = .failed(msg)
+            }
+        }
+    }
+
+    private static func relaunch(_ path: String) {
+        let plan = AppRestart.plan(environment: ProcessInfo.processInfo.environment, bundlePath: path)
+        switch plan {
+        case .launchd(let label):
+            Subprocess.launch("/usr/bin/launchctl", AppRestart.launchctlArguments(label: label, uid: Int32(getuid())))
+        case .relaunch(let p):
+            Subprocess.launch("/bin/sh", AppRestart.relaunchArguments(bundlePath: p))
+            NSApp.terminate(nil)
         }
     }
 
