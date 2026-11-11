@@ -135,6 +135,9 @@ final class LauncherController {
         case .action(let a):
             close()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { MainActor.assumeIsolated { LauncherActions.run(a) } }
+        case .setting(let i):
+            close()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { MainActor.assumeIsolated { LauncherActions.run(setting: i) } }
         case .hint: break
         }
     }

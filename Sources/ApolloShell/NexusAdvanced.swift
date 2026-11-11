@@ -50,12 +50,14 @@ struct NexusAdvancedSections: View {
         } header: {
             Text("Advanced")
         }
+        .nexusGroup("Advanced")
         Section {
             Button("Export Settings…") { export() }
             Button("Import Settings…") { pick() }
         } header: {
             NexusTipHeader(title: "Backup", tip: "Every setting as one JSON file, for a backup or another Mac. Themes and pinned launcher apps are not included.")
         }
+        .nexusGroup("Backup")
         Section {
             Button("Reset All Settings…", role: .destructive) { askReset = true }
         }

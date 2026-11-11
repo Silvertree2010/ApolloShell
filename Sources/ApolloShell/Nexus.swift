@@ -1,4 +1,5 @@
 import AppKit
+import ApolloShellCore
 import SwiftUI
 
 /// Nexus, das Einstellungsfenster der Shell (Caelestia: modules/nexus).
@@ -51,6 +52,18 @@ final class Nexus: NSObject, NSWindowDelegate {
         window?.close()
     }
 
+    func show(target: String?) {
+        show()
+        guard let t = target else { return }
+        if let d = SettingsIndex.find(t) {
+            state.show(d)
+        } else if let p = NexusPage(rawValue: t) {
+            state.go(p)
+        } else {
+            state.search = t
+        }
+    }
+
     func show(page: NexusPage? = nil) {
         if let page { state.page = page }
         let window = self.window ?? makeWindow()
@@ -64,46 +77,99 @@ final class Nexus: NSObject, NSWindowDelegate {
             let front = NSWorkspace.shared.frontmostApplication
             previousApp = front?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : front
         }
+        fit(window)
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+        state.focus += 1
     }
 
     private func makeWindow() -> NexusWindow {
+        let vf = NSScreen.main?.visibleFrame.size ?? Self.defaultSize
+        let size = NSSize(width: min(Self.defaultSize.width, vf.width - 24), height: min(Self.defaultSize.height, vf.height - 24))
         let window = NexusWindow(
-            contentRect: NSRect(origin: .zero, size: Self.defaultSize),
+            contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: true
         )
         window.title = "Nexus"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = false
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
-        // Per SUPER+, aus einem anderen Space: Fenster kommt dorthin, statt
-        // dass macOS zum Space des Fensters springt.
         window.collectionBehavior = [.moveToActiveSpace]
         window.delegate = self
+        window.onKey = { [weak self] k in self?.key(k) ?? false }
 
-        // `shellTheme` setzt den Farbton der Steuerelemente nach dem Theme.
+        state.peek = { [weak self] on in self?.peek(on) }
         let root = NexusView(state: state, settings: settings, pinned: pinned, weather: weather,
                              providers: providers, system: .read(), shell: shell)
             .shellTheme()
         let hosting = NSHostingController(rootView: root)
-        // Titel und Werkzeugleiste der SwiftUI-Seiten ins Fenster, wie bei
-        // einer SwiftUI-Szene. Groesse: nur die Mindestgroesse aus dem
-        // Inhalt, sonst liesse sich das Fenster nicht frei ziehen.
-        hosting.sceneBridgingOptions = [.title, .toolbars]
         hosting.sizingOptions = [.minSize]
         window.contentViewController = hosting
-        window.setContentSize(Self.defaultSize)
+        window.setContentSize(size)
 
-        // Rahmen merken (UserDefaults der App). Erstes Mal: mittig.
         if !window.setFrameUsingName(Self.frameName) { window.center() }
         window.setFrameAutosaveName(Self.frameName)
+        fit(window)
         self.window = window
         return window
     }
 
+    private func fit(_ w: NSWindow) {
+        guard let vf = (w.screen ?? NSScreen.main)?.visibleFrame else { return }
+        var f = w.frame
+        f.size.width = min(f.width, vf.width)
+        f.size.height = min(f.height, vf.height)
+        f.origin.x = min(max(f.minX, vf.minX), vf.maxX - f.width)
+        f.origin.y = min(max(f.minY, vf.minY), vf.maxY - f.height)
+        if f != w.frame { w.setFrame(f, display: false) }
+    }
+
+    private func key(_ k: String) -> Bool {
+        switch k {
+        case "f":
+            state.focus += 1
+            return true
+        case "p":
+            peek(true)
+            return true
+        case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+            state.pick(Int(k)! - 1)
+            return true
+        case "0":
+            state.pick(9)
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var peekMon: Any?
+
+    private func peek(_ on: Bool) {
+        guard let w = window else { return }
+        NSAnimationContext.runAnimationGroup { c in
+            c.duration = 0.12
+            w.animator().alphaValue = on ? 0.05 : 1
+        }
+        if on, peekMon == nil {
+            peekMon = NSEvent.addLocalMonitorForEvents(matching: [.keyUp, .flagsChanged]) { [weak self] e in
+                let up = e.type == .keyUp || !e.modifierFlags.contains(.command)
+                if up { MainActor.assumeIsolated { self?.peek(false) } }
+                return e
+            }
+        } else if !on, let m = peekMon {
+            NSEvent.removeMonitor(m)
+            peekMon = nil
+        }
+    }
+
     func windowWillClose(_ notification: Notification) {
+        peek(false)
+        state.search = ""
         weather.cancelSearch()
         // Versteckte Seiten melden kein onDisappear: Aufnahme und das
         // Nachsehen der Freigabe hier beenden.
@@ -123,9 +189,12 @@ final class Nexus: NSObject, NSWindowDelegate {
 /// dieselben Aktionen die Responder-Kette hinauf. Cmd+Q absichtlich nicht -
 /// das beendete die ganze Shell samt Leiste.
 final class NexusWindow: NSWindow {
+    var onKey: ((String) -> Bool)?
+
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         if super.performKeyEquivalent(with: event) { return true }
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if flags == .command, let k = event.charactersIgnoringModifiers?.lowercased(), onKey?(k) == true { return true }
         guard flags == .command || flags == [.command, .shift],
               let key = event.charactersIgnoringModifiers?.lowercased()
         else { return false }

@@ -70,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Zweiter Start (Finder, Launchpad): Die neue Instanz endet sofort und
     /// meldet sich hier, siehe `SingleInstanceGuard`.
     private var secondLaunchObserver: (any NSObjectProtocol)?
+    private var settingsObserver: (any NSObjectProtocol)?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         installSigtermHandling()
@@ -132,7 +133,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                           updates: updates, themes: themes)
         self.nexus = nexus
         hotKeys.setHandler(.nexus) { [weak nexus] in nexus?.show() }
+        settingsObserver = DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name(SingleInstance.settingsNotification), object: nil, queue: .main
+        ) { [weak nexus] n in
+            let t = n.object as? String
+            MainActor.assumeIsolated { nexus?.show(target: t) }
+        }
+        if case .some(let t) = SingleInstance.settingsTarget(arguments: CommandLine.arguments) { nexus.show(target: t) }
         LauncherActions.openSettings = { [weak nexus] in nexus?.show() }
+        LauncherActions.store = settings
+        LauncherActions.openSetting = { [weak nexus] i in nexus?.show(target: i) }
         commandCenter = CommandCenter(nexus: nexus, updates: updates, autostart: autostart, themes: themes)
         let sidebar = Sidebar(settings: settings)
         self.sidebar = sidebar

@@ -6,6 +6,7 @@ enum LauncherItem: Identifiable, Equatable {
     case app(AppEntry)
     case calc(String, String)
     case action(LauncherAction)
+    case setting(String)
     case clip(ClipEntry)
     case file(URL)
     case hint(String, String)
@@ -15,6 +16,7 @@ enum LauncherItem: Identifiable, Equatable {
         case .app(let a): "a:" + a.url.path
         case .calc(let e, _): "c:" + e
         case .action(let a): "x:" + a.rawValue
+        case .setting(let i): "s:" + i
         case .clip(let c): "p:" + c.id.uuidString
         case .file(let u): "f:" + u.path
         case .hint(let t, _): "h:" + t
@@ -129,6 +131,17 @@ enum LauncherActions {
     static var openSettings: () -> Void = {}
     static var openSession: () -> Void = {}
     static var editDashboard: () -> Void = {}
+    static var store: ShellSettingsStore?
+    static var openSetting: (String) -> Void = { _ in }
+
+    static func run(setting id: String) {
+        guard let d = SettingsIndex.find(id) else { return }
+        if d.kind == .toggle, let st = store {
+            st.nxFlip(d)
+        } else {
+            openSetting(id)
+        }
+    }
 
     static func run(_ a: LauncherAction) {
         switch a {

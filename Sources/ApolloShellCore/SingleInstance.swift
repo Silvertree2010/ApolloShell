@@ -22,6 +22,15 @@ public enum SingleInstance {
 
     /// Verteilte Mitteilung an die laufende Instanz: "zeig dich".
     public static let showNotification = AppIdentity.scoped("show")
+    public static let settingsNotification = AppIdentity.scoped("settings")
+    public static let settingsArgument = "--settings"
+
+    public static func settingsTarget(arguments: [String]) -> String?? {
+        guard let i = arguments.firstIndex(of: settingsArgument) else { return nil }
+        let n = arguments.index(after: i)
+        guard n < arguments.endIndex, !arguments[n].hasPrefix("-") else { return .some(nil) }
+        return .some(arguments[n])
+    }
 
     public enum Decision: Equatable, Sendable {
         /// Keine andere Instanz: normal starten.

@@ -153,6 +153,7 @@ private struct ItemRow: View {
         case .file(let u): Image(nsImage: model.icon(u)).resizable()
         case .calc: sym("equal")
         case .action(let a): sym(a.symbol)
+        case .setting(let i): sym(NexusPage(rawValue: SettingsIndex.find(i)?.page ?? "")?.symbol ?? "gearshape")
         case .clip: sym("doc.on.clipboard")
         case .hint: sym("lightbulb")
         }
@@ -172,6 +173,7 @@ private struct ItemRow: View {
         case .file(let u): FileManager.default.displayName(atPath: u.path)
         case .calc(_, let v): v
         case .action(let a): a.title
+        case .setting(let i): LauncherActions.store.flatMap { st in SettingsIndex.find(i)?.action(in: st.settings) } ?? i
         case .clip(let c): c.text.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: .newlines).first ?? ""
         case .hint(let t, _): t
         }
@@ -182,6 +184,8 @@ private struct ItemRow: View {
         case .file(let u): (u.deletingLastPathComponent().path as NSString).abbreviatingWithTildeInPath
         case .calc(let e, _): e + "  ·  " + String(localized: "Return copies")
         case .hint(_, let s): s
+        case .setting(let i):
+            SettingsIndex.find(i).map { d in (NexusPage(rawValue: d.page)?.title ?? "") + " › " + d.group + (d.kind == .toggle ? "" : "  ·  " + String(localized: "Opens Nexus")) }
         default: nil
         }
     }

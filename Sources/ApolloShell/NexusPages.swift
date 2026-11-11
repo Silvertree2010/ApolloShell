@@ -15,69 +15,51 @@ struct NexusDesktopPage: View {
     var body: some View {
         NexusPageForm(page: .desktop) {
             Section("Clock") {
-                NexusToggle(title: "Desktop Clock",
-                            isOn: $store.settings.background.desktopClock)
+                NexusSettingRow("desk.clock", store)
             }
-            NexusLyricsSection(store: store)
             Section("OSD") {
-                NexusToggle(title: "Show OSD", tip: "Volume, brightness, keyboard layout and Caps Lock. Turn off to use another OSD app.",
-                            isOn: $store.settings.features.osd)
-                NexusToggle(title: "Replace macOS OSD", tip: "Handles the volume and brightness keys itself so only one OSD shows. Needs Accessibility. The macOS keyboard layout popup may need a logout to go away.",
-                            isOn: $store.settings.features.replaceSystemOSD)
-                    .disabled(!store.settings.features.osd)
+                NexusSettingRow("osd.on", store)
+                NexusSettingRow("osd.replace", store)
             }
             Section("Open on Hover") {
-                NexusToggle(title: "Dashboard", tip: "Opens when the pointer hits the top middle edge.",
-                            isOn: $store.settings.features.dashboardHover)
-                NexusToggle(title: "Quick Actions", tip: "Opens when the pointer hits the bottom corner. Turn off if you use a hot corner there.",
-                            isOn: $store.settings.features.utilitiesHover)
+                NexusSettingRow("hover.dash", store)
+                NexusSettingRow("hover.qa", store)
             }
             NexusToastsPage(store: store)
             NexusRestoreSection(title: "Restore Desktop Defaults",
                                 message: "The desktop clock, OSD, hover and all toast events go back to their defaults.") {
                 store.settings.background = .init()
                 store.settings.features = .init()
-                store.settings.lyrics = .init()
                 store.settings.toasts = .init()
             }
         }
     }
 }
 
-struct NexusLyricsSection: View {
+struct NexusLyricsPage: View {
     @Bindable var store: ShellSettingsStore
 
     var body: some View {
-        let on = store.settings.lyrics.enabled
-        Section("Lyrics") {
-            NexusToggle(title: "Lyrics", tip: "Synced lyrics in the media tab and the Lyrics widget. Each new song asks lrclib.net once, then it is cached.",
-                        isOn: $store.settings.lyrics.enabled)
-            NexusToggle(title: "Desktop Lyrics", tip: "The current line on the desktop. Clicks go through.",
-                        isOn: $store.settings.lyrics.desktop)
-                .disabled(!on)
-            if on && store.settings.lyrics.desktop {
-                Picker("Position", selection: $store.settings.lyrics.desktopEdge) {
-                    Text("Bottom").tag(ShellSettings.LyricsEdge.bottom)
-                    Text("Center").tag(ShellSettings.LyricsEdge.center)
-                    Text("Top").tag(ShellSettings.LyricsEdge.top)
-                }
-                NexusToggle(title: "Above Windows", isOn: $store.settings.lyrics.desktopAbove)
+        NexusPageForm(page: .lyrics) {
+            Section {
+                NexusSettingRow("lyrics.on", store)
             }
-            NexusToggle(title: "Style by Mood", tip: "Font and motion follow the song's genre, energy and mood. Classified on this Mac with Apple Intelligence when available.",
-                        isOn: $store.settings.lyrics.moodStyles)
-                .disabled(!on)
-            NexusToggle(title: "Live Pulse", tip: "Lines react to the music's loudness and beats. Needs Screen Recording access to hear system audio; nothing is recorded.",
-                        isOn: Binding(get: { store.settings.lyrics.livePulse }, set: { v in
-                            store.settings.lyrics.livePulse = v
-                            if v && !CGPreflightScreenCaptureAccess() { CGRequestScreenCaptureAccess() }
-                        }))
-                .disabled(!on)
-            NexusToggle(title: "Auto Sync", tip: "Listens for sung words and corrects the timing by up to ±0.35 s. Needs Screen Recording access.",
-                        isOn: Binding(get: { store.settings.lyrics.autoSync }, set: { v in
-                            store.settings.lyrics.autoSync = v
-                            if v && !CGPreflightScreenCaptureAccess() { CGRequestScreenCaptureAccess() }
-                        }))
-                .disabled(!on)
+            Section("Desktop") {
+                NexusSettingRow("lyrics.desktop", store)
+                NexusSettingRow("lyrics.edge", store)
+                NexusSettingRow("lyrics.above", store)
+            }
+            Section("Feel") {
+                NexusSettingRow("lyrics.mood", store)
+                NexusSettingRow("lyrics.pulse", store)
+            }
+            Section("Timing") {
+                NexusSettingRow("lyrics.sync", store)
+            }
+            NexusRestoreSection(title: "Restore Lyrics Defaults", message: "Lyrics go back to off, with every option at its default.") {
+                store.settings.lyrics = .init()
+            }
+            NexusSaveWarning(failed: store.saveFailed)
         }
     }
 }
@@ -91,17 +73,11 @@ struct NexusToastsPage: View {
 
     var body: some View {
         Group {
-            Section {
-                NexusToggle(title: "Charger",
-                            isOn: $store.settings.toasts.chargingChanged)
-                NexusToggle(title: "Battery Warnings", tip: "On battery, at 20, 10 and 5 %.",
-                            isOn: $store.settings.toasts.batteryWarnings)
-                NexusToggle(title: "Audio Output",
-                            isOn: $store.settings.toasts.audioOutputChanged)
-                NexusToggle(title: "Audio Input",
-                            isOn: $store.settings.toasts.audioInputChanged)
-            } header: {
-                Text("Toasts")
+            Section("Toasts") {
+                NexusSettingRow("toast.charger", store)
+                NexusSettingRow("toast.battery", store)
+                NexusSettingRow("toast.out", store)
+                NexusSettingRow("toast.in", store)
             }
             NexusSaveWarning(failed: store.saveFailed)
         }
@@ -217,6 +193,7 @@ struct NexusAboutPage: View {
             Section {
                 Button("Show Introduction…") { showOnboarding() }
             }
+            .nexusGroup("Introduction")
             if let store { NexusAdvancedSections(store: store) }
         }
     }

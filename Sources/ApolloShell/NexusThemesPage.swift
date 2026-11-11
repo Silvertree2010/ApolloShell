@@ -78,6 +78,9 @@ struct NexusThemesPage: View {
             }
         }
 
+        Section("Nexus") {
+            NexusSettingRow("nexus.look", store)
+        }
         Section {
             Button("Open Marketplace…") { MarketplaceWindow.shared.show(themes: themes) }
         } header: {

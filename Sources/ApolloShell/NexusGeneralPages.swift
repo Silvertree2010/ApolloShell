@@ -23,10 +23,9 @@ struct NexusGeneralPage: View {
             } footer: {
                 if let note = autostart.state.note { Text(note) }
             }
-            Section {
-                NexusToggle(title: "Hide Apple's Dock while ApolloShell is running",
-                            tip: "If ApolloShell is force-quit, Apple's Dock stays hidden until ApolloShell starts and quits normally again.",
-                            isOn: $store.settings.appleDockHiding.hideWhileRunning)
+            .nexusGroup("Start")
+            Section("Dock") {
+                NexusSettingRow("dock.hide", store)
             }
             Section {
                 OnboardingAccessibilityRow(permissions: permissions)
@@ -34,6 +33,7 @@ struct NexusGeneralPage: View {
             } header: {
                 Text("Permissions")
             }
+            .nexusGroup("Permissions")
             if let providers { NexusFileManagerSection(store: store, model: providers) }
         }
         .animation(.snappy, value: permissions.accessibility)
@@ -80,6 +80,7 @@ struct NexusHotKeysPage: View {
             } header: {
                 NexusTipHeader(title: "Global", tip: "Click a field and press the new combination. ⎋ cancels, ⌫ removes the shortcut.")
             }
+            .nexusGroup("Global")
             Section {
                 HStack(spacing: 8) {
                     Menu("Load Preset…") {
@@ -92,6 +93,7 @@ struct NexusHotKeysPage: View {
             } header: {
                 NexusTipHeader(title: "Presets", tip: "“Hyper Key” suits tools like Karabiner-Elements that turn a free key into F20 or ⌃⌥⇧⌘.")
             }
+            .nexusGroup("Presets")
             NexusRestoreSection(title: "Restore Default Shortcuts",
                                 message: "All shortcuts go back to their defaults.") {
                 store.settings.hotKeys = .firstLaunch

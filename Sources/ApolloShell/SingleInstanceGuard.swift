@@ -35,6 +35,12 @@ enum SingleInstanceGuard {
     /// `deliverImmediately`: Sonst haelt macOS die Mitteilung zurueck, bis die
     /// Hintergrund-App aktiv wird.
     static func showRunningInstance() {
+        if let t = SingleInstance.settingsTarget(arguments: CommandLine.arguments) {
+            DistributedNotificationCenter.default().postNotificationName(
+                Notification.Name(SingleInstance.settingsNotification), object: t, userInfo: nil, deliverImmediately: true
+            )
+            return
+        }
         DistributedNotificationCenter.default().postNotificationName(
             Notification.Name(SingleInstance.showNotification), object: nil, userInfo: nil, deliverImmediately: true
         )

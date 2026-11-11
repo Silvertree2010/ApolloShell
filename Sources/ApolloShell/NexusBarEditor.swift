@@ -71,6 +71,7 @@ struct NexusBarPage: View {
         } header: {
             Text("Building Blocks")
         }
+        .nexusGroup("Building Blocks")
     }
 
     private func expandedBinding(_ id: String) -> Binding<Bool> {
@@ -97,17 +98,9 @@ private struct NexusBarPlacementSection: View {
     @Bindable var store: ShellSettingsStore
 
     var body: some View {
-        Section {
-            Picker("Position", selection: $store.settings.bar.side) {
-                Text("Left").tag(BarSide.left)
-                Text("Right").tag(BarSide.right)
-            }
-            .pickerStyle(.segmented)
-            NexusToggle(title: "Keep Windows Clear",
-                        tip: "Moves windows out from under the bar. Turn it off if a window manager arranges your windows, for example a tiling or scrolling one.",
-                        isOn: $store.settings.bar.keepWindowsClear)
-        } header: {
-            Text("Placement")
+        Section("Placement") {
+            NexusSettingRow("bar.side", store)
+            NexusSettingRow("bar.clear", store)
         }
     }
 }
@@ -129,7 +122,7 @@ private struct NexusBarScreensSection: View {
 
     var body: some View {
         Section {
-            Picker("Screens", selection: $store.settings.bar.screens) {
+            NexusPick(title: "Screens") { Picker("Screens", selection: $store.settings.bar.screens) {
                 Text("All").tag(ScreenChoice.all)
                 Text("Main Display Only").tag(ScreenChoice.primary)
                 if !screens.isEmpty {
@@ -142,10 +135,11 @@ private struct NexusBarScreensSection: View {
                     Divider()
                     Text("\(missing) (not connected)").tag(ScreenChoice.single(missing))
                 }
-            }
+            } }
         } header: {
             NexusTipHeader(title: "Screens", tip: "Also moves the desktop clock and the strip kept free of windows. A single screen is remembered by name and resolution; if it is not connected, the bar uses the main display.")
         }
+        .nexusGroup("Screens")
         .task { reload() }
     }
 
@@ -184,7 +178,12 @@ private struct NexusBarRow: View {
         Group {
             if entry.module.hasOptions {
                 DisclosureGroup(isExpanded: $isExpanded) {
-                    NexusBarOptions(store: store, entry: entry)
+                    VStack(alignment: .leading, spacing: 10) {
+                        NexusBarOptions(store: store, entry: entry)
+                    }
+                    .padding(.top, 10)
+                    .padding(.bottom, 2)
+                    .padding(.leading, 34)
                 } label: {
                     label
                 }
@@ -258,11 +257,13 @@ private struct NexusBarOptions: View {
         switch entry.module {
         case .workspaces:
             let options = binding(\.workspaces, BarModule.workspaces, fallback: BarWorkspacesOptions())
-            Picker("Style", selection: options.style) {
-                Text("Dots").tag(BarWorkspacesOptions.Style.dots)
-                Text("Numbers").tag(BarWorkspacesOptions.Style.numbers)
+            NexusPick(title: "Style") {
+                Picker("Style", selection: options.style) {
+                    Text("Dots").tag(BarWorkspacesOptions.Style.dots)
+                    Text("Numbers").tag(BarWorkspacesOptions.Style.numbers)
+                }
+                .pickerStyle(.segmented)
             }
-            .pickerStyle(.segmented)
         case .dock:
             let options = binding(\.dock, BarModule.dock, fallback: BarDockOptions())
             NexusToggle(title: "Show Running Apps",
@@ -271,12 +272,14 @@ private struct NexusBarOptions: View {
                         isOn: options.smartGroups)
             NexusToggle(title: "Window Previews", tip: "Hovering a running app shows its windows. Thumbnails need Screen Recording permission, otherwise only titles.",
                         isOn: options.windowPreviews)
-            Picker("Icon Size", selection: options.iconSize) {
-                ForEach(BarDockOptions.IconSize.allCases, id: \.self) { size in
-                    Text(NexusBarText.size(size)).tag(size)
+            NexusPick(title: "Icon Size") {
+                Picker("Icon Size", selection: options.iconSize) {
+                    ForEach(BarDockOptions.IconSize.allCases, id: \.self) { size in
+                        Text(NexusBarText.size(size)).tag(size)
+                    }
                 }
+                .pickerStyle(.segmented)
             }
-            .pickerStyle(.segmented)
         case .clock:
             let options = binding(\.clock, BarModule.clock, fallback: BarClockOptions())
             NexusToggle(title: "Show Icon", isOn: options.showIcon)
@@ -292,8 +295,11 @@ private struct NexusBarOptions: View {
             let options = binding(\.gap, BarModule.gap, fallback: BarGapOptions())
             // Stepper statt Schieber: jeder Schritt schreibt settings.json,
             // ein Schieber taete das bei jeder Mausbewegung.
-            Stepper(value: options.height, in: BarGapOptions.range, step: 4) {
-                LabeledContent("Height", value: "\(Int(options.wrappedValue.height)) pt")
+            HStack(spacing: 12) {
+                NexusLabel(title: Text("Height"))
+                Spacer(minLength: 12)
+                Text("\(Int(options.wrappedValue.height)) pt").foregroundStyle(.secondary).monospacedDigit()
+                Stepper("Height", value: options.height, in: BarGapOptions.range, step: 4).labelsHidden()
             }
         case .appButton(let app):
             NexusAppChoiceRow(bundleID: app.bundleID) { id in
@@ -304,11 +310,13 @@ private struct NexusBarOptions: View {
             NexusToggle(title: "Show Icon", isOn: options.showIcon)
         case .cpu:
             let options = binding(\.cpu, BarModule.cpu, fallback: BarCPUOptions())
-            Picker("Style", selection: options.style) {
-                Text("Ring").tag(BarCPUOptions.Style.ring)
-                Text("Percent").tag(BarCPUOptions.Style.percent)
+            NexusPick(title: "Style") {
+                Picker("Style", selection: options.style) {
+                    Text("Ring").tag(BarCPUOptions.Style.ring)
+                    Text("Percent").tag(BarCPUOptions.Style.percent)
+                }
+                .pickerStyle(.segmented)
             }
-            .pickerStyle(.segmented)
         case .weather:
             let options = binding(\.weather, BarModule.weather, fallback: BarWeatherOptions())
             NexusToggle(title: "Show Temperature", tip: "The location is set on the Dashboard page.",

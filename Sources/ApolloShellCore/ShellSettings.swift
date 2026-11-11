@@ -42,6 +42,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     public var crashReports = CrashReportSettings()
     public var features = Features()
     public var lyrics = Lyrics()
+    public var nexus = Nexus()
     public var version = ShellSettings.currentVersion
 
     public static let currentVersion = 1
@@ -260,6 +261,24 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         public var showsDesktop: Bool { enabled && desktop }
     }
 
+    public struct Nexus: Codable, Equatable, Sendable {
+        public var look = NexusLook.graphite
+
+        public init(look: NexusLook = .graphite) {
+            self.look = look
+        }
+
+        public init(from decoder: any Decoder) throws {
+            self.init()
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            c.lenient(.look, into: &look)
+        }
+    }
+
+    public enum NexusLook: String, Codable, Sendable, CaseIterable {
+        case graphite, glass, plain
+    }
+
     public enum LyricsEdge: String, Codable, Sendable, CaseIterable {
         case bottom, top, center
     }
@@ -342,6 +361,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         crashReports = c.lenient(.crashReports) ?? CrashReportSettings()
         features = c.lenient(.features) ?? Features()
         lyrics = c.lenient(.lyrics) ?? Lyrics()
+        nexus = c.lenient(.nexus) ?? Nexus()
         let v: Int = c.lenient(.version) ?? 0
         version = v
         Self.migrate(&self, from: v)

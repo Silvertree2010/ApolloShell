@@ -86,6 +86,9 @@ final class LauncherModel {
         case .actions(let q):
             search.search("")
             r = LauncherAction.matching(q).map(LauncherItem.action)
+            if let st = LauncherActions.store, !q.isEmpty {
+                r += SettingsIndex.actions(q, in: st.settings).map { LauncherItem.setting($0.id) }
+            }
         case .clipboard(let q):
             search.search("")
             let c = clips.items.filter { q.isEmpty || $0.text.localizedStandardContains(q) }

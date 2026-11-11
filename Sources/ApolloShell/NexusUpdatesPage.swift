@@ -18,27 +18,22 @@ struct NexusUpdatesPage: View {
                 LabeledContent("Last check", value: lastCheck)
                 NexusUpdateStatusRow(updates: updates)
             } header: {
-                Text("Status")
+                Text("Updates")
             }
+            .nexusGroup("Updates")
 
             if updates.canUpdateItself {
                 Section {
-                    NexusToggle(title: "Check for updates automatically",
-                                isOn: $store.settings.updates.checkAutomatically)
-                    NexusToggle(title: "Install updates automatically",
-                                tip: "When you quit, at the latest when you next log out. The bar and windows disappear for a moment during the update.",
-                                isOn: $store.settings.updates.installAutomatically)
+                    NexusSettingRow("upd.check", store)
+                    NexusSettingRow("upd.install", store)
                 } header: {
                     Text("Automatic")
                 }
             } else {
                 Section {
-                    NexusToggle(title: "Check for updates automatically",
-                                isOn: $store.settings.updates.checkAutomatically)
+                    NexusSettingRow("upd.check", store)
                     if updates.canUpgradeViaHomebrew {
-                        NexusToggle(title: "Install updates automatically",
-                                    tip: "Runs “\(updates.upgradeCommand)” in the background. The new version starts when you restart ApolloShell.",
-                                    isOn: $store.settings.updates.installAutomatically)
+                        NexusSettingRow("upd.install", store)
                     }
                     LabeledContent("Upgrade") {
                         HStack(spacing: 8) {
@@ -58,13 +53,9 @@ struct NexusUpdatesPage: View {
             }
 
             Section {
-                Picker("Send crash reports", selection: $store.settings.crashReports.mode) {
-                    Text("Ask each time").tag(CrashReportSettings.Mode.ask)
-                    Text("Always").tag(CrashReportSettings.Mode.always)
-                    Text("Never").tag(CrashReportSettings.Mode.never)
-                }
+                NexusSettingRow("crash.mode", store)
             } header: {
-                NexusTipHeader(title: "Crash reports", tip: "Sends the ApolloShell and macOS versions, the Mac model and where in the code it crashed. No files, names or device IDs.")
+                Text("Crash Reports")
             }
 
             Section {
