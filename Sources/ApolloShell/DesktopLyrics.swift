@@ -17,7 +17,7 @@ final class DesktopLyrics {
             for await s in Observations({ settings.settings.lyrics }) { self?.set(s) }
         })
         obs.append(Task { [weak self, settings] in
-            for await _ in Observations({ settings.settings.bar.screens }) { self?.rebuild() }
+            for await _ in Observations({ (settings.settings.bar.screens, settings.settings.background.desktopClock) }) { self?.rebuild() }
         })
         ShellScreens.onChange { [weak self] in self?.rebuild() }
     }
@@ -35,11 +35,12 @@ final class DesktopLyrics {
         guard on else { return }
         let m = model
         let s = settings.settings.lyrics
+        let clock = settings.settings.background.desktopClock
         slots.distribute(
             on: settings.settings.bar.screens,
             make: { _ in DesktopLyricsWindow(model: m) },
             update: { w, screen in
-                w.layout(on: screen, edge: s.desktopEdge, above: s.desktopAbove)
+                w.layout(on: screen, edge: s.desktopEdge, above: s.desktopAbove, lift: clock ? 150 : 0)
                 w.show()
             },
             remove: { $0.tearDown() }
@@ -62,13 +63,13 @@ private final class DesktopLyricsWindow {
 
     static let wallpaper = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
 
-    func layout(on screen: ShellScreen, edge: ShellSettings.LyricsEdge, above: Bool) {
+    func layout(on screen: ShellScreen, edge: ShellSettings.LyricsEdge, above: Bool, lift: CGFloat) {
         window.level = above ? .floating : Self.wallpaper
         let v = screen.visibleFrame
         let w = min(v.width - 120, 1200)
         let h: CGFloat = 220
         let y: CGFloat = switch edge {
-        case .bottom: v.minY + 40
+        case .bottom: v.minY + 40 + lift
         case .top: v.maxY - h - 40
         case .center: v.midY - h / 2
         }

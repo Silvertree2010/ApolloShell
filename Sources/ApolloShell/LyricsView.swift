@@ -34,13 +34,25 @@ extension LyricsStyle {
     }
 
     var enter: AnyTransition {
+        let ins: AnyTransition, out: AnyTransition
         switch motion {
-        case .slam: .scale(scale: 1.25).combined(with: .opacity)
-        case .pop: .scale(scale: 0.8).combined(with: .opacity)
-        case .rise: .move(edge: .bottom).combined(with: .opacity)
-        case .drift: .opacity.combined(with: .offset(y: 10))
-        case .fade: .opacity
+        case .slam:
+            ins = .scale(scale: 1.3).combined(with: .opacity)
+            out = .scale(scale: 0.85).combined(with: .opacity)
+        case .pop:
+            ins = .scale(scale: 0.75).combined(with: .opacity)
+            out = .scale(scale: 1.1).combined(with: .opacity)
+        case .rise:
+            ins = .offset(y: 28).combined(with: .opacity)
+            out = .offset(y: -28).combined(with: .opacity)
+        case .drift:
+            ins = .offset(y: 12).combined(with: .opacity)
+            out = .offset(y: -12).combined(with: .opacity)
+        case .fade:
+            ins = .opacity
+            out = .opacity
         }
+        return .asymmetric(insertion: ins.animation(anim.delay(trans * 0.35)), removal: out.animation(.easeOut(duration: trans * 0.6)))
     }
 }
 
