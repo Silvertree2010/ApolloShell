@@ -31,6 +31,7 @@ final class HotKeyCenter {
     private(set) var liveModifiers: HotKeyModifiers = []
     /// Letzte Rueckmeldung beim Aufnehmen (abgelehnt, schon vergeben).
     private(set) var feedback: [HotKeyAction: String] = [:]
+    private(set) var clash: [HotKeyAction: HotKeyClash] = [:]
     private(set) var failures: [HotKeyAction: HotKeyRegistrationError] = [:]
 
     @ObservationIgnored private let store: ShellSettingsStore
@@ -126,6 +127,7 @@ final class HotKeyCenter {
         recording = action
         liveModifiers = []
         feedback[action] = nil
+        clash[action] = nil
         guard live else { return }
         unregisterAll()
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
@@ -159,6 +161,7 @@ final class HotKeyCenter {
         resignObserver = nil
         recording = nil
         liveModifiers = []
+        clash = [:]
         apply()
     }
 
@@ -170,6 +173,11 @@ final class HotKeyCenter {
             liveModifiers = modifiers
             return false
         }
+        if clash[action] != nil, keyCode == 36, modifiers.isEmpty {
+            replace(action)
+            return true
+        }
+        clash[action] = nil
         switch HotKeyRecording.evaluate(keyCode: UInt32(keyCode), modifiers: modifiers) {
         case .cancel:
             stopRecording()
@@ -182,12 +190,22 @@ final class HotKeyCenter {
         case .record(let key):
             if let owner = store.settings.hotKeys.action(using: key, except: action) {
                 feedback[action] = HotKeyText.taken(by: owner)
+                clash[action] = HotKeyClash(key: key, owner: owner)
             } else {
                 store.settings.hotKeys[action] = key
                 stopRecording()
             }
         }
         return true
+    }
+
+    func replace(_ action: HotKeyAction) {
+        guard let c = clash[action] else { return }
+        var h = store.settings.hotKeys
+        h[c.owner] = nil
+        h[action] = c.key
+        store.settings.hotKeys = h
+        stopRecording()
     }
 
     /// Nur die vier, die ein Kuerzel ausmachen; Feststell-, fn- und
@@ -241,43 +259,81 @@ enum HotKeyKeyboard {
 
 /// Feld, das ein Kuerzel zeigt und per Klick ein neues aufnimmt - wie die
 /// Kuerzel-Felder in den Systemeinstellungen (Tastatur > Tastaturkurzbefehle).
+struct HotKeyClash: Equatable {
+    let key: HotKey
+    let owner: HotKeyAction
+}
+
 struct HotKeyRecorder: View {
     let center: HotKeyCenter
     let store: ShellSettingsStore
     let action: HotKeyAction
 
+    private static let mods: Set<Character> = ["⌃", "⌥", "⇧", "⌘"]
+
+    static func caps(_ s: String) -> [String] {
+        var out: [String] = []
+        var rest = ""
+        for c in s {
+            if rest.isEmpty, mods.contains(c) { out.append(String(c)) } else { rest.append(c) }
+        }
+        let t = rest.trimmingCharacters(in: .whitespaces)
+        if !t.isEmpty { out.append(t) }
+        return out
+    }
+
     var body: some View {
         let key = store.settings.hotKeys[action]
-        let recording = center.recording == action
+        let rec = center.recording == action
+        let cl = rec ? center.clash[action] : nil
         HStack(spacing: 6) {
+            if let cl {
+                Button("Replace ⏎") { center.replace(action) }
+                    .controlSize(.small)
+                    .help("Take this shortcut away from \(cl.owner.title)")
+            }
             Button {
-                recording ? center.cancelRecording() : center.startRecording(action)
+                rec ? center.cancelRecording() : center.startRecording(action)
             } label: {
-                Text(label(key: key, recording: recording))
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(recording ? AnyShapeStyle(Color.accentColor)
-                        : key == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
-                    .lineLimit(1)
-                    .frame(minWidth: 104)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(recording ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.06))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .strokeBorder(recording ? Color.accentColor : Color.primary.opacity(0.12),
-                                          lineWidth: recording ? 1.5 : 1)
-                    )
-                    .contentShape(.rect)
+                let cs = chips(key: key, rec: rec, cl: cl)
+                HStack(spacing: 3) {
+                    if cs.isEmpty {
+                        Text(rec ? HotKeyText.recordingPrompt : HotKeyText.none)
+                            .font(.system(size: 12))
+                            .foregroundStyle(rec ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+                            .padding(.horizontal, 6)
+                    }
+                    ForEach(Array(cs.enumerated()), id: \.offset) { _, c in
+                        Text(c)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .frame(minWidth: 14)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 3)
+                            .background(RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(cl != nil ? Color.red.opacity(0.18) : Color.primary.opacity(rec ? 0.12 : 0.08)))
+                            .foregroundStyle(cl != nil ? AnyShapeStyle(Color.red) : AnyShapeStyle(.primary))
+                            .transition(.scale(scale: 0.4).combined(with: .opacity))
+                    }
+                    if rec, cl == nil, !cs.isEmpty {
+                        Text("…").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+                    }
+                }
+                .animation(.spring(response: 0.2, dampingFraction: 0.6), value: cs)
+                .frame(minWidth: 96, minHeight: 24)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(rec ? Color.accentColor.opacity(0.08) : Color.clear))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(cl != nil ? Color.red : rec ? Color.accentColor : Color.primary.opacity(0.12),
+                                  lineWidth: rec ? 1.5 : 1))
+                .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .help(recording ? HotKeyText.recordingHelp : String(localized: "Click and press the new combination"))
+            .help(rec ? HotKeyText.recordingHelp : String(localized: "Click and press the new combination"))
             .accessibilityLabel("Shortcut for \(action.title)")
             .accessibilityValue(key.map(HotKeyKeyboard.display) ?? HotKeyText.none)
 
-            // Platz halten, damit das Feld beim Aufnehmen nicht springt.
             Button {
                 store.settings.hotKeys[action] = nil
             } label: {
@@ -286,16 +342,15 @@ struct HotKeyRecorder: View {
             }
             .buttonStyle(.borderless)
             .help("Remove Shortcut")
-            .opacity(key != nil && !recording ? 1 : 0)
-            .disabled(key == nil || recording)
+            .opacity(key != nil && !rec ? 1 : 0)
+            .disabled(key == nil || rec)
         }
     }
 
-    private func label(key: HotKey?, recording: Bool) -> String {
-        if recording {
-            return center.liveModifiers.isEmpty ? HotKeyText.recordingPrompt : center.liveModifiers.symbols + " …"
-        }
-        return key.map(HotKeyKeyboard.display) ?? HotKeyText.none
+    private func chips(key: HotKey?, rec: Bool, cl: HotKeyClash?) -> [String] {
+        if let cl { return Self.caps(HotKeyKeyboard.display(cl.key)) }
+        if rec { return Self.caps(center.liveModifiers.symbols) }
+        return key.map { Self.caps(HotKeyKeyboard.display($0)) } ?? []
     }
 }
 
@@ -332,7 +387,9 @@ struct HotKeyRow: View {
 
     private var message: (text: String, symbol: String, color: Color)? {
         if center.recording == action {
-            if let feedback = center.feedback[action] { return (feedback, "exclamationmark.circle.fill", .orange) }
+            if let feedback = center.feedback[action] {
+                return (feedback, "exclamationmark.circle.fill", center.clash[action] != nil ? .red : .orange)
+            }
             return (HotKeyText.recordingHelp, "keyboard", .secondary)
         }
         if case .failed(let text) = center.status(for: action) {
