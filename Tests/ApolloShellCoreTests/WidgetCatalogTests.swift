@@ -25,7 +25,7 @@ struct WidgetCatalogTests {
             "performance.cpu", "performance.gpu", "performance.storage", "performance.network",
             "performance.memory", "performance.battery",
             "weather.hero", "weather.hourly", "weather.daily", "media.player",
-            "timer", "apps", "photos", "network.info", "files.recent", "clipboard", "sun", "drives",
+            "timer", "apps", "photos", "network.info", "files.recent", "clipboard", "sun", "drives", "lyrics",
         ])
     }
 
@@ -94,7 +94,7 @@ struct WidgetCatalogTests {
         #expect(WidgetKind.allCases.allSatisfy { $0.home == .dashboard })
         #expect(WidgetKind.allCases.filter(\.usesPlaces) == [.weather, .weatherHero, .weatherHourly, .weatherDaily])
         #expect(WidgetKind.allCases.filter(\.hasPlaces) == [.weather, .weatherHero, .weatherHourly, .weatherDaily, .sun])
-        #expect(WidgetKind.allCases.filter(\.usesMedia) == [.media, .mediaPlayer])
+        #expect(WidgetKind.allCases.filter(\.usesMedia) == [.media, .mediaPlayer, .lyrics])
         #expect(WidgetKind.allCases.filter(\.isPerformance).count == 6)
     }
 

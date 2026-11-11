@@ -43,7 +43,7 @@ extension WidgetKind {
         case .weatherDaily: 24
         case .mediaPlayer: 28
         case .sun: 28
-        case .timer, .apps, .photos, .networkInfo, .recentFiles, .clipboard, .drives: 24
+        case .timer, .apps, .photos, .networkInfo, .recentFiles, .clipboard, .drives, .lyrics: 24
         }
     }
 }

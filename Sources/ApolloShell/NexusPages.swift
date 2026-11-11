@@ -18,6 +18,7 @@ struct NexusDesktopPage: View {
                 NexusToggle(title: "Desktop Clock",
                             isOn: $store.settings.background.desktopClock)
             }
+            NexusLyricsSection(store: store)
             Section("OSD") {
                 NexusToggle(title: "Show OSD", tip: "Volume, brightness, keyboard layout and Caps Lock. Turn off to use another OSD app.",
                             isOn: $store.settings.features.osd)
@@ -36,8 +37,47 @@ struct NexusDesktopPage: View {
                                 message: "The desktop clock, OSD, hover and all toast events go back to their defaults.") {
                 store.settings.background = .init()
                 store.settings.features = .init()
+                store.settings.lyrics = .init()
                 store.settings.toasts = .init()
             }
+        }
+    }
+}
+
+struct NexusLyricsSection: View {
+    @Bindable var store: ShellSettingsStore
+
+    var body: some View {
+        let on = store.settings.lyrics.enabled
+        Section("Lyrics") {
+            NexusToggle(title: "Lyrics", tip: "Synced lyrics in the media tab and the Lyrics widget. Each new song asks lrclib.net once, then it is cached.",
+                        isOn: $store.settings.lyrics.enabled)
+            NexusToggle(title: "Desktop Lyrics", tip: "The current line on the desktop. Clicks go through.",
+                        isOn: $store.settings.lyrics.desktop)
+                .disabled(!on)
+            if on && store.settings.lyrics.desktop {
+                Picker("Position", selection: $store.settings.lyrics.desktopEdge) {
+                    Text("Bottom").tag(ShellSettings.LyricsEdge.bottom)
+                    Text("Center").tag(ShellSettings.LyricsEdge.center)
+                    Text("Top").tag(ShellSettings.LyricsEdge.top)
+                }
+                NexusToggle(title: "Above Windows", isOn: $store.settings.lyrics.desktopAbove)
+            }
+            NexusToggle(title: "Style by Mood", tip: "Font and motion follow the song's genre, energy and mood. Classified on this Mac with Apple Intelligence when available.",
+                        isOn: $store.settings.lyrics.moodStyles)
+                .disabled(!on)
+            NexusToggle(title: "Live Pulse", tip: "Lines react to the music's loudness and beats. Needs Screen Recording access to hear system audio; nothing is recorded.",
+                        isOn: Binding(get: { store.settings.lyrics.livePulse }, set: { v in
+                            store.settings.lyrics.livePulse = v
+                            if v && !CGPreflightScreenCaptureAccess() { CGRequestScreenCaptureAccess() }
+                        }))
+                .disabled(!on)
+            NexusToggle(title: "Auto Sync", tip: "Listens for sung words and corrects the timing by up to ±0.35 s. Needs Screen Recording access.",
+                        isOn: Binding(get: { store.settings.lyrics.autoSync }, set: { v in
+                            store.settings.lyrics.autoSync = v
+                            if v && !CGPreflightScreenCaptureAccess() { CGRequestScreenCaptureAccess() }
+                        }))
+                .disabled(!on)
         }
     }
 }

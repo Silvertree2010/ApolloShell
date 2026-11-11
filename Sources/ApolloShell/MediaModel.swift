@@ -31,6 +31,7 @@ struct MediaSource: Equatable {
 final class MediaModel {
     private(set) var nowPlaying: MediaNowPlaying?
     private(set) var artwork: NSImage?
+    @ObservationIgnored weak var lyrics: LyricsModel?
 
     /// Music or video - the cards shape themselves after it (a square cover
     /// or a wide picture). Nothing playing counts as music.
@@ -61,6 +62,7 @@ final class MediaModel {
     @ObservationIgnored private var wantsStream = false
     /// The dashboard is open with a media widget.
     @ObservationIgnored private var dashboardWants = false
+    @ObservationIgnored private var lyricsWants = false
     /// Now-playing blocks in visible bars.
     @ObservationIgnored private var barDemand = BarDemand()
     @ObservationIgnored private var failures = 0
@@ -129,7 +131,17 @@ final class MediaModel {
     /// The dashboard closed; the stream goes on while a bar block shows it.
     func stop() {
         dashboardWants = false
-        if !barDemand.isActive { endStream() }
+        if !barDemand.isActive && !lyricsWants { endStream() }
+    }
+
+    func startLyrics() {
+        lyricsWants = true
+        if !wantsStream { beginStream() }
+    }
+
+    func stopLyrics() {
+        lyricsWants = false
+        if !barDemand.isActive && !dashboardWants { endStream() }
     }
 
     /// A now-playing block appeared in a bar.
@@ -140,7 +152,7 @@ final class MediaModel {
 
     func release() {
         barDemand.release()
-        if !barDemand.isActive && !dashboardWants { endStream() }
+        if !barDemand.isActive && !dashboardWants && !lyricsWants { endStream() }
     }
 
     /// Every bar stepped aside (full screen): the blocks are not seen.
@@ -149,7 +161,7 @@ final class MediaModel {
         set {
             barDemand.paused = newValue
             if barDemand.isActive && !wantsStream { beginStream() }
-            if !barDemand.isActive && !dashboardWants { endStream() }
+            if !barDemand.isActive && !dashboardWants && !lyricsWants { endStream() }
         }
     }
 
@@ -157,6 +169,7 @@ final class MediaModel {
     /// outlive the app.
     func shutdown() {
         dashboardWants = false
+        lyricsWants = false
         barDemand = BarDemand()
         endStream()
     }
@@ -291,6 +304,12 @@ final class MediaModel {
         Subprocess.launch(Self.perl.path, [adapter.script.path, adapter.framework.path] + command.arguments) {
             [weak self] status in self?.commandEnded(status: status, command: command)
         }
+    }
+
+    func seek(to t: TimeInterval) {
+        guard live, let adapter = Self.adapter, t.isFinite else { return }
+        let us = String(Int64(max(0, t) * 1_000_000))
+        Subprocess.launch(Self.perl.path, [adapter.script.path, adapter.framework.path, "seek", us]) { _ in }
     }
 
     private func commandEnded(status: Int32, command: MediaCommand) {

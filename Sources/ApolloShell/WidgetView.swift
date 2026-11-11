@@ -164,6 +164,8 @@ struct WidgetView: View {
                         minimal: display == .minimal, size: size, fixedNow: context.extras.timer.fixedNow)
             case .drives:
                 DrivesCard(model: context.extras.drives, size: size)
+            case .lyrics:
+                LyricsCard(model: context.media, size: size)
             case .mediaPlayer:
                 if display == .cover {
                     MediaCoverCard(model: context.media, size: size)

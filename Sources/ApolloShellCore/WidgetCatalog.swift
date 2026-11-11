@@ -65,6 +65,7 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
     case networkInfo = "network.info"
     case recentFiles = "files.recent"
     case clipboard, sun, drives
+    case lyrics
 
     public var id: Self { self }
 
@@ -97,6 +98,7 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         case .clipboard: String(localized: "Clipboard")
         case .sun: String(localized: "Sun and Moon")
         case .drives: String(localized: "Drives")
+        case .lyrics: String(localized: "Lyrics")
         case .weather, .user, .clock, .calendar, .resources, .media: ""
         }
     }
@@ -122,6 +124,7 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         case .clipboard: "list.clipboard"
         case .sun: "sun.horizon"
         case .drives: "externaldrive"
+        case .lyrics: "quote.bubble"
         case .weather, .user, .clock, .calendar, .resources, .media: "questionmark"
         }
     }
@@ -142,7 +145,7 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         }
     }
 
-    public var usesMedia: Bool { self == .media || self == .mediaPlayer }
+    public var usesMedia: Bool { self == .media || self == .mediaPlayer || self == .lyrics }
 
     public var isPerformance: Bool { rawValue.hasPrefix("performance.") }
 
@@ -190,6 +193,8 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
                     .flexible(200, w, h)]
         case .mediaPlayer:
             return [.flexible(413, w, bottom), .flexible(413, w, h)]
+        case .lyrics:
+            return [.flexible(300, w, top), .flexible(413, w, bottom), .flexible(413, w, h)]
         case .timer, .photos:
             return [.flexible(130, w, top), .flexible(180, w, bottom), .flexible(180, w, h)]
         case .apps, .drives:
@@ -221,7 +226,7 @@ public enum WidgetKind: String, CaseIterable, Codable, Identifiable, Sendable {
         case .apps: [.standard, .list]
         case .recentFiles: [.standard, .grid]
         case .networkInfo, .sun: [.standard, .minimal]
-        case .photos, .clipboard, .drives: [.standard]
+        case .photos, .clipboard, .drives, .lyrics: [.standard]
         }
     }
 

@@ -41,6 +41,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
     /// Absturzberichte (Nexus > Updates).
     public var crashReports = CrashReportSettings()
     public var features = Features()
+    public var lyrics = Lyrics()
     public var version = ShellSettings.currentVersion
 
     public static let currentVersion = 1
@@ -226,6 +227,43 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         }
     }
 
+    public struct Lyrics: Codable, Equatable, Sendable {
+        public var enabled = false
+        public var desktop = false
+        public var livePulse = true
+        public var moodStyles = true
+        public var desktopEdge = LyricsEdge.bottom
+        public var desktopAbove = false
+        public var autoSync = true
+
+        public init(enabled: Bool = false, desktop: Bool = false, livePulse: Bool = true,
+                    moodStyles: Bool = true, desktopEdge: LyricsEdge = .bottom) {
+            self.enabled = enabled
+            self.desktop = desktop
+            self.livePulse = livePulse
+            self.moodStyles = moodStyles
+            self.desktopEdge = desktopEdge
+        }
+
+        public init(from decoder: any Decoder) throws {
+            self.init()
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            c.lenient(.enabled, into: &enabled)
+            c.lenient(.desktop, into: &desktop)
+            c.lenient(.livePulse, into: &livePulse)
+            c.lenient(.moodStyles, into: &moodStyles)
+            c.lenient(.desktopEdge, into: &desktopEdge)
+            c.lenient(.desktopAbove, into: &desktopAbove)
+            c.lenient(.autoSync, into: &autoSync)
+        }
+
+        public var showsDesktop: Bool { enabled && desktop }
+    }
+
+    public enum LyricsEdge: String, Codable, Sendable, CaseIterable {
+        case bottom, top, center
+    }
+
     /// Schreibtisch (Caelestia: background).
     public struct Background: Codable, Equatable, Sendable {
         public var desktopClock = true
@@ -303,6 +341,7 @@ public struct ShellSettings: Codable, Equatable, Sendable {
         // Erst ab 0.1.4.1; fehlt er, wird gefragt.
         crashReports = c.lenient(.crashReports) ?? CrashReportSettings()
         features = c.lenient(.features) ?? Features()
+        lyrics = c.lenient(.lyrics) ?? Lyrics()
         let v: Int = c.lenient(.version) ?? 0
         version = v
         Self.migrate(&self, from: v)

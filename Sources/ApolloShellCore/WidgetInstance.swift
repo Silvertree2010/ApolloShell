@@ -97,7 +97,7 @@ public struct WidgetOptions: Codable, Equatable, Sendable {
         case .apps: options.apps = WidgetOptions.standardApps
         case .performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork,
              .performanceMemory, .performanceBattery, .mediaPlayer,
-             .timer, .photos, .networkInfo, .recentFiles, .clipboard, .drives:
+             .timer, .photos, .networkInfo, .recentFiles, .clipboard, .drives, .lyrics:
             break
         }
         return options

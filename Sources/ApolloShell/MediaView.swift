@@ -325,7 +325,12 @@ struct MediaTab: View {
                         HStack(spacing: Self.spacing) {
                             MediaDetails(model: model, playing: playing, compact: size.height < 300 || video,
                                          video: video)
-                            if showsSource {
+                            if showsSource, let l = model.lyrics, l.enabled {
+                                LyricsScroller(model: l, base: 17)
+                                    .frame(width: min(size.width * 0.36, 320), height: size.height - 24)
+                                    .onAppear { l.acquire() }
+                                    .onDisappear { l.release() }
+                            } else if showsSource {
                                 MediaSourcePanel(source: model.source, isPlaying: playing.isPlaying)
                                     .frame(width: Self.sourceWidth, height: cover)
                             }

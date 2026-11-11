@@ -107,7 +107,7 @@ struct WidgetOptionsView: View {
             NexusToggle(title: "Album", subtitle: "Not shown in the small card", isOn: o.showAlbum)
             NexusToggle(title: "Source", subtitle: "Which app is playing", isOn: o.showSource)
         case .performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork,
-             .performanceMemory, .performanceBattery, .mediaPlayer:
+             .performanceMemory, .performanceBattery, .mediaPlayer, .lyrics:
             EmptyView()
         }
     }

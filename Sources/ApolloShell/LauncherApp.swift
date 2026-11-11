@@ -38,6 +38,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var osd: OSD?
     private var osdExtras: OSDExtras?
     private var desktopClock: DesktopClock?
+    private var media: MediaModel?
+    private var lyrics: LyricsModel?
+    private var desktopLyrics: DesktopLyrics?
     /// Kurzmeldungen unten rechts und wer sie ausloest.
     private var toaster: Toaster?
     private var toastWindow: ToastWindow?
@@ -145,7 +148,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let dashboardEditor = DashboardEditor(store: settings)
         let shellEditor = ShellEditor(store: settings, dashboard: dashboardEditor)
         self.shellEditor = shellEditor
-        let dashboard = Dashboard(settings: settings, editor: dashboardEditor)
+        let media = MediaModel()
+        self.media = media
+        let lyrics = LyricsModel(media: media, settings: settings)
+        media.lyrics = lyrics
+        self.lyrics = lyrics
+        desktopLyrics = DesktopLyrics(model: lyrics, settings: settings)
+        let dashboard = Dashboard(settings: settings, editor: dashboardEditor, media: media)
         self.dashboard = dashboard
         shellEditor.dashboardStartPageID = { [weak dashboard] in dashboard?.currentPageID }
         let editModeWindows = EditModeWindows(editor: shellEditor)
@@ -248,6 +257,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appleDockHiding = nil
         controller?.close()
         dashboard?.shutdown()
+        media?.shutdown()
         utilities?.shutdown()
     }
 
