@@ -25,16 +25,15 @@ struct NexusBarPage: View {
     private var layout: BarLayout { store.settings.bar.layout }
 
     var body: some View {
-        HStack(spacing: 0) {
+        NexusAside(width: 124) {
             NexusPageForm(page: .bar) {
                 entriesSection
                 NexusBarScreensSection(store: store)
                 NexusBarPlacementSection(store: store)
                 NexusSaveWarning(failed: store.saveFailed)
             }
-            Divider()
+        } side: {
             NexusBarPreview(store: store)
-                .frame(width: 124)
         }
         .sheet(isPresented: $showsGallery) {
             NexusBarGallery(layout: layout, onAdd: add, onCancel: { showsGallery = false })

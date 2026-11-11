@@ -243,7 +243,7 @@ struct NexusView: View {
         .environment(\.nexusSkin, skin)
         .environment(\.nexusMono, true)
         .environment(state)
-        .frame(minWidth: 720, minHeight: 440)
+        .frame(minWidth: 800, minHeight: 440)
     }
 
     @ViewBuilder private func rail(_ k: NexusSkin) -> some View {
@@ -780,6 +780,7 @@ struct NexusPageForm<Content: View>: View {
                     }
                 }
                 .labeledContentStyle(NexusLCS())
+                .lineLimit(1)
                 .padding(.horizontal, 28)
                 .padding(.top, 46)
                 .padding(.bottom, 28)
@@ -866,6 +867,28 @@ struct NexusToggle: View {
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.small)
+        }
+    }
+}
+
+struct NexusAside<Main: View, Side: View>: View {
+    let width: CGFloat
+    var minMain: CGFloat = 520
+    @ViewBuilder let main: Main
+    @ViewBuilder let side: Side
+
+    @Environment(\.nexusSkin) private var skin
+
+    var body: some View {
+        GeometryReader { g in
+            let show = g.size.width >= minMain + width + 1
+            HStack(spacing: 0) {
+                main
+                if show {
+                    Rectangle().fill(skin.line).frame(width: 1)
+                    side.frame(width: width)
+                }
+            }
         }
     }
 }

@@ -28,7 +28,7 @@ struct UtilitiesEditorPage: View {
     private var layout: UtilitiesLayout { store.settings.utilities.layout }
 
     var body: some View {
-        HStack(spacing: 0) {
+        NexusAside(width: 236) {
             NexusPageForm(page: .utilities) {
                 cardsSection
                 keepAwakeSection
@@ -41,9 +41,8 @@ struct UtilitiesEditorPage: View {
                 presetsSection
                 NexusSaveWarning(failed: store.saveFailed)
             }
-            Divider()
+        } side: {
             UtilitiesEditorPreview(store: store)
-                .frame(width: 236)
         }
         .sheet(isPresented: $showsGallery) {
             UtilitiesEditorGallery(layout: layout, onAdd: add, onCancel: { showsGallery = false })
