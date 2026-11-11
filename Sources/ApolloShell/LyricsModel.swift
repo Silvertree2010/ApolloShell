@@ -46,6 +46,7 @@ final class LyricsModel {
         obs.append(Task { [weak self, media] in
             for await np in Observations({ media.nowPlaying }) {
                 self?.track(np)
+                self?.calibrate(np)
                 self?.pushClock()
             }
         })
@@ -100,6 +101,7 @@ final class LyricsModel {
         if on != want {
             want = on
             if on { media.startLyrics() } else { media.stopLyrics() }
+            calibrate(media.nowPlaying)
         }
         let tapOn = on && (s.livePulse || (s.autoSync && timeline?.lyrics.synced == true))
         if tapOn, tap == nil {
@@ -201,9 +203,77 @@ final class LyricsModel {
 
     func position(at now: Date) -> TimeInterval? {
         guard let np = media.nowPlaying else { return nil }
-        let off = key.map { offsets.total(key: $0, player: np.sourceBundleIdentifier) } ?? 0
+        let off = (key.map { offsets.total(key: $0, player: np.sourceBundleIdentifier) } ?? 0) + corr(np)
         let auto = settings.settings.lyrics.autoSync ? (sync?.offset ?? 0) : 0
         return LyricsClock(np: np, outputLatency: latency, offset: off + auto).position(at: fixed ?? now)
+    }
+
+    @ObservationIgnored private var cal: (app: String, ts: Date?, el: TimeInterval?, c: TimeInterval)?
+    @ObservationIgnored private var calTask: Task<Void, Never>?
+    @ObservationIgnored private var calTimer: Timer?
+    @ObservationIgnored private var denied: Set<String> = []
+
+    private func corr(_ np: MediaNowPlaying) -> TimeInterval {
+        guard let app = np.sourceBundleIdentifier else { return 0 }
+        if let c = cal, c.app == app { return c.c }
+        return PlayerScript.fallback[app] ?? 0
+    }
+
+    private func calibrate(_ np: MediaNowPlaying?) {
+        guard want, let np, np.isPlaying, let app = np.sourceBundleIdentifier, let src = PlayerScript.source(app) else {
+            calTimer?.invalidate()
+            calTimer = nil
+            return
+        }
+        if let c = cal, c.app == app, c.ts == np.timestamp, c.el == np.elapsed, calTimer != nil { return }
+        if let c = cal, c.app != app { cal = nil }
+        calTimer?.invalidate()
+        calTimer = .repeating(every: PlayerScript.refresh, owner: self) { m in m.measure(force: true) }
+        measure(force: false, src: src)
+    }
+
+    private func measure(force: Bool, src: String? = nil) {
+        guard let np = media.nowPlaying, np.isPlaying, let app = np.sourceBundleIdentifier,
+              let src = src ?? PlayerScript.source(app), !denied.contains(app) || !force else { return }
+        calTask?.cancel()
+        calTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+            let snap = await MainActor.run { self?.media.nowPlaying }
+            guard let snap else { return }
+            let r = await Task.detached(priority: .userInitiated) { LyricsModel.sample(src, snap) }.value
+            guard !Task.isCancelled, let self else { return }
+            guard self.media.nowPlaying?.timestamp == snap.timestamp else { return }
+            if let c = r {
+                self.denied.remove(app)
+                self.cal = (app, snap.timestamp, snap.elapsed, c)
+                self.log.notice("Player clock \(app): \(Int(c * 1000)) ms")
+            } else {
+                self.denied.insert(app)
+            }
+            self.pushClock()
+        }
+    }
+
+    nonisolated private static func sample(_ src: String, _ np: MediaNowPlaying) -> TimeInterval? {
+        var out: [PlayerScript.Sample] = []
+        for _ in 0..<3 {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            p.arguments = ["-e", src]
+            let pipe = Pipe()
+            p.standardOutput = pipe
+            p.standardError = FileHandle.nullDevice
+            let t0 = Date()
+            guard (try? p.run()) != nil else { return nil }
+            let d = pipe.fileHandleForReading.readDataToEndOfFile()
+            p.waitUntilExit()
+            let t1 = Date()
+            guard p.terminationStatus == 0, let v = String(data: d, encoding: .utf8).flatMap(PlayerScript.position),
+                  let rep = np.elapsed(at: t0.addingTimeInterval(t1.timeIntervalSince(t0) / 2)) else { continue }
+            out.append(PlayerScript.Sample(pos: v, rtt: t1.timeIntervalSince(t0), reported: rep))
+        }
+        return PlayerScript.correction(out)
     }
 
     var userOffset: Double { key.flatMap { offsets.songs[$0] } ?? 0 }
@@ -216,13 +286,13 @@ final class LyricsModel {
     }
 
     func seek(to t: TimeInterval) {
-        media.seek(to: max(0, t + latency - (key.map { offsets.total(key: $0, player: media.nowPlaying?.sourceBundleIdentifier) } ?? 0) - (settings.settings.lyrics.autoSync ? (sync?.offset ?? 0) : 0)))
+        media.seek(to: max(0, t + latency - (media.nowPlaying.map(corr) ?? 0) - (key.map { offsets.total(key: $0, player: media.nowPlaying?.sourceBundleIdentifier) } ?? 0) - (settings.settings.lyrics.autoSync ? (sync?.offset ?? 0) : 0)))
     }
 
     private func pushClock() {
         guard let s = sync else { return }
         let np = media.nowPlaying
-        let off = key.map { offsets.total(key: $0, player: np?.sourceBundleIdentifier) } ?? 0
+        let off = (key.map { offsets.total(key: $0, player: np?.sourceBundleIdentifier) } ?? 0) + (np.map(corr) ?? 0)
         s.clock(np, user: off)
     }
 

@@ -486,3 +486,46 @@ public enum LyricsFile {
         return t
     }
 }
+
+public enum PlayerScript {
+    public static let apps: [String: String] = [
+        "com.spotify.client": "Spotify",
+        "com.apple.Music": "Music",
+    ]
+
+    public static let fallback: [String: TimeInterval] = [
+        "com.spotify.client": 0.9,
+    ]
+
+    public static let refresh: TimeInterval = 10
+    public static let maxRTT: TimeInterval = 0.25
+
+    public static func source(_ app: String) -> String? {
+        guard let n = apps[app] else { return nil }
+        return "tell application \"\(n)\" to if player state is playing then return player position"
+    }
+
+    public static func position(_ out: String) -> TimeInterval? {
+        let t = out.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
+        guard let v = Double(t), v.isFinite, v >= 0 else { return nil }
+        return v
+    }
+
+    public struct Sample: Sendable, Equatable {
+        public var pos: TimeInterval
+        public var rtt: TimeInterval
+        public var reported: TimeInterval
+
+        public init(pos: TimeInterval, rtt: TimeInterval, reported: TimeInterval) {
+            self.pos = pos
+            self.rtt = rtt
+            self.reported = reported
+        }
+    }
+
+    public static func correction(_ s: [Sample]) -> TimeInterval? {
+        guard let b = s.filter({ $0.rtt <= maxRTT }).min(by: { $0.rtt < $1.rtt }) else { return nil }
+        let c = b.pos - b.reported
+        return abs(c) <= 3 ? c : nil
+    }
+}

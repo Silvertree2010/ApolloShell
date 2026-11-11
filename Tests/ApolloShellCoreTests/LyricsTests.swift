@@ -306,3 +306,21 @@ import Testing
         #expect(e > 0.5 && e < 0.7)
     }
 }
+
+@Suite struct PlayerScriptTests {
+    @Test func scriptAndParsing() {
+        #expect(PlayerScript.source("com.spotify.client")?.contains("\"Spotify\"") == true)
+        #expect(PlayerScript.source("com.google.Chrome") == nil)
+        #expect(PlayerScript.position("49,569\n") == 49.569)
+        #expect(PlayerScript.position("") == nil)
+    }
+
+    @Test func correctionUsesFastestSample() {
+        let s = [PlayerScript.Sample(pos: 10, rtt: 0.2, reported: 9.0),
+                 PlayerScript.Sample(pos: 20, rtt: 0.05, reported: 19.1),
+                 PlayerScript.Sample(pos: 30, rtt: 0.9, reported: 0)]
+        #expect(abs(PlayerScript.correction(s)! - 0.9) < 1e-9)
+        #expect(PlayerScript.correction([PlayerScript.Sample(pos: 99, rtt: 0.01, reported: 0)]) == nil)
+        #expect(PlayerScript.correction([]) == nil)
+    }
+}
