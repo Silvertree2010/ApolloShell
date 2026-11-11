@@ -281,3 +281,28 @@ import Testing
         #expect(LyricsMoodParse.parse("I cannot help") == nil)
     }
 }
+
+@Suite struct GenreTests {
+    @Test func itunesMapping() {
+        #expect(LyricsGenre(itunes: "Hip-Hop/Rap") == .rap)
+        #expect(LyricsGenre(itunes: "Alternative") == .rock)
+        #expect(LyricsGenre(itunes: "Heavy Metal") == .metal)
+        #expect(LyricsGenre(itunes: "Singer/Songwriter") == .acoustic)
+        #expect(LyricsGenre(itunes: "K-Pop") == .pop)
+        #expect(LyricsGenre(itunes: "Spoken Word") == .other)
+    }
+
+    @Test func picksMatchingArtist() {
+        let j = #"{"results":[{"artistName":"Neko","primaryGenreName":"Pop"},{"artistName":"Vundabar","primaryGenreName":"Alternative"}]}"#
+        #expect(ITunesGenre.pick(Data(j.utf8), for: LyricsQuery(title: "Alien Blues", artist: "Vundabar")) == .rock)
+        #expect(ITunesGenre.pick(Data(j.utf8), for: LyricsQuery(title: "x", artist: "Nobody")) == nil)
+    }
+
+    @Test func beatEnergy() {
+        var b = BeatEnergy()
+        #expect(b.energy == nil)
+        for k in 0..<20 { b.note(beatAt: Double(k) * 0.5) }
+        let e = b.energy!
+        #expect(e > 0.5 && e < 0.7)
+    }
+}

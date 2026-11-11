@@ -162,13 +162,27 @@ actor LyricsMoodReader {
 
     private var loaded = false
 
-    func mood(key: String, title: String, artist: String?, album: String?, lines: [LyricLine]) async -> LyricsMood? {
+    private func save(_ key: String, _ m: LyricsMood) {
+        cache[key] = m
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if let d = try? JSONEncoder().encode(cache) { try? d.write(to: url, options: .atomic) }
+    }
+
+    func mood(key: String, title: String, artist: String?, album: String?, lines: [LyricLine], base: LyricsMood) async -> LyricsMood? {
         if !loaded {
             loaded = true
             if let d = try? Data(contentsOf: url), let m = try? JSONDecoder().decode([String: LyricsMood].self, from: d) { cache = m }
         }
         if let m = cache[key] { return m }
-        guard case .available = SystemLanguageModel.default.availability else { return nil }
+        guard case .available = SystemLanguageModel.default.availability else {
+            guard let a = artist, let u = ITunesGenre.url(LyricsQuery(title: title, artist: a)),
+                  let (d, r) = try? await URLSession.shared.data(from: u), (r as? HTTPURLResponse)?.statusCode == 200,
+                  let g = ITunesGenre.pick(d, for: LyricsQuery(title: title, artist: a)) else { return nil }
+            let m = LyricsMood(genre: base.genre == .ballad && g == .pop ? .ballad : g,
+                               energy: (g.baseEnergy + base.energy) / 2, valence: base.valence, dark: base.dark)
+            save(key, m)
+            return m
+        }
         let text = lines.filter { !$0.isBreak }.prefix(40).map(\.s).joined(separator: "\n")
         let prompt = """
         Song: \(title)
@@ -184,9 +198,7 @@ actor LyricsMoodReader {
             let s = LanguageModelSession(instructions: "You are a music expert. You classify songs by genre, energy (calm 0 to intense 1) and valence (sad 0 to happy 1). You know most artists.")
             let r = try await s.respond(to: prompt, options: GenerationOptions(temperature: 0))
             guard let m = LyricsMoodParse.parse(r.content) else { return nil }
-            cache[key] = m
-            try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            if let d = try? JSONEncoder().encode(cache) { try? d.write(to: url, options: .atomic) }
+            save(key, m)
             return m
         } catch {
             log.notice("Mood model: \(error.localizedDescription)")

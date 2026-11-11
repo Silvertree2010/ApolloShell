@@ -110,10 +110,12 @@ final class LyricsModel {
                 pb.feed(rms: rms, dt: dt, now: now)
                 sb.value?.feed(env: env, at: now)
             }
+            watchBeats(true)
         } else if !tapOn, let t = tap {
             t.stop()
             tap = nil
             pulse.reset()
+            watchBeats(false)
         }
     }
 
@@ -157,7 +159,7 @@ final class LyricsModel {
             if let k = key {
                 Task { [weak self] in
                     guard let m = await LyricsMoodReader.shared.mood(key: k, title: np.title, artist: np.artist,
-                                                                   album: np.album, lines: l.lines) else { return }
+                                                                   album: np.album, lines: l.lines, base: base) else { return }
                     guard let self, self.key == k else { return }
                     self.setMood(m)
                 }
@@ -169,8 +171,32 @@ final class LyricsModel {
     }
 
     private func setMood(_ m: LyricsMood) {
+        baseMood = m
         mood = m
+        beats = BeatEnergy()
         style = settings.settings.lyrics.moodStyles ? .from(m) : .plain
+    }
+
+    @ObservationIgnored private var baseMood: LyricsMood = .neutral
+    @ObservationIgnored private var beats = BeatEnergy()
+    @ObservationIgnored private var beatTimer: Timer?
+
+    private func watchBeats(_ on: Bool) {
+        guard on != (beatTimer != nil) else { return }
+        beatTimer?.invalidate()
+        beatTimer = nil
+        guard on else { return }
+        beatTimer = .repeating(every: 0.1, owner: self) { m in m.sampleBeat() }
+    }
+
+    private func sampleBeat() {
+        guard media.nowPlaying?.isPlaying == true else { return }
+        beats.note(beatAt: pulse.lastBeat)
+        guard let e = beats.energy else { return }
+        let target = baseMood.energy * 0.4 + e * 0.6
+        guard abs(target - mood.energy) > 0.08 else { return }
+        mood = LyricsMood(genre: baseMood.genre, energy: target, valence: baseMood.valence, dark: baseMood.dark)
+        style = settings.settings.lyrics.moodStyles ? .from(mood) : .plain
     }
 
     func position(at now: Date) -> TimeInterval? {
@@ -236,6 +262,8 @@ final class PulseBox: @unchecked Sendable {
     }
 
     func reset() { lock.withLock { $0 = AudioPulse() } }
+
+    var lastBeat: TimeInterval { lock.withLock { $0.lastBeat } }
 
     var value: (level: Double, beat: Double) {
         lock.withLock { ($0.level, $0.beat) }

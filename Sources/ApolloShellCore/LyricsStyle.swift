@@ -180,3 +180,73 @@ public enum LyricsMoodParse {
         return LyricsMood(genre: genre, energy: e, valence: v, dark: kv["dark"]?.hasPrefix("y") == true)
     }
 }
+
+public extension LyricsGenre {
+    init(itunes g: String) {
+        let s = g.lowercased()
+        let map: [(String, LyricsGenre)] = [
+            ("hip-hop", .rap), ("rap", .rap), ("metal", .metal), ("hard rock", .rock), ("punk", .rock),
+            ("rock", .rock), ("alternative", .rock), ("indie", .rock), ("dance", .electronic), ("electronic", .electronic),
+            ("house", .electronic), ("techno", .electronic), ("r&b", .rnb), ("soul", .rnb), ("singer/songwriter", .acoustic),
+            ("folk", .acoustic), ("country", .acoustic), ("classical", .classical), ("soundtrack", .classical),
+            ("jazz", .jazz), ("blues", .jazz), ("pop", .pop),
+        ]
+        self = map.first { s.contains($0.0) }?.1 ?? .other
+    }
+
+    var baseEnergy: Double {
+        switch self {
+        case .metal: 0.85
+        case .rap, .electronic: 0.7
+        case .rock: 0.6
+        case .pop, .rnb: 0.5
+        case .jazz, .other: 0.45
+        case .acoustic: 0.35
+        case .ballad, .classical: 0.2
+        }
+    }
+}
+
+public struct ITunesHit: Sendable, Decodable {
+    public var artistName: String?
+    public var trackName: String?
+    public var primaryGenreName: String?
+}
+
+public enum ITunesGenre {
+    public static func url(_ q: LyricsQuery) -> URL? {
+        var c = URLComponents(string: "https://itunes.apple.com/search")!
+        c.queryItems = [URLQueryItem(name: "term", value: q.primaryArtist + " " + q.cleanTitle),
+                        URLQueryItem(name: "entity", value: "song"), URLQueryItem(name: "limit", value: "5")]
+        return c.url
+    }
+
+    public static func pick(_ d: Data, for q: LyricsQuery) -> LyricsGenre? {
+        struct R: Decodable { var results: [ITunesHit] }
+        guard let r = try? JSONDecoder().decode(R.self, from: d) else { return nil }
+        let a = LyricsQuery.norm(q.primaryArtist)
+        let hit = r.results.first { LyricsQuery.norm($0.artistName ?? "") == a }
+            ?? r.results.first { LyricsQuery.norm($0.artistName ?? "").contains(a) && !a.isEmpty }
+        return hit?.primaryGenreName.map(LyricsGenre.init(itunes:))
+    }
+}
+
+public struct BeatEnergy: Sendable {
+    var beats: [TimeInterval] = []
+    var last: TimeInterval = -10
+
+    public init() {}
+
+    public mutating func note(beatAt t: TimeInterval) {
+        guard t != last else { return }
+        last = t
+        beats.append(t)
+        if let f = beats.first, t - f > 20 { beats.removeFirst() }
+    }
+
+    public var energy: Double? {
+        guard beats.count >= 8, let f = beats.first, let l = beats.last, l - f >= 6 else { return nil }
+        let rate = Double(beats.count - 1) / (l - f)
+        return min(max((rate - 0.6) / 2.2, 0), 1)
+    }
+}
