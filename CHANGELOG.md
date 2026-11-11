@@ -16,12 +16,15 @@ Nexus > Desktop > Lyrics.
   distance, and clicking a line jumps there. They show in the Media tab
   next to the player and in the new **Lyrics** widget.
 - **Desktop Lyrics.** The current line and the next one sit on the desktop,
-  above the wallpaper, at the bottom, centre or top. Clicks go through.
+  above the wallpaper, at the bottom, centre or top. Lines move as one
+  springy column: the next line grows into place, no fades. Clicks go through.
   **Above Windows** keeps them over everything.
 - **Timing that holds.** The position is extrapolated every frame and the
   latency of the output device is taken off, so Bluetooth headphones no
-  longer run behind (AirPods Max report about 170 ms). Each song can be
-  nudged in 0.1 s steps; the nudge is remembered.
+  longer run behind (AirPods Max report about 170 ms). Spotify reports its
+  position to macOS about 0.9 s late, so for Spotify and Music ApolloShell
+  reads the real position from the app (macOS asks once for permission).
+  Each song can be nudged in 0.1 s steps; the nudge is remembered.
 - **Auto Sync.** With Screen Recording access, ApolloShell listens to the
   system audio, matches sung syllables against the word timings and corrects
   the timing by up to ±0.35 s. It only steps in when the match is clear.
