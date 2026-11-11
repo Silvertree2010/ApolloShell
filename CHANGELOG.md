@@ -4,6 +4,40 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.9] - Unreleased
+
+The lyrics update. Everything here is off until you turn it on in
+Nexus > Desktop > Lyrics.
+
+### Added
+- **Synced lyrics.** Lyrics follow the song word by word where
+  [LRCLIB](https://lrclib.net) has word timings, and line by line
+  otherwise. The current line fills as it is sung, the others blur with
+  distance, and clicking a line jumps there. They show in the Media tab
+  next to the player and in the new **Lyrics** widget.
+- **Desktop Lyrics.** The current line and the next one sit on the desktop,
+  above the wallpaper, at the bottom, centre or top. Clicks go through.
+  **Above Windows** keeps them over everything.
+- **Timing that holds.** The position is extrapolated every frame and the
+  latency of the output device is taken off, so Bluetooth headphones no
+  longer run behind (AirPods Max report about 170 ms). Each song can be
+  nudged in 0.1 s steps; the nudge is remembered.
+- **Auto Sync.** With Screen Recording access, ApolloShell listens to the
+  system audio, matches sung syllables against the word timings and corrects
+  the timing by up to ±0.35 s. It only steps in when the match is clear.
+- **Style by Mood.** Font, weight, size and motion follow the song: rap is
+  condensed, upper case and hits hard, metal shakes, ballads are thin and
+  drift, electronic is monospaced. The genre comes from Apple Intelligence
+  on this Mac when it is on, otherwise from the iTunes catalogue; the energy
+  comes from the beats it hears.
+- **Live Pulse.** Lines react to loudness and beats.
+
+### Privacy
+- Each new song asks lrclib.net once (and itunes.apple.com for its genre
+  when Apple Intelligence is off); answers are cached in
+  ~/Library/Caches/ApolloShell/lyrics. Audio is analysed in memory and
+  never recorded.
+
 ## [0.1.8] - 2026-11-04
 
 ### Added
