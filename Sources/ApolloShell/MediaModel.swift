@@ -308,7 +308,7 @@ final class MediaModel {
 
     func seek(to t: TimeInterval) {
         guard live, let adapter = Self.adapter, t.isFinite else { return }
-        let us = String(Int64(max(0, t) * 1_000_000))
+        let us = String(Int64(min(max(0, t), nowPlaying?.duration ?? LyricTime.maximum) * 1_000_000))
         Subprocess.launch(Self.perl.path, [adapter.script.path, adapter.framework.path, "seek", us]) { _ in }
     }
 

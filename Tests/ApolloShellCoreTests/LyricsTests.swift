@@ -324,3 +324,36 @@ import Testing
         #expect(PlayerScript.correction([]) == nil)
     }
 }
+
+@Suite struct LyricHostileInputTests {
+    @Test func hugeAndOddTimesAreDropped() {
+        #expect(LRC.time("99999999999999999999:00.00") == nil)
+        #expect(LRC.time("9223372036854775807:00") == nil)
+        #expect(LRC.time("9999:59.99") == nil)
+        #expect(LRC.time("1439:59.99") != nil)
+        #expect(LRC.parse("[9999999999999999:00.00]x\n[00:01.00]ok")?.lines.map(\.s) == ["ok"])
+    }
+
+    @Test func lyricsfileDropsNonFinite() {
+        let src = """
+        lines:
+        - text: bad
+          start_ms: inf
+        - text: late
+          start_ms: 99999999999999
+        - text: fine
+          start_ms: 1000
+          end_ms: nan
+        """
+        let l = LyricsFile.parse(src)
+        #expect(l?.lines.map(\.s) == ["fine"])
+        #expect(l?.lines.first?.e == nil)
+    }
+
+    @Test func huge_duration_does_not_trap() {
+        let q = LyricsQuery(title: "x", artist: "y", duration: 1e30)
+        #expect(!q.key.isEmpty)
+        #expect(LRCLIB.getURL(q) != nil)
+        #expect(LyricTime.seconds(.nan) == 0)
+    }
+}

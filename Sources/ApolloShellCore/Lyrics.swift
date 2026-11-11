@@ -52,6 +52,14 @@ public struct Lyrics: Sendable, Equatable, Codable {
     }
 }
 
+public enum LyricTime {
+    public static let maximum: TimeInterval = 86_400
+
+    public static func ok(_ t: TimeInterval) -> Bool { t.isFinite && t >= 0 && t <= maximum }
+
+    public static func seconds(_ t: TimeInterval) -> Int { Int(min(max(t.isFinite ? t : 0, 0), maximum).rounded()) }
+}
+
 public enum LRC {
     public static func parse(_ src: String) -> Lyrics? {
         var off: TimeInterval = 0
@@ -100,9 +108,10 @@ public enum LRC {
         if sec.filter({ $0 == ":" }).count > 0 { return nil }
         guard let s = Double(sec), s >= 0, s < 60, sec.first?.isNumber == true else { return nil }
         let n = nums.compactMap { $0 }
-        guard n.allSatisfy({ $0 >= 0 }) else { return nil }
+        guard n.allSatisfy({ $0 >= 0 && $0 <= 9_999 }) else { return nil }
         let m = n.count == 2 ? n[0] * 60 + n[1] : n[0]
-        return TimeInterval(m) * 60 + s
+        let t = TimeInterval(m) * 60 + s
+        return LyricTime.ok(t) ? t : nil
     }
 
     static func enhanced(_ s: String) -> (String, [LyricWord]) {
@@ -229,7 +238,7 @@ public struct LyricsQuery: Sendable, Equatable, Hashable {
     }
 
     public var key: String {
-        let d = duration.map { String(Int($0.rounded())) } ?? "?"
+        let d = duration.map { String(LyricTime.seconds($0)) } ?? "?"
         return [Self.norm(artist), Self.norm(title), d].joined(separator: "|")
     }
 
@@ -307,7 +316,7 @@ public enum LRCLIB {
             URLQueryItem(name: "artist_name", value: q.artist),
         ]
         if let a = q.album { items.append(URLQueryItem(name: "album_name", value: a)) }
-        items.append(URLQueryItem(name: "duration", value: String(Int(d.rounded()))))
+        items.append(URLQueryItem(name: "duration", value: String(LyricTime.seconds(d))))
         c.queryItems = items
         return c.url
     }
@@ -458,9 +467,17 @@ public enum LyricsFile {
             }
         }
         endLine()
-        lines = lines.map { l in
+        lines = lines.compactMap { l in
+            guard LyricTime.ok(l.t) else { return nil }
             var l = l
             l.s = l.s.split(separator: " ", omittingEmptySubsequences: true).joined(separator: " ")
+            if let e = l.e, !LyricTime.ok(e) { l.e = nil }
+            l.w = l.w.compactMap { w in
+                guard LyricTime.ok(w.t) else { return nil }
+                var w = w
+                if let e = w.e, !LyricTime.ok(e) { w.e = nil }
+                return w
+            }
             if l.w.count < 2 { l.w = [] }
             return l
         }.sorted { $0.t < $1.t }
