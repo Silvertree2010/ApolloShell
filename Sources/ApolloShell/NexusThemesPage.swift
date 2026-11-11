@@ -39,7 +39,7 @@ struct NexusThemesPage: View {
     private func content(_ themes: ThemeStore) -> some View {
         Section {
             NexusThemeRow(title: String(localized: "No theme"),
-                          subtitle: String(localized: "The colours of macOS, as without a file"),
+                          subtitle: "",
                           selected: themes.selection == nil) {
                 themes.select(nil)
             }
@@ -54,9 +54,7 @@ struct NexusThemesPage: View {
             Text("Selected theme")
         } footer: {
             if themes.available.isEmpty {
-                Text("No theme in the folder yet. Every .css file is one, and so is a folder with a theme.css in it – images may sit next to that one.")
-            } else {
-                Text("A change to the file takes effect at once, without a restart.")
+                Text("No theme in the folder yet.")
             }
         }
 

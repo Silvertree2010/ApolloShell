@@ -75,7 +75,7 @@ struct UtilitiesEditorPage: View {
     private var keepAwakeSection: some View {
         Section {
             NexusToggle(title: "Also With the Lid Closed",
-                        tip: "Needs your password once to add a rule that only allows switching this sleep setting. Declining keeps it working with the lid open only. On battery it ends at \(LidAwake.batteryFloor) %.",
+                        tip: "Asks for your password once.",
                         isOn: $store.settings.keepAwake.lidClosed)
             if lidRuleInstalled {
                 LabeledContent {

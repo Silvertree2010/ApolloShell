@@ -36,21 +36,6 @@ enum NexusPage: String, CaseIterable, Identifiable, Hashable, Sendable {
         }
     }
 
-    var subtitle: String {
-        switch self {
-        case .general: String(localized: "Start at login, permissions and file manager.")
-        case .hotKeys: String(localized: "Global shortcuts for Launcher, Dashboard, Quick Actions and Nexus.")
-        case .bar: String(localized: "The building blocks of the bar: arrange, add, configure, and choose its edge.")
-        case .utilities: String(localized: "Cards and quick toggles in the Quick Actions panel.")
-        case .launcher: String(localized: "The pinned apps that appear at the top without a search text.")
-        case .dashboard: String(localized: "Pages and widgets, edited right in the Dashboard. Plus where the weather comes from.")
-        case .lyrics: String(localized: "Synced lyrics in the Dashboard and on the desktop, word by word.")
-        case .desktop: String(localized: "The desktop clock, the OSD, panels that open on hover and which events show a toast.")
-        case .themes: String(localized: "The look of the whole shell, from one CSS file.")
-        case .about: String(localized: "Version, updates, crash reports and system.")
-        }
-    }
-
     var symbol: String {
         switch self {
         case .general: "switch.2"
@@ -782,12 +767,12 @@ struct NexusPageForm<Content: View>: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(title ?? page.title)
                             .font(.system(size: 24, weight: .bold))
-                        Text(subtitle ?? page.subtitle)
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        if let subtitle {
+                            Text(subtitle)
+                                .font(.system(size: 13))
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .padding(.bottom, 2)
                     ForEach(sections: content) { sec in
                         block(sec)
                     }

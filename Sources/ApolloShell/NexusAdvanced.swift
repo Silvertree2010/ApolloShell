@@ -33,7 +33,7 @@ struct NexusAdvancedSections: View {
 
     var body: some View {
         Section {
-            NexusToggle(title: "Launcher Only", tip: "Only the launcher runs: no bar, Dashboard, Quick Actions or toasts.",
+            NexusToggle(title: "Launcher Only", tip: "No bar, Dashboard, Quick Actions or toasts.",
                         isOn: Binding(get: { lo }, set: { v in
                             lo = v
                             UserDefaults.standard.set(v, forKey: LauncherOnlyFlag.key)
@@ -55,7 +55,7 @@ struct NexusAdvancedSections: View {
             Button("Export Settings…") { export() }
             Button("Import Settings…") { pick() }
         } header: {
-            NexusTipHeader(title: "Backup", tip: "Every setting as one JSON file, for a backup or another Mac. Themes and pinned launcher apps are not included.")
+            Text("Backup")
         }
         .nexusGroup("Backup")
         Section {

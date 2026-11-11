@@ -84,7 +84,7 @@ final class Nexus: NSObject, NSWindowDelegate {
     }
 
     private func makeWindow() -> NexusWindow {
-        let vf = NSScreen.main?.visibleFrame.size ?? Self.defaultSize
+        let vf = NSScreen.main.map(room)?.size ?? Self.defaultSize
         let size = NSSize(width: min(Self.defaultSize.width, vf.width - 24), height: min(Self.defaultSize.height, vf.height - 24))
         let window = NexusWindow(
             contentRect: NSRect(origin: .zero, size: size),
@@ -118,13 +118,29 @@ final class Nexus: NSObject, NSWindowDelegate {
         return window
     }
 
+    private static let gap: CGFloat = 12
+
+    private func room(_ screen: NSScreen) -> NSRect {
+        var r = screen.visibleFrame
+        let st = settings.settings
+        guard st.bar.keepWindowsClear else { return r }
+        let all = ShellScreens.current()
+        let hasBar = ShellScreens.targets(for: st.bar.screens, among: all).contains { $0.screen == screen }
+        guard hasBar else { return r }
+        let w = Sidebar.width + Self.gap
+        if st.bar.side == .left { r.origin.x += w }
+        r.size.width -= w
+        return r
+    }
+
     private func fit(_ w: NSWindow) {
-        guard let vf = (w.screen ?? NSScreen.main)?.visibleFrame else { return }
+        guard let screen = w.screen ?? NSScreen.main else { return }
+        let vf = room(screen)
         var f = w.frame
-        f.size.width = min(f.width, vf.width)
-        f.size.height = min(f.height, vf.height)
-        f.origin.x = min(max(f.minX, vf.minX), vf.maxX - f.width)
-        f.origin.y = min(max(f.minY, vf.minY), vf.maxY - f.height)
+        f.size.width = min(f.width, vf.width - Self.gap)
+        f.size.height = min(f.height, vf.height - Self.gap)
+        f.origin.x = min(max(f.minX, vf.minX + (settings.settings.bar.side == .left ? 0 : Self.gap / 2)), vf.maxX - f.width - Self.gap / 2)
+        f.origin.y = min(max(f.minY, vf.minY + Self.gap / 2), vf.maxY - f.height - Self.gap / 2)
         if f != w.frame { w.setFrame(f, display: false) }
     }
 

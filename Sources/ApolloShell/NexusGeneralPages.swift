@@ -78,7 +78,7 @@ struct NexusHotKeysPage: View {
                     HotKeyRow(center: center, store: store, action: action, tint: NexusPage.hotKeys.tint)
                 }
             } header: {
-                NexusTipHeader(title: "Global", tip: "Click a field and press the new combination. ⎋ cancels, ⌫ removes the shortcut.")
+                Text("Global")
             }
             .nexusGroup("Global")
             Section {
@@ -91,7 +91,7 @@ struct NexusHotKeysPage: View {
                     Spacer(minLength: 8)
                 }
             } header: {
-                NexusTipHeader(title: "Presets", tip: "“Hyper Key” suits tools like Karabiner-Elements that turn a free key into F20 or ⌃⌥⇧⌘.")
+                Text("Presets")
             }
             .nexusGroup("Presets")
             NexusRestoreSection(title: "Restore Default Shortcuts",

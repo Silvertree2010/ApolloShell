@@ -48,7 +48,7 @@ struct NexusUpdatesPage: View {
                         }
                     }
                 } header: {
-                    NexusTipHeader(title: "Homebrew", tip: "This copy belongs to Homebrew and is updated through brew.")
+                    Text("Homebrew")
                 }
             }
 

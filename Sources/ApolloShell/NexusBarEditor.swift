@@ -137,7 +137,7 @@ private struct NexusBarScreensSection: View {
                 }
             } }
         } header: {
-            NexusTipHeader(title: "Screens", tip: "Also moves the desktop clock and the strip kept free of windows. A single screen is remembered by name and resolution; if it is not connected, the bar uses the main display.")
+            Text("Screens")
         }
         .nexusGroup("Screens")
         .task { reload() }
@@ -268,9 +268,9 @@ private struct NexusBarOptions: View {
             let options = binding(\.dock, BarModule.dock, fallback: BarDockOptions())
             NexusToggle(title: "Show Running Apps",
                         isOn: options.showRunning)
-            NexusToggle(title: "Smart Groups", tip: "Above 9 apps, related apps share a group that opens on hover. Your most used apps stay single.",
+            NexusToggle(title: "Smart Groups",
                         isOn: options.smartGroups)
-            NexusToggle(title: "Window Previews", tip: "Hovering a running app shows its windows. Thumbnails need Screen Recording permission, otherwise only titles.",
+            NexusToggle(title: "Window Previews", tip: "Thumbnails need Screen Recording.",
                         isOn: options.windowPreviews)
             NexusPick(title: "Icon Size") {
                 Picker("Icon Size", selection: options.iconSize) {
@@ -319,7 +319,7 @@ private struct NexusBarOptions: View {
             }
         case .weather:
             let options = binding(\.weather, BarModule.weather, fallback: BarWeatherOptions())
-            NexusToggle(title: "Show Temperature", tip: "The location is set on the Dashboard page.",
+            NexusToggle(title: "Show Temperature",
                         isOn: options.showTemperature)
         case .dashboardButton, .utilitiesButton, .power, .spacer, .divider, .mediaButton:
             EmptyView()

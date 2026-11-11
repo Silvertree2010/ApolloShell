@@ -35,8 +35,8 @@ struct WidgetOptionsView: View {
         switch widget.kind {
         case .weather:
             let o = binding(\.weather, fallback: DashboardWeatherOptions())
-            NexusToggle(title: "Condition", subtitle: "For example “Partly cloudy”", isOn: o.showCondition)
-            NexusToggle(title: "High and Low", subtitle: "For today", isOn: o.showRange)
+            NexusToggle(title: "Condition", isOn: o.showCondition)
+            NexusToggle(title: "High and Low", isOn: o.showRange)
             places
         case .weatherHero, .weatherHourly, .weatherDaily, .sun:
             places
@@ -56,7 +56,7 @@ struct WidgetOptionsView: View {
                 }
             }
         case .networkInfo:
-            NexusToggle(title: "Public Address", subtitle: "Asked from api.ipify.org when the dashboard opens",
+            NexusToggle(title: "Public Address", subtitle: "Asks api.ipify.org.",
                           isOn: Binding(get: { widget.options.publicAddress != false },
                                         set: { value in update { $0.publicAddress = value } }))
         case .clipboard:
@@ -68,7 +68,7 @@ struct WidgetOptionsView: View {
         case .user:
             let o = binding(\.user, fallback: DashboardUserOptions())
             NexusToggle(title: "macOS Version", isOn: o.showSystem)
-            NexusToggle(title: "Uptime", subtitle: "How long the Mac has been running since starting up", isOn: o.showUptime)
+            NexusToggle(title: "Uptime", isOn: o.showUptime)
         case .clock:
             let o = binding(\.clock, fallback: DashboardClockOptions())
             Picker("Style", selection: o.style) {
@@ -76,7 +76,7 @@ struct WidgetOptionsView: View {
                 Text("In One Row").tag(DashboardClockOptions.Style.inline)
             }
             .pickerStyle(.segmented)
-            NexusToggle(title: "Date", subtitle: "Weekday and day below the time", isOn: o.showDate)
+            NexusToggle(title: "Date", isOn: o.showDate)
             LabeledContent("Time Zone") {
                 Button(NexusTimeZoneText.label(o.wrappedValue.timeZone)) { showsTimeZonePicker = true }
                     .popover(isPresented: $showsTimeZonePicker) {
@@ -93,19 +93,19 @@ struct WidgetOptionsView: View {
                 Text("Sunday").tag(DashboardCalendarOptions.FirstWeekday.sunday)
             }
             .pickerStyle(.segmented)
-            NexusToggle(title: "Week Numbers", subtitle: "To the left of each row", isOn: o.showWeekNumbers)
+            NexusToggle(title: "Week Numbers", isOn: o.showWeekNumbers)
         case .resources:
             let o = binding(\.resources, fallback: DashboardResourcesOptions())
             let current = o.wrappedValue
             let last = [current.showCPU, current.showMemory, current.showStorage].filter { $0 }.count == 1
             NexusToggle(title: "CPU", isOn: o.showCPU).disabled(last && current.showCPU)
             NexusToggle(title: "Memory", isOn: o.showMemory).disabled(last && current.showMemory)
-            NexusToggle(title: "Storage", subtitle: "Space used on the startup volume", isOn: o.showStorage)
+            NexusToggle(title: "Storage", isOn: o.showStorage)
                 .disabled(last && current.showStorage)
         case .media:
             let o = binding(\.media, fallback: DashboardMediaOptions())
-            NexusToggle(title: "Album", subtitle: "Not shown in the small card", isOn: o.showAlbum)
-            NexusToggle(title: "Source", subtitle: "Which app is playing", isOn: o.showSource)
+            NexusToggle(title: "Album", isOn: o.showAlbum)
+            NexusToggle(title: "Source", isOn: o.showSource)
         case .performanceCPU, .performanceGPU, .performanceStorage, .performanceNetwork,
              .performanceMemory, .performanceBattery, .mediaPlayer, .lyrics:
             EmptyView()

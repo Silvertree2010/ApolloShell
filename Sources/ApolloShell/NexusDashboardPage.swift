@@ -223,7 +223,7 @@ private struct NexusUnusedWeather: View {
                         }
                 }
             } header: {
-                NexusTipHeader(title: "Favorites", tip: "The selected favorite is used for the weather. The Dashboard shows a change the next time it opens.")
+                Text("Favorites")
             }
 
             Section {

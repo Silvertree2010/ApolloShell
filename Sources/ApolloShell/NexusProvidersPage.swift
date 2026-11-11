@@ -138,7 +138,7 @@ struct NexusProvidersPage: View {
                 .help(chosen.attribution.url.absoluteString)
             }
         } header: {
-            NexusTipHeader(title: "Weather", tip: "No account or key needed. The place search always uses Open-Meteo.")
+            Text("Weather")
         }
     }
 
@@ -172,7 +172,7 @@ struct NexusProvidersPage: View {
             }
             otherApps
         } header: {
-            NexusTipHeader(title: "File Manager", tip: "Sits at the top of the Dock in Finder's place and is used for “Show in …”. The macOS default for other apps stays as it is.")
+            Text("File Manager")
         }
     }
 
