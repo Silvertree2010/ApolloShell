@@ -710,18 +710,20 @@ struct NexusSettingRow: View {
             let mod = d.modified(in: s)
             let en = d.enabled(in: s)
             let fl = st?.flash == d.id
-            HStack(spacing: 12) {
+            NexusSplit(wide: { if case .choice = d.kind { true } else { false } }()) {
                 NexusLabel(title: Text(d.title), tip: d.help.isEmpty ? nil : Text(d.help))
-                Spacer(minLength: 12)
-                if mod {
-                    Button { store.nxReset(d) } label: {
-                        Image(systemName: "arrow.uturn.backward").font(.system(size: 10.5, weight: .semibold))
+            } trailing: {
+                HStack(spacing: 8) {
+                    if mod {
+                        Button { store.nxReset(d) } label: {
+                            Image(systemName: "arrow.uturn.backward").font(.system(size: 10.5, weight: .semibold))
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Reset to \(d.standardLabel)")
+                        .opacity(hov ? 1 : 0)
                     }
-                    .buttonStyle(.borderless)
-                    .help("Reset to \(d.standardLabel)")
-                    .opacity(hov ? 1 : 0)
+                    NexusControl(d: d, store: store)
                 }
-                NexusControl(d: d, store: store)
             }
             .opacity(en ? 1 : 0.45)
             .disabled(!en)
@@ -881,16 +883,48 @@ struct NexusToggle: View {
     }
 }
 
+struct NexusSplit<L: View, T: View>: View {
+    var wide = true
+    @ViewBuilder let label: L
+    @ViewBuilder let trailing: T
+
+    var body: some View {
+        if !wide {
+            HStack(alignment: .center, spacing: 12) {
+                label
+                Spacer(minLength: 12)
+                trailing.fixedSize()
+            }
+        } else {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 12) {
+                label
+                    .frame(width: 250, alignment: .leading)
+                Spacer(minLength: 12)
+                trailing.fixedSize()
+            }
+            VStack(alignment: .leading, spacing: 9) {
+                label.frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    trailing.fixedSize()
+                }
+            }
+        }
+        }
+    }
+}
+
 struct NexusPick<C: View>: View {
     let title: LocalizedStringKey
     var tip: LocalizedStringKey?
     @ViewBuilder let content: C
 
     var body: some View {
-        HStack(spacing: 12) {
+        NexusSplit {
             NexusLabel(title: Text(title), tip: tip.map { Text($0) })
-            Spacer(minLength: 12)
-            content.labelsHidden().fixedSize()
+        } trailing: {
+            content.labelsHidden()
         }
     }
 }
