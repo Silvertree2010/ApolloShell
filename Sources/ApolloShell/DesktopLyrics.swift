@@ -101,35 +101,53 @@ struct DesktopLyricsView: View {
 
     @ViewBuilder private func content(_ f: LyricsFrame) -> some View {
         let st = model.style
-        let tl = model.timeline
-        ZStack {
-            if let tl, tl.lyrics.synced, model.phase == .ready, let i = f.idx, tl.isSung(i, at: f.pos) || !f.gap {
-                let l = tl.lyrics.lines[i]
-                VStack(spacing: base * 0.25) {
-                    if l.isBreak {
-                        LyricsBreakDots(prog: f.prog, lit: .white, dim: .white.opacity(0.3), size: base * 0.4)
-                    } else {
-                        LyricsLineText(line: l, style: st, size: base, active: true, prog: f.prog, words: f.words,
-                                       lit: .white, dim: .white.opacity(0.38))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.6)
-                            .scaleEffect(1 + f.beat * st.pulse * 0.06)
-                            .offset(x: sin(f.pos * 90) * f.beat * st.shake * 3)
-                    }
-                    if let n = next(tl, i) {
-                        LyricsLineText(line: n, style: st, size: base * 0.5, active: false, prog: 0, words: [],
-                                       lit: .white, dim: .white.opacity(0.55))
-                            .lineLimit(1)
+        GeometryReader { g in
+            if let tl = model.timeline, tl.lyrics.synced, model.phase == .ready {
+                let n = tl.lyrics.lines.count
+                let i = f.idx ?? -1
+                let lo = max(0, i - 1), hi = min(n - 1, i + 2)
+                ZStack {
+                    if lo <= hi {
+                        ForEach(lo...hi, id: \.self) { k in
+                            row(tl.lyrics.lines[k], r: k - i, f: f, st: st, w: g.size.width)
+                                .position(x: g.size.width / 2, y: y(k - i, h: g.size.height))
+                        }
                     }
                 }
-                .shadow(color: .black.opacity(0.55), radius: 10, y: 2)
-                .id(i)
-                .transition(st.enter)
+                .animation(st.snap, value: i)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .animation(st.anim, value: f.idx)
+        .clipped()
+    }
+
+    private func y(_ r: Int, h: CGFloat) -> CGFloat {
+        let c = h * 0.42
+        switch r {
+        case ..<0: return c - base * 2.4
+        case 0: return c
+        case 1: return c + base * 1.45
+        default: return c + base * 3.4
+        }
+    }
+
+    @ViewBuilder private func row(_ l: LyricLine, r: Int, f: LyricsFrame, st: LyricsStyle, w: CGFloat) -> some View {
+        let act = r == 0
+        Group {
+            if l.isBreak {
+                LyricsBreakDots(prog: act ? f.prog : 0, lit: .white, dim: .white.opacity(0.3), size: base * 0.4)
+            } else {
+                LyricsLineText(line: l, style: st, size: base, active: act, prog: act ? f.prog : (r < 0 ? 1 : 0),
+                               words: act ? f.words : l.w.map { _ in r < 0 ? 1 : 0 },
+                               lit: .white, dim: .white.opacity(act ? 0.38 : 0.55), morph: true)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .frame(width: w - 40)
+            }
+        }
+        .shadow(color: .black.opacity(0.5), radius: 8, y: 2)
+        .scaleEffect(act ? 1 + f.beat * st.pulse * 0.06 : 0.5)
+        .offset(x: act ? sin(f.pos * 90) * f.beat * st.shake * 3 : 0)
     }
 
     private func next(_ tl: LyricsTimeline, _ i: Int) -> LyricLine? {

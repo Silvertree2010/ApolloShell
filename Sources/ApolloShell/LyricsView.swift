@@ -33,6 +33,17 @@ extension LyricsStyle {
         }
     }
 
+    var snap: Animation {
+        let d: Double = switch motion {
+        case .slam: 0.62
+        case .pop: 0.66
+        case .rise: 0.74
+        case .drift: 0.86
+        case .fade: 0.8
+        }
+        return .spring(response: min(max(trans * 0.9, 0.24), 0.48), dampingFraction: d)
+    }
+
     var enter: AnyTransition {
         let ins: AnyTransition, out: AnyTransition
         switch motion {
@@ -96,17 +107,18 @@ struct LyricsLineText: View {
     let words: [Double]
     let lit: Color
     let dim: Color
+    var morph = false
 
     var body: some View {
         let s = style.upper ? line.s.uppercased() : line.s
         Group {
-            if active {
+            if active || morph {
                 fill(s)
             } else {
                 Text(s).foregroundStyle(dim)
             }
         }
-        .font(style.font(size, active: active))
+        .font(style.font(size, active: active || morph))
         .tracking(style.tracking * size)
     }
 
