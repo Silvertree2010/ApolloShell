@@ -78,8 +78,10 @@ final class AudioTap: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
             let xs = UnsafeBufferPointer(start: p.assumingMemoryBound(to: Float.self), count: n)
             let hop = Int(fs * LyricsAutoSync.hop)
             var i = 0
-            while i + hop <= n {
-                let seg = UnsafeBufferPointer(rebasing: xs[i..<(i + hop)])
+            while i < n {
+                let j = min(n, i + hop)
+                guard j - i >= hop / 4 else { break }
+                let seg = UnsafeBufferPointer(rebasing: xs[i..<j])
                 let r = AudioPulse.rms(seg)
                 var e = 0.0
                 for x in seg {
@@ -87,8 +89,8 @@ final class AudioTap: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
                     e += y * y
                 }
                 let at = start.addingTimeInterval(Double(i) / fs)
-                sink(r, Double(hop) / fs, at.timeIntervalSinceReferenceDate, (e / Double(hop), at))
-                i += hop
+                sink(r, Double(j - i) / fs, at.timeIntervalSinceReferenceDate, (e / Double(j - i), at))
+                i = j
             }
         }
     }
