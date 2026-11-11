@@ -6,8 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.1.9] - Unreleased
 
-The lyrics update. Everything here is off until you turn it on in
-Nexus > Desktop > Lyrics.
+Lyrics and glitter: synced lyrics, and a Nexus rebuilt from the ground up.
+Lyrics are off until you turn them on in Nexus > Lyrics.
 
 ### Added
 - **Synced lyrics.** Lyrics follow the song word by word where
@@ -34,6 +34,32 @@ Nexus > Desktop > Lyrics.
   on this Mac when it is on, otherwise from the iTunes catalogue; the energy
   comes from the beats it hears.
 - **Live Pulse.** Lines react to loudness and beats.
+
+- **A new Nexus.** The settings window is no longer a copy of System
+  Settings. A narrow rail with a search field on the left, dense cards on
+  the right, and three looks to pick from (Graphite, Glass, Plain) under
+  Themes.
+- **Search finds single settings.** Type "desk ly" and Desktop Lyrics is the
+  first hit, with its switch right in the list. Return jumps to the row and
+  highlights it, ⌘Return switches it without leaving the search. The rail
+  shows how many hits each page has.
+- **You see what you changed.** A dot marks every setting that differs from a
+  fresh install, each row has its own reset, and "modified" at the bottom of
+  the rail (or `@modified` in the search) lists them all with Reset All.
+- **Keyboard first.** ⌘F focuses the search, ⌘1 to ⌘0 switch pages, the arrow
+  keys move through pages and results, Esc clears. Hold ⌘P (or the eye) to
+  see the desktop behind Nexus while you tune something on it.
+- **Help where you need it.** The explanation sits under each setting
+  instead of behind an ⓘ.
+- **Settings in the Launcher.** `>` followed by a few letters switches a
+  setting directly ("> desk ly" turns Desktop Lyrics on) or opens Nexus at
+  it. `ApolloShell --settings lyrics.desktop` does the same from a script.
+- **Shortcut recorder.** Keys show as chips while you press them. A
+  combination that is taken turns red and Return hands it over.
+- Lyrics have their own page in Nexus.
+
+### Changed
+- Nexus fits itself to small screens instead of running off the edge.
 
 ### Privacy
 - Each new song asks lrclib.net once (and itunes.apple.com for its genre
