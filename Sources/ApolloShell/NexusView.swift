@@ -667,10 +667,12 @@ struct NexusLabel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             title.font(.system(size: 13))
+                .lineLimit(1)
             if let tip {
                 tip.font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
         }
     }
@@ -885,6 +887,7 @@ struct NexusSplit<L: View, T: View>: View {
             HStack(alignment: .center, spacing: 12) {
                 label
                     .frame(width: 250, alignment: .leading)
+                    .clipped()
                 Spacer(minLength: 12)
                 trailing.fixedSize()
             }
