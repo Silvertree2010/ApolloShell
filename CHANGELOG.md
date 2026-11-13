@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [0.1.9] - Unreleased
+## [0.1.9] - 2026-11-13
 
 Lyrics and glitter: synced lyrics, and a Nexus rebuilt from the ground up.
 Lyrics are off until you turn them on in Nexus > Lyrics.
