@@ -699,6 +699,14 @@ struct NexusSettingRow: View {
             let fl = st?.flash == d.id
             NexusSplit(wide: { if case .choice = d.kind { true } else { false } }()) {
                 NexusLabel(title: Text(d.title), tip: d.help.isEmpty ? nil : Text(d.help))
+                    .overlay(alignment: .leading) {
+                        Circle()
+                            .fill(style.accent)
+                            .frame(width: 5, height: 5)
+                            .scaleEffect(mod ? 1 : 0.01)
+                            .offset(x: -10)
+                            .animation(.spring(response: 0.24, dampingFraction: 0.55), value: mod)
+                    }
             } trailing: {
                 HStack(spacing: 8) {
                     if mod {
@@ -714,14 +722,6 @@ struct NexusSettingRow: View {
             }
             .opacity(en ? 1 : 0.45)
             .disabled(!en)
-            .overlay(alignment: .leading) {
-                Circle()
-                    .fill(style.accent)
-                    .frame(width: 5, height: 5)
-                    .scaleEffect(mod ? 1 : 0.01)
-                    .offset(x: -10)
-                    .animation(.spring(response: 0.24, dampingFraction: 0.55), value: mod)
-            }
             .background {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
                     .fill(style.accent.opacity(fl ? 0.18 : 0))
@@ -911,6 +911,11 @@ struct NexusSplit<L: View, T: View>: View {
                 label
                     .frame(width: 250, alignment: .leading)
                     .clipped()
+                Spacer(minLength: 12)
+                trailing.fixedSize()
+            }
+            HStack(alignment: .center, spacing: 12) {
+                label.fixedSize()
                 Spacer(minLength: 12)
                 trailing.fixedSize()
             }
