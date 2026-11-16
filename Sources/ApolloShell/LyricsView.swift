@@ -155,7 +155,7 @@ struct LyricsScroller: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        TimelineView(.animation(paused: !(model.media.nowPlaying?.isPlaying ?? false))) { ctx in
+        TimelineView(.animation(minimumInterval: 1.0 / 60, paused: !(model.media.nowPlaying?.isPlaying ?? false))) { ctx in
             let f = LyricsFrame(model, at: ctx.date)
             content(f)
         }

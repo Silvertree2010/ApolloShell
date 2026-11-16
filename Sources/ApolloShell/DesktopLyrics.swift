@@ -48,17 +48,28 @@ final class DesktopLyrics {
     }
 }
 
+@MainActor @Observable
+final class DesktopLyricsSight {
+    var shown = true
+}
+
 @MainActor
 private final class DesktopLyricsWindow {
     private let window: ShellPanel
+    private let sight = DesktopLyricsSight()
+    private var occ: NSObjectProtocol?
 
     init(model: LyricsModel) {
-        let h = NSHostingView(rootView: DesktopLyricsView(model: model).shellTheme())
+        let h = NSHostingView(rootView: DesktopLyricsView(model: model, sight: sight).shellTheme())
         h.sizingOptions = []
         window = ShellPanel(level: Self.wallpaper, behavior: [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary],
                             deferred: false)
         window.ignoresMouseEvents = true
         window.contentView = h
+        let (w, v) = (window, sight)
+        occ = NotificationCenter.default.addObserver(forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) { _ in
+            MainActor.assumeIsolated { v.shown = w.occlusionState.contains(.visible) }
+        }
     }
 
     static let wallpaper = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
@@ -83,15 +94,18 @@ private final class DesktopLyricsWindow {
 
     func tearDown() {
         window.orderOut(nil)
+        if let o = occ { NotificationCenter.default.removeObserver(o) }
+        occ = nil
     }
 }
 
 struct DesktopLyricsView: View {
     let model: LyricsModel
+    let sight: DesktopLyricsSight
     var base: CGFloat = 44
 
     var body: some View {
-        TimelineView(.animation(paused: !(model.media.nowPlaying?.isPlaying ?? false))) { ctx in
+        TimelineView(.animation(minimumInterval: 1.0 / 60, paused: !(model.media.nowPlaying?.isPlaying ?? false) || !sight.shown)) { ctx in
             let f = LyricsFrame(model, at: ctx.date)
             content(f)
         }
