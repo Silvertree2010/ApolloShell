@@ -4,9 +4,12 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.9.1] - 2026-11-24
+
+Fixes from a user report (#12) and a CPU fix for desktop lyrics.
 
 ### Fixed
+
 - **The bar now steps aside for games and players that fill the screen
   without a full-screen Space** - borderless windows the size of the screen
   and exclusive full screen (Civ 6 and others,
@@ -14,6 +17,9 @@ All notable changes to this project are documented here. The format follows
   back as soon as another app's window is in front. Transparent overlays of
   tools running in the background don't count, and the window guard no
   longer tries to push such a window out of the bar's strip.
+- Desktop lyrics kept redrawing at the full display rate while windows
+  covered them, which kept ApolloShell near 50 % CPU during playback. They
+  pause while covered now, and lyrics animate at most at 60 fps.
 
 ## [0.1.9] - 2026-11-13
 
