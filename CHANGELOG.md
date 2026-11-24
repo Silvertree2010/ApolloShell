@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- **The bar now steps aside for games and players that fill the screen
+  without a full-screen Space** - borderless windows the size of the screen
+  and exclusive full screen (Civ 6 and others,
+  [#12](https://github.com/Silvertree2010/ApolloShell/issues/12)). It comes
+  back as soon as another app's window is in front. Transparent overlays of
+  tools running in the background don't count, and the window guard no
+  longer tries to push such a window out of the bar's strip.
+
 ## [0.1.9] - 2026-11-13
 
 Lyrics and glitter: synced lyrics, and a Nexus rebuilt from the ground up.

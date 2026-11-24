@@ -471,6 +471,9 @@ final class WindowGuardWorker: @unchecked Sendable {
               // liegt - und geschoben wird nur dort, wo eine Leiste steht.
               let index = WindowClamp.dominantScreen(for: frame, among: screens.map(\.frame)),
               screens[index].reservedWidth > 0,
+              // Randloses Vollbild (Spiele, Player): das Fenster deckt den
+              // ganzen Bildschirm, die Leiste tritt dort ab.
+              !ScreenCover.covers(frame, screens[index].frame),
               let target = WindowClamp.clampedFrame(
                   window: frame, screen: screens[index].frame,
                   reservedWidth: screens[index].reservedWidth, side: screens[index].side, minWidth: minWidths[window] ?? 0
